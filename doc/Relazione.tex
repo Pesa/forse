@@ -1,0 +1,113 @@
+\documentclass[11pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[pdftex]{hyperref}
+\usepackage{tabularx}
+
+\hypersetup{
+	breaklinks,
+	colorlinks,
+	linkcolor=blue,
+	pdftitle={Relazione},
+	pdfsubject={Relazione sul progetto di Sistemi Concorrenti e Distribuiti},
+	pdfauthor={Daniele Battaglia \& Davide Pesavento},
+	pdfcreator={TeXLive-2008},
+	pdfproducer={TeXLive-2008}
+}
+
+\title{Relazione sul progetto}
+\author{Daniele Battaglia\\\url{dbat.fk@gmail.com}
+	\and Davide Pesavento\\\url{davidepesa@gmail.com}}
+\date{}
+
+\newcommand{\term}[2]{\textbf{#1} & #2 \\}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\clearpage
+
+\chapter{Requisiti}
+\begin{enumerate}
+    \item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
+    \item Il sistema si evolve in modo deterministico.
+    \item Il circuito è suddiviso in segmenti ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
+    \begin{itemize}
+        \item[--] tipo di segmento (rettilineo, curvilineo, entrata e uscita dai box, intermedio cronometrico, traguardo);
+        \item[--] lunghezza e larghezza del segmento;
+        \item[--] se il segmento è una curva, direzione (destra o sinistra) e raggio di curvatura;
+        \item[--] pendenza del suolo;
+        \item[--] tempo atmosferico e temperatura iniziali;
+        \item[--] eventuali variazioni del tempo atmosferico e della temperatura nel corso della gara.
+    \end{itemize}
+    \item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
+    \begin{itemize}
+        \item[--] una scuderia di appartenenza;
+        \item[--] esperienza/bravura;
+        \item[--] peso;
+        \item[--] vettura utilizzata.
+    \end{itemize}
+    \item Parametri di configurazione delle auto:
+    \begin{itemize}
+        \item[--] quantità di carburante iniziale;
+        \item[--] capienza del serbatoio;
+        \item[--] tipo di pneumatici montato ad inizio gara (da asciutto, intermedio, da bagnato);
+        \item[--] potenza del motore;
+        \item[--] efficienza dei freni;
+        \item[--] peso a secco.
+    \end{itemize}
+    \item Parametri di configurazione di una competizione:
+    \begin{itemize}
+        \item[--] durata delle qualifiche;
+        \item[--] numero totale di giri da effettuare nella gara;
+        \item[--] durata massima della gara.
+    \end{itemize}
+    \item Sistema di controllo (\textit{logging}):
+    \begin{itemize}
+        \item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale sul giro e tempo migliore sul giro;
+        \item[--] situazione atmosferica della pista;
+        \item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali.
+    \end{itemize}
+\end{enumerate}
+
+\chapter{\textit{Brainstorming}}
+Finora abbiamo preso in considerazione tre potenziali soluzioni.
+
+\section*{Soluzione 1}
+Vetture $\Rightarrow$ entità attive \\
+Segmenti del tracciato $\Rightarrow$ entità passive \\
+
+Per spostarsi da un segmento $S_1$ ad un altro segmento $S_2$ adiacente e successivo a $S_1$, una vettura deve assicurarsi che almeno una corsia di $S_2$ raggiungibile da $S_1$ sia libera, quindi dovrà già essere entrata nella regione protetta di una corsia di $S_2$. Il passaggio sarà completo quando la vettura esce dalla regione protetta di $S_1$ (e questo è un problema non banale). L'entità ``segmento'' espone solo un canale tipato. Le vetture dovranno fornire il numero della corsia da cui provengono e la logica che realizza i sorpassi è implementata nei segmenti effettuando una \texttt{requeue} presso la corsia appropriata.
+
+\section*{Soluzione 2}
+Segmenti del tracciato $\Rightarrow$ entità attive \\
+Vetture $\Rightarrow$ oggetti che vengono scambiati come parametri \\
+
+Ciascuna corsia di ciascun segmento è internamente suddivisa in tanti piccoli pezzi, ciascuno dei quali è dotato di una coda contenente le vetture in transito, ordinate per tempo di percorrenza crescente. L'entità ``segmento'' è in ascolto su un canale tipato asincrono, in attesa che il segmento precedente gli invii una nuova vettura. L'attesa prevede un \textit{timeout} pari al minimo tempo di percorrenza di tutte le vettura già accodate su ogni sottosegmento di ogni corsia. Non appena scade il \textit{timeout}, tutte le vetture con tempo di percorrenza pari al \textit{timeout} vengono fatte avanzare al sottosegmento successivo oppure inviate al segmento successivo. Come gestire canali e sorpassi? Usare un \textit{thread pool} per le vetture?
+
+\section*{Soluzione 3}
+Vetture $\Rightarrow$ entità attive \\
+Segmenti del tracciato $\Rightarrow$ entità passive \\
+
+Dopo aver calcolato il tempo di uscita della vettura dal segmento $S_i$, esso verrà immediatamente comunicato al segmento $S_{i+1}$ che lo inserirà in un'apposita struttura dati. I canali di ingresso in un settore hanno delle guardie che permettono l'accesso alle vetture solo nell'ordine prestabilito.
+
+\chapter{Architettura del sistema}
+\section{Alternative}
+
+\chapter{Dettagli di progettazione}
+\section{Correttezza}
+
+\appendix
+
+\chapter{Glossario}
+
+\begin{tabularx}{\textwidth}{lX}
+\term{Intermedio cronometrico}{}
+\term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
+\term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
+\end{tabularx}
+
+\end{document}
