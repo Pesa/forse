@@ -7,7 +7,8 @@
 		 start_simulation/0,
 		 pause_simulation/0,
 		 queue_work/2,
-		 return_token/1]).
+		 work_done/0,
+		 work_done/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -16,6 +17,8 @@
 		 handle_info/2,
 		 terminate/2,
 		 code_change/3]).
+
+-define(GLOBAL_NAME, {global, ?MODULE}).
 
 -record(state, {running,
 				slowdown,
@@ -27,20 +30,25 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
 start_link() ->
-	gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
 start_simulation() ->
-	gen_server:call(?MODULE, {start}).
+	gen_server:call(?GLOBAL_NAME, {start}).
 
 pause_simulation() ->
-	gen_server:call(?MODULE, {pause}).
+	gen_server:call(?GLOBAL_NAME, {pause}).
 
 queue_work(Time, {Mod, Fun, Args}) ->
-	gen_server:call(?MODULE, {queue_work, Time, {Mod, Fun, Args}}).
+	gen_server:call(?GLOBAL_NAME, {enqueue, Time, {Mod, Fun, Args}}, infinity).
 
-return_token(NextTime) ->
-	gen_sever:call(?MODULE, {return_token, NextTime}).
+work_done() ->
+	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
+
+work_done(Time, {Mod, Fun, Args}) ->
+	queue_work(Time, {Mod, Fun, Args}),
+	work_done().
 
 
 %% ====================================================================
@@ -56,8 +64,8 @@ return_token(NextTime) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	ok = timer:start(),
 	% TODO: populate slowdown and workqueue from config file
+	%file:consult(...),
 	{ok, #state{running = false, workqueue = []}}.
 
 %% --------------------------------------------------------------------
@@ -86,29 +94,19 @@ handle_call({start}, _From, State) ->
 
 handle_call({pause}, _From, State) ->
 	if State#state.current_timer /= undefined ->
-		timer:cancel(State#state.current_timer)
+		erlang:cancel_timer(State#state.current_timer)
 	end,
 	NewState = State#state{running = false, current_timer = undefined},
 	{reply, ok, NewState};
 
-handle_call({queue_work, Time, {M, F, A}}, _From, State) ->
+handle_call({enqueue, Time, {M, F, A}}, _From, State) ->
 	CurrentList = State#state.workqueue,
 	NewState = #state{workqueue = insert({Time, M, F, A}, CurrentList)},
+	% TODO: refresh timer
 	{reply, ok, NewState};
 
-handle_call({return_token, NextTime}, _From, State) ->
-	{OldTime, M, F, A} = State#state.token_owner,
-	UpdatedQueue = insert({NextTime, M, F, A}, State#state.workqueue),
-	NewState = State#state{token_owner = undefined, workqueue = UpdatedQueue},
-	if
-		State#state.running ->
-			[{HeadTime, _} | _] = UpdatedQueue,
-			% TODO: implement slowdown factor
-			{ok, Timer} = timer:send_after(HeadTime - OldTime, timeout),
-			{reply, ok, NewState#state{current_timer = Timer}};
-		true ->
-			{reply, ok, NewState}
-	end.
+handle_call({done}, _From, State) ->
+	{reply, ok, State#state{token_owner = undefined}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -127,11 +125,10 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_info(timeout, State) when State#state.running ->
-	% TODO ???
+handle_info({timeout, _Timer, wakeup}, State) when State#state.running ->
 	{noreply, process_next(State)};
-handle_info(timeout, State) ->
-	{noreply, State}.
+handle_info({timeout, _Timer, wakeup}, State) ->
+	{noreply, State#state{current_timer = undefined}}.
 
 %% --------------------------------------------------------------------
 %% Function: terminate/2
@@ -154,13 +151,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-insert({Time, M, F, A}, List) ->
+insert({Time, M, F, A}, List) when is_list(List) ->
 	[ X || X <- List, element(1, X) =< Time ]
 	++ [{Time, M, F, A}] ++
 	[ X || X <- List, element(1, X) > Time ].
 
-process_next(State) ->
+process_next(State) when is_record(State, state) ->
 	[{Time, M, F, A} | Tail] = State#state.workqueue,
+	NewState = State#state{current_timer = setup_timer(Time, Tail),
+						   token_owner = {Time, M, F, A},
+						   workqueue = Tail},
 	% send the token by invoking the provided callback
 	apply(M, F, [Time] ++ A),
-	State#state{token_owner = {Time, M, F, A}, workqueue = Tail}.
+	NewState.
+
+setup_timer(CurrentTime, [{NextTime, _} | _]) ->
+	% TODO: implement slowdown factor
+	erlang:start_timer(NextTime - CurrentTime, ?MODULE, wakeup);
+setup_timer(_CurrentTime, []) ->
+	undefined.
