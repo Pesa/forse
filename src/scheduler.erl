@@ -4,11 +4,10 @@
 
 %% External exports
 -export([start_link/0,
+		 set_speedup/1,
 		 start_simulation/0,
 		 pause_simulation/0,
-		 queue_work/2,
-		 work_done/0,
-		 work_done/2]).
+		 queue_work/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -18,13 +17,18 @@
 		 terminate/2,
 		 code_change/3]).
 
+-include("common.hrl").
+
 -define(GLOBAL_NAME, {global, ?MODULE}).
 
--record(state, {running,
-				slowdown,
-				current_timer,
-				token_owner,
-				workqueue}).
+-record(timing, {timer,
+				 start,
+				 expiry,
+				 speedup = 1}).
+-record(state, {running = false,
+				token_available = true,
+				timing_info = #timing{},
+				workqueue = []}).
 
 
 %% ====================================================================
@@ -34,6 +38,9 @@
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
+set_speedup(NewSpeedup) ->
+	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
+
 start_simulation() ->
 	gen_server:call(?GLOBAL_NAME, {start}).
 
@@ -42,13 +49,6 @@ pause_simulation() ->
 
 queue_work(Time, {Mod, Fun, Args}) ->
 	gen_server:call(?GLOBAL_NAME, {enqueue, Time, {Mod, Fun, Args}}, infinity).
-
-work_done() ->
-	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
-
-work_done(Time, {Mod, Fun, Args}) ->
-	queue_work(Time, {Mod, Fun, Args}),
-	work_done().
 
 
 %% ====================================================================
@@ -64,9 +64,9 @@ work_done(Time, {Mod, Fun, Args}) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	% TODO: populate slowdown and workqueue from config file
-	%file:consult(...),
-	{ok, #state{running = false, workqueue = []}}.
+	% TODO: populate speedup and workqueue from config file
+	% usando file:consult(...)
+	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -78,35 +78,38 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({speedup, NewSpeedup}, _From, State) ->
+	% FIXME: mettere l'aggiornamento dello speedup in testa alla workqueue?
+	NewTiming = (State#state.timing_info)#timing{speedup = NewSpeedup},
+	{reply, ok, State#state{timing_info = NewTiming}};
+
 handle_call({start}, _From, State) when not State#state.running ->
 	NewState = State#state{running = true},
-	if
-		State#state.token_owner == undefined ->
-			% we have the token: process the next item on the workqueue
-			{reply, ok, process_next(NewState)};
-		true ->
-			% someone else has the token: don't do anything
-			{reply, ok, NewState}
-	end;
+	{reply, ok, process_next(NewState)};
 handle_call({start}, _From, State) ->
 	% the scheduler is already running
 	{reply, ok, State};
 
 handle_call({pause}, _From, State) ->
-	if State#state.current_timer /= undefined ->
-		erlang:cancel_timer(State#state.current_timer)
-	end,
-	NewState = State#state{running = false, current_timer = undefined},
-	{reply, ok, NewState};
+	NewTiming = reset_timing(State#state.timing_info),
+	{reply, ok, State#state{running = false,
+							timing_info = NewTiming}};
 
 handle_call({enqueue, Time, {M, F, A}}, _From, State) ->
-	CurrentList = State#state.workqueue,
-	NewState = #state{workqueue = insert({Time, M, F, A}, CurrentList)},
-	% TODO: refresh timer
-	{reply, ok, NewState};
+	% enqueue the new work
+	NewQueue = insert({Time, M, F, A}, State#state.workqueue),
+	% update the timer if needed
+	NewTiming = recalculate_timer(State#state.timing_info, NewQueue),
+	{reply, ok, State#state{timing_info = NewTiming,
+							workqueue = NewQueue}};
 
 handle_call({done}, _From, State) ->
-	{reply, ok, State#state{token_owner = undefined}}.
+	NewState = State#state{token_available = true},
+	{reply, ok, process_next(NewState)};
+
+handle_call(Msg, From, State) ->
+	?WARN({"unhandled call", Msg, "from", From}),
+	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -115,7 +118,8 @@ handle_call({done}, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+	?WARN({"unhandled cast", Msg}),
 	{noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -125,10 +129,13 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_info({timeout, _Timer, wakeup}, State) when State#state.running ->
-	{noreply, process_next(State)};
 handle_info({timeout, _Timer, wakeup}, State) ->
-	{noreply, State#state{current_timer = undefined}}.
+	NewState = State#state{timing_info = reset_timing(State#state.timing_info)},
+	{noreply, process_next(NewState)};
+
+handle_info(Msg, State) ->
+	?WARN({"unhandled info", Msg}),
+	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: terminate/2
@@ -148,25 +155,69 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 %% --------------------------------------------------------------------
-%%% Internal functions
+%% Internal functions
 %% --------------------------------------------------------------------
+
+process_next(State) when State#state.running
+					andalso State#state.token_available
+					andalso (State#state.timing_info)#timing.timer == undefined ->
+	% all the preconditions are met: process the next item on the workqueue
+	[{Time, M, F, A} | Tail] = State#state.workqueue,
+	% start a new timer
+	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
+	% send the token by invoking the provided callback in a separate process
+	spawn_link(?MODULE, give_token, [M, F, [Time] ++ A]),
+	State#state{token_available = false,
+				timing_info = NewTiming,
+				workqueue = Tail};
+process_next(State) ->
+	State.
+
+give_token(Mod, Fun, Args) ->
+	case apply(Mod, Fun, Args) of
+		{requeue, Time, {M, F, A}} ->
+			queue_work(Time, {M, F, A});
+		done ->
+			true;
+		Else ->
+			?WARN({"worker", {Mod, Fun, Args}, "returned unexpected value", Else})
+	end,
+	work_done().
+
+work_done() ->
+	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
+
+new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
+	SleepAmount = (NextTime - CurrentTime) div Timing#timing.speedup,
+	Timing#timing{timer = start_timer(SleepAmount),
+				  start = CurrentTime,
+				  expiry = NextTime};
+new_timer(Timing, [{CurrentTime, _}]) ->
+	Timing#timing{timer = undefined,
+				  start = CurrentTime,
+				  expiry = undefined}.
+
+recalculate_timer(#timing{timer = undefined, start = Start, speedup = Speedup}, [{NextTime, _} | _]) ->
+	new_timer(#timing{speedup = Speedup}, [{Start, unused}, {NextTime, unused}]);
+recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _]) ->
+	Timing;
+recalculate_timer(#timing{timer = Timer, expiry = Expiry, speedup = Speedup}, [{NextTime, _} | _]) ->
+	SleepAmount = erlang:cancel_timer(Timer) - ((Expiry - NextTime) div Speedup),
+	#timing{timer = start_timer(SleepAmount),
+			start = boh, % FIXME
+			expiry = NextTime,
+			speedup = Speedup}.
+
+start_timer(SleepAmount) ->
+	erlang:start_timer(erlang:max(0, SleepAmount), ?MODULE, wakeup).
+
+reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
+	if Timer /= undefined ->
+		erlang:cancel_timer(Timer)
+	end,
+	#timing{speedup = Speedup}.
 
 insert({Time, M, F, A}, List) when is_list(List) ->
 	[ X || X <- List, element(1, X) =< Time ]
 	++ [{Time, M, F, A}] ++
 	[ X || X <- List, element(1, X) > Time ].
-
-process_next(State) when is_record(State, state) ->
-	[{Time, M, F, A} | Tail] = State#state.workqueue,
-	NewState = State#state{current_timer = setup_timer(Time, Tail),
-						   token_owner = {Time, M, F, A},
-						   workqueue = Tail},
-	% send the token by invoking the provided callback
-	apply(M, F, [Time] ++ A),
-	NewState.
-
-setup_timer(CurrentTime, [{NextTime, _} | _]) ->
-	% TODO: implement slowdown factor
-	erlang:start_timer(NextTime - CurrentTime, ?MODULE, wakeup);
-setup_timer(_CurrentTime, []) ->
-	undefined.
