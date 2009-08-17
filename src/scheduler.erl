@@ -64,6 +64,7 @@ queue_work(Time, {Mod, Fun, Args}) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	?DBG("initializing ..."),
 	% TODO: populate speedup and workqueue from config file
 	% usando file:consult(...)
 	{ok, #state{}}.
@@ -79,10 +80,12 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({speedup, NewSpeedup}, _From, State) ->
+	?DBG({"changing speedup factor to", NewSpeedup}),
 	NewTiming = (State#state.timing_info)#timing{speedup = NewSpeedup},
 	{reply, ok, State#state{timing_info = NewTiming}};
 
 handle_call({start}, _From, State) when not State#state.running ->
+	?DBG("starting/resuming execution ..."),
 	NewState = State#state{running = true},
 	{reply, ok, process_next(NewState)};
 handle_call({start}, _From, State) ->
@@ -90,11 +93,13 @@ handle_call({start}, _From, State) ->
 	{reply, ok, State};
 
 handle_call({pause}, _From, State) ->
+	?DBG("pausing execution ..."),
 	NewTiming = reset_timing(State#state.timing_info),
 	{reply, ok, State#state{running = false,
 							timing_info = NewTiming}};
 
 handle_call({enqueue, Time, {M, F, A}}, _From, State) ->
+	?DBG({"enqueuing new work", {M, F, A}, "at time", Time}),
 	% enqueue the new work
 	NewQueue = insert({Time, M, F, A}, State#state.workqueue),
 	% update the timer if needed
@@ -103,6 +108,7 @@ handle_call({enqueue, Time, {M, F, A}}, _From, State) ->
 							workqueue = NewQueue}};
 
 handle_call({done}, _From, State) ->
+	?DBG("got the token back."),
 	NewState = State#state{token_available = true},
 	{reply, ok, process_next(NewState)};
 
@@ -129,7 +135,9 @@ handle_cast(Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_info({timeout, _Timer, wakeup}, State) ->
-	NewState = State#state{timing_info = reset_timing(State#state.timing_info)},
+	Timing = State#state.timing_info,
+	?DBG({"timer started at", Timing#timing.start, "expired at", Timing#timing.expiry}),
+	NewState = State#state{timing_info = reset_timing(Timing)},
 	{noreply, process_next(NewState)};
 
 handle_info(Msg, State) ->
@@ -141,7 +149,8 @@ handle_info(Msg, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(Reason, _State) ->
+	?DBG({"shutting down with reason", Reason}),
 	ok.
 
 %% --------------------------------------------------------------------
@@ -165,11 +174,13 @@ process_next(State) when State#state.running
 	% start a new timer
 	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
 	% send the token by invoking the provided callback in a separate process
+	?DBG({"sending token to", {M, F, A}, "at time", Time}),
 	spawn_link(?MODULE, give_token, [M, F, [Time] ++ A]),
 	State#state{token_available = false,
 				timing_info = NewTiming,
 				workqueue = Tail};
 process_next(State) ->
+	?DBG("preconditions not satisfied."),
 	State.
 
 give_token(Mod, Fun, Args) ->
@@ -187,6 +198,7 @@ work_done() ->
 	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
 
 new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
+	?DBG({"starting timer at", CurrentTime, "expiring at", NextTime}),
 	SleepAmount = (NextTime - CurrentTime) div Timing#timing.speedup,
 	Timing#timing{timer = start_timer(SleepAmount),
 				  start = CurrentTime,
@@ -201,6 +213,7 @@ recalculate_timer(#timing{timer = undefined, start = Start, speedup = Speedup}, 
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _]) ->
 	Timing;
 recalculate_timer(#timing{timer = Timer, expiry = Expiry, speedup = Speedup}, [{NextTime, _} | _]) ->
+	?DBG({"adjusting timer to expire at", NextTime}),
 	RemainingTime = erlang:cancel_timer(Timer),
 	SleepAmount = RemainingTime - ((Expiry - NextTime) div Speedup),
 	#timing{timer = start_timer(SleepAmount),
@@ -212,8 +225,10 @@ start_timer(SleepAmount) ->
 	erlang:start_timer(erlang:max(0, SleepAmount), ?MODULE, wakeup).
 
 reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
+	?DBG("  resetting timing info ..."),
 	if Timer /= undefined ->
-		erlang:cancel_timer(Timer)
+		erlang:cancel_timer(Timer),
+		?DBG("    timer canceled.")
 	end,
 	#timing{speedup = Speedup}.
 
