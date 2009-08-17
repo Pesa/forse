@@ -79,7 +79,6 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({speedup, NewSpeedup}, _From, State) ->
-	% FIXME: mettere l'aggiornamento dello speedup in testa alla workqueue?
 	NewTiming = (State#state.timing_info)#timing{speedup = NewSpeedup},
 	{reply, ok, State#state{timing_info = NewTiming}};
 
@@ -202,9 +201,10 @@ recalculate_timer(#timing{timer = undefined, start = Start, speedup = Speedup}, 
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _]) ->
 	Timing;
 recalculate_timer(#timing{timer = Timer, expiry = Expiry, speedup = Speedup}, [{NextTime, _} | _]) ->
-	SleepAmount = erlang:cancel_timer(Timer) - ((Expiry - NextTime) div Speedup),
+	RemainingTime = erlang:cancel_timer(Timer),
+	SleepAmount = RemainingTime - ((Expiry - NextTime) div Speedup),
 	#timing{timer = start_timer(SleepAmount),
-			start = boh, % FIXME
+			start = Expiry - RemainingTime * Speedup,
 			expiry = NextTime,
 			speedup = Speedup}.
 
