@@ -1,11 +1,7 @@
 -module(weather_backend).
 
 -behaviour(gen_server).
-%% --------------------------------------------------------------------
-%% Include files
-%% --------------------------------------------------------------------
 
-%% --------------------------------------------------------------------
 %% External exports
 -export([start_link/0]).
 
@@ -17,10 +13,9 @@
 		 terminate/2,
 		 code_change/3]).
 
--define(GLOBAL_NAME, {global, ?MODULE}).
--define(LOCAL_NAME, {local, ?MODULE}).
+-include("common.hrl").
 
--record(state, {observers}).
+-record(state, {observers = []}).
 
 %% ====================================================================
 %% External functions
@@ -43,7 +38,7 @@ start_link() ->
 %% --------------------------------------------------------------------
 init([]) ->
 	%TODO read observers list from mnesia in case of crash
-    {ok, #state{observers = []}}.
+    {ok, #state{}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -56,8 +51,7 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+	{reply, ok, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -104,6 +98,5 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% --------------------------------------------------------------------
-%%% Internal functions
+%% Internal functions
 %% --------------------------------------------------------------------
-

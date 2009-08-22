@@ -1,11 +1,7 @@
 -module(event_dispatcher).
 
 -behaviour(gen_server).
-%% --------------------------------------------------------------------
-%% Include files
-%% --------------------------------------------------------------------
 
-%% --------------------------------------------------------------------
 %% External exports
 -export([start_link/0, 
 		 subscribe/1,
@@ -19,7 +15,8 @@
 		 terminate/2,
 		 code_change/3]).
 
--define(GLOBAL_NAME, {global, ?MODULE}).
+-include("common.hrl").
+
 -define(PITSTOP_OBS, [debug_log_backend, team_backend, race_info_backend]).
 -define(CHRONO_OBS, [debug_log_backend, team_backend, race_info_backend]).
 -define(SURPASS_OBS, [debug_log_backend, team_backend, race_info_backend]).
@@ -27,12 +24,20 @@
 
 -record(state, {}).
 
+
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
+
+subscribe(Service) ->
+	gen_server:call(?GLOBAL_NAME, {subscribe, Service}, infinity).
+
+log(Msg) ->
+	gen:server_call(?GLOBAL_NAME, Msg, infinity).
+
 
 %% ====================================================================
 %% Server functions
@@ -86,7 +91,6 @@ handle_call({weather_notification, Args}, _From, State) ->
 	internal_dispatching({weather_notification, Args}, ?WEATHER_OBS),
 	{reply, ok, State}.
 
-
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
 %% Description: Handling cast messages
@@ -123,8 +127,9 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+
 %% --------------------------------------------------------------------
-%%% Internal functions
+%% Internal functions
 %% --------------------------------------------------------------------
 
 %% --------------------------------------------------------------------
@@ -143,25 +148,10 @@ service_map(Service) ->
 
 %% --------------------------------------------------------------------
 %% Func: internal_dispatching/2
-%% Purpose: Casts Msg to all process in list
-%% Returns: atom
+%% Purpose: Casts Msg to all processes in the list
 %% --------------------------------------------------------------------
-
 internal_dispatching(Msg, [Head | Tail]) ->
 	gen_server:cast(Head, Msg),
 	internal_dispatching(Msg, Tail);
-
 internal_dispatching(_Msg, []) ->
 	ok.
-
-%% --------------------------------------------------------------------
-%% Func: subscribe/1
-%% Purpose: Wraps
-%% Returns: atom
-%% --------------------------------------------------------------------
-
-subscribe(Service) ->
-	gen_server:call(?GLOBAL_NAME, {subscribe, Service}, infinity).
-
-log(Msg) ->
-	gen:server_call(?GLOBAL_NAME, Msg, infinity).

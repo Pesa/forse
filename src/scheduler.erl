@@ -19,8 +19,6 @@
 
 -include("common.hrl").
 
--define(GLOBAL_NAME, {global, ?MODULE}).
-
 -record(timing, {timer,
 				 start,
 				 expiry,
