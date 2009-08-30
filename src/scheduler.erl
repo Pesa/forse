@@ -224,9 +224,12 @@ start_timer(SleepAmount) ->
 
 reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
 	?DBG("  resetting timing info ..."),
-	if Timer /= undefined ->
-		erlang:cancel_timer(Timer),
-		?DBG("    timer canceled.")
+	case Timer of
+		undefined ->
+			true;
+		_ ->
+			erlang:cancel_timer(Timer),
+			?DBG("    timer canceled.")
 	end,
 	#timing{speedup = Speedup}.
 
