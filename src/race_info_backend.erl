@@ -66,22 +66,22 @@ handle_cast({subscribe, From}, State) ->
 	NewState = State#state{observers = [From | OldObs]}, 
     {noreply, NewState};
 
-handle_cast({pitstop_notification, _Args}, State) ->
+handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
-handle_cast({chrono_notification, _Args}, State) ->
+handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
-handle_cast({surpass_notification, _Args}, State) ->
+handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
-handle_cast({weather_notification, _Args}, State) ->
+handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State}.

@@ -75,20 +75,20 @@ handle_call({subscribe, Service}, From, State) ->
 
 % Race messages
 
-handle_call({pitstop_notification, Args}, _From, State) ->
-	internal_dispatching({pitstop_notification, Args}, ?PITSTOP_OBS),
+handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
+	internal_dispatching(Msg, ?PITSTOP_OBS),
 	{reply, ok, State};
 
-handle_call({chrono_notification, Args}, _From, State) ->
-	internal_dispatching({chrono_notification, Args}, ?CHRONO_OBS),
+handle_call(Msg, _From, State) when is_record(Msg, chrono_notif)->
+	internal_dispatching(Msg, ?CHRONO_OBS),
 	{reply, ok, State};
 
-handle_call({surpass_notification, Args}, _From, State) ->
-	internal_dispatching({surpass_notification, Args}, ?SURPASS_OBS),
+handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
+	internal_dispatching(Msg, ?SURPASS_OBS),
 	{reply, ok, State};
 
-handle_call({weather_notification, Args}, _From, State) ->
-	internal_dispatching({weather_notification, Args}, ?WEATHER_OBS),
+handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
+	internal_dispatching(Msg, ?WEATHER_OBS),
 	{reply, ok, State}.
 
 %% --------------------------------------------------------------------

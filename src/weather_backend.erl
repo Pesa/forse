@@ -66,7 +66,7 @@ handle_cast({subscribe, From}, State) ->
 	NewState = State#state{observers = [From | OldObs]}, 
     {noreply, NewState};
 
-handle_cast({weather_notification, _Args}, State) ->
+handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State}.
