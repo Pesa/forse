@@ -119,7 +119,7 @@ terminate(_Reason, _State) ->
     ok.
 
 %% --------------------------------------------------------------------
-%% Func: code_change/3
+%% Function: code_change/3
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %% --------------------------------------------------------------------
@@ -132,8 +132,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 %% --------------------------------------------------------------------
-%% Func: service_map/1
-%% Purpose: Map from services to dispatcher backends
+%% Function: service_map/1
+%% Purpose: Mapping from services to dispatcher backends
 %% Returns: atom
 %% --------------------------------------------------------------------
 service_map(Service) ->
@@ -146,11 +146,8 @@ service_map(Service) ->
 	end.
 
 %% --------------------------------------------------------------------
-%% Func: internal_dispatching/2
-%% Purpose: Casts Msg to all processes in the list
+%% Function: internal_dispatching/2
+%% Purpose: Casts Msg to all processes in the Destinations list
 %% --------------------------------------------------------------------
-internal_dispatching(Msg, [Head | Tail]) ->
-	gen_server:cast(Head, Msg),
-	internal_dispatching(Msg, Tail);
-internal_dispatching(_Msg, []) ->
-	ok.
+internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
+	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).
