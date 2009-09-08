@@ -75,12 +75,12 @@ handle_call({subscribe, Service}, From, State) ->
 
 % Race messages
 
-handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
-	internal_dispatching(Msg, ?PITSTOP_OBS),
-	{reply, ok, State};
-
 handle_call(Msg, _From, State) when is_record(Msg, chrono_notif)->
 	internal_dispatching(Msg, ?CHRONO_OBS),
+	{reply, ok, State};
+
+handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
+	internal_dispatching(Msg, ?PITSTOP_OBS),
 	{reply, ok, State};
 
 handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
@@ -140,9 +140,9 @@ code_change(_OldVsn, State, _Extra) ->
 service_map(Service) ->
 	case Service of
 		debug_log -> debug_log_backend;
-		weather -> weather_backend;
 		team -> team_backend;
-		rece_info -> race_info_backend;
+		race_info -> race_info_backend;
+		weather -> weather_backend;
 		_ -> not_found
 	end.
 
