@@ -15,7 +15,8 @@
 
 -include("common.hrl").
 
--record(state, {observers = []}).
+-record(state, {observers = [],
+				log = []}).
 
 %% ====================================================================
 %% External functions
@@ -60,31 +61,23 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast({subscribe, From}, State) ->
-	%TODO add subscriber in mnesia
-	OldObs = State#state.observers,
-	NewState = State#state{observers = [From | OldObs]}, 
-    {noreply, NewState};
+handle_cast({subscribe, From}, State) when is_pid(From) ->
+	% TODO: quando un observer muore, va tolto dalla lista;
+	%		usare un monitor?
+	NewObs = State#state.observers ++ [From],
+    {noreply, State#state{observers = NewObs}};
 
-handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
-	%TODO togliere l'entry nel journal
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
+handle_cast(Msg, State) when is_record(Msg, chrono_notif)
+						orelse is_record(Msg, pitstop_notif)
+						orelse is_record(Msg, surpass_notif)
+						orelse is_record(Msg, weather_notif) ->
+	% TODO: convertire in stringhe?
+	lists:foreach(fun(X) -> gen_server:call(X, Msg) end,
+				  State#state.observers),
+	% TODO: togliere l'entry dal journal su mnesia
+	NewLog = State#state.log ++ [Msg],
+	{noreply, State#state{log = NewLog}}.
 
-handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
-	%TODO togliere l'entry nel journal
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
-
-handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
-	%TODO togliere l'entry nel journal
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
-
-handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
-	%TODO togliere l'entry nel journal
-	%TODO elaborare i dati ricevuti
-	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
