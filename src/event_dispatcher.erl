@@ -66,27 +66,26 @@ init([]) ->
 %% --------------------------------------------------------------------
 
 % Subscription message
-
 handle_call({subscribe, Service}, From, State) ->
-    % aggiunge il parametro From al 
-	% backend indicato in Service
-	gen_server:cast(service_map(Service), {subscribe, From}),
-    {reply, ok, State};
+	Backend = service_map(Service),
+	case Backend of
+		not_found ->
+			{reply, {error, service_not_found}, State};
+		_ ->
+			gen_server:cast(Backend, {subscribe, From}),
+			{reply, ok, State}
+	end;
 
 % Race messages
-
 handle_call(Msg, _From, State) when is_record(Msg, chrono_notif)->
 	internal_dispatching(Msg, ?CHRONO_OBS),
 	{reply, ok, State};
-
 handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
 	internal_dispatching(Msg, ?PITSTOP_OBS),
 	{reply, ok, State};
-
 handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
 	internal_dispatching(Msg, ?SURPASS_OBS),
 	{reply, ok, State};
-
 handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
 	internal_dispatching(Msg, ?WEATHER_OBS),
 	{reply, ok, State}.
