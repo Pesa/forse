@@ -1,6 +1,6 @@
-%% -----------------------
-%%  Common utility macros
-%% -----------------------
+%%% =======================
+%%%  Common utility macros
+%%% =======================
 
 -define(GLOBAL_NAME, {global, ?MODULE}).
 -define(LOCAL_NAME, {local, ?MODULE}).
@@ -15,20 +15,67 @@
 -endif.
 
 
-%% ------------------------
-%%  Global messages format
-%% ------------------------
+%%% ========================
+%%%  Global messages format
+%%% ========================
 
--record(car_status, {fuel, tyres}).
+%% ------------------------------------------------------------
+%% car_status
+%% fuel: amount of fuel left
+%% tyres_consumption: how much the tyres have been worn out (TODO)
+%% tyres_type: type of car's tyres ('slick' | 'intermediate' | 'wet')
+%% ------------------------------------------------------------
+-record(car_status, {fuel,
+					 tyres_consumption,
+					 tyres_type}).
+
+%% ------------------------------------------------------------
+%% pitstop_ops
+%% fuel: amount of fuel added
+%% tyres: type of tyres installed ('slick' | 'intermediate' | 'wet')
+%% ------------------------------------------------------------
 -record(pitstop_ops, {fuel, tyres}).
+
+%% ------------------------------------------------------------
+%% next_pitstop
+%% lap: lap in which the car should stop at the pits
+%% gen_lap: lap in which this message was sent
+%% ------------------------------------------------------------
 -record(next_pitstop, {lap, gen_lap}).
 
+%% ------------------------------------------------------------
+%% chrono_notif
+%% car: ID of the car this notification refers to
+%% lap: number of the current (or just ended) lap
+%% intermediate: number of the intermediate that has just been completed
+%% time: time in millisecs spent by the car to go through the intermediate
+%% max_speed: maximum speed reached by the car in the intermediate
+%% status: car status at the end of the intermediate
+%% ------------------------------------------------------------
 -record(chrono_notif, {car,
 					   lap,
 					   intermediate,
 					   time,
 					   max_speed,
 					   status = #car_status{}}).
+
+%% ------------------------------------------------------------
+%% pitstop_notif
+%% car: ID of the car this notification refers to
+%% ops: operations executed on the car
+%% ------------------------------------------------------------
 -record(pitstop_notif, {car, ops = #pitstop_ops{}}).
+
+%% ------------------------------------------------------------
+%% surpass_notif
+%% surpasser: ID of the surpassing car
+%% surpassed: ID of the surpassed car
+%% ------------------------------------------------------------
 -record(surpass_notif, {surpasser, surpassed}).
+
+%% ------------------------------------------------------------
+%% weather_notif (TODO)
+%% new_weather: how the weather changed
+%% sector: number of the sector in which the weather changed
+%% ------------------------------------------------------------
 -record(weather_notif, {new_weather, sector}).
