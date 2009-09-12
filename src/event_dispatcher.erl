@@ -5,7 +5,7 @@
 %% External exports
 -export([start_link/0, 
 		 subscribe/1,
-		 log/1]).
+		 notify/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -35,7 +35,7 @@ start_link() ->
 subscribe(Service) ->
 	gen_server:call(?GLOBAL_NAME, {subscribe, Service}, infinity).
 
-log(Msg) ->
+notify(Msg) ->
 	gen:server_call(?GLOBAL_NAME, Msg, infinity).
 
 
