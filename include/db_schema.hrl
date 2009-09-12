@@ -2,6 +2,8 @@
 %%  Database tuple format
 %% -----------------------
 
+-include("common.hrl").
+
 %%------------------------
 %% car_id: ref to pilot table
 %% enter_t: the time in which the car entered in the current segment 
@@ -15,7 +17,8 @@
 					  enter_t,
 					  exit_t,
 					  speed,
-					  lane}).
+					  enter_lane,
+					  exit_lane}).
 
 %%------------------------
 %% id: unique numerical identifier
@@ -45,9 +48,7 @@
 %% name: pilot's name
 %% skill: integer representing pilot's skill
 %% weight: pilot's weight
-%% fuel: fuel left
-%% tyres_consumption: TODO define value range and type
-%% tyres_type: slick | intermediate | wet
+%% car_status: tyres and fuel
 %% team_name: reference to car_type tab
 %% -----------------------
 
@@ -55,9 +56,7 @@
 			   name,
 			   skill,
 			   weight,
-			   fuel,
-			   tyres_consumption,
-			   tyres_type,
+			   car_status,
 			   team_name}).
 
 %%------------------------
