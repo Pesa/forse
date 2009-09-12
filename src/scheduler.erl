@@ -62,7 +62,6 @@ queue_work(Time, {Mod, Fun, Args}) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	?DBG("initializing ..."),
 	% TODO: populate speedup and workqueue from config file
 	% usando file:consult(...)
 	{ok, #state{}}.
@@ -147,8 +146,7 @@ handle_info(Msg, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
-terminate(Reason, _State) ->
-	?DBG({"shutting down with reason", Reason}),
+terminate(_Reason, _State) ->
 	ok.
 
 %% --------------------------------------------------------------------
@@ -173,7 +171,7 @@ process_next(State) when State#state.running
 	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
 	% send the token by invoking the provided callback in a separate process
 	?DBG({"sending token to", {M, F, A}, "at time", Time}),
-	spawn_link(?MODULE, give_token, [M, F, [Time] ++ A]),
+	spawn_link(?MODULE, give_token, [M, F, [Time | A]]),
 	State#state{token_available = false,
 				timing_info = NewTiming,
 				workqueue = Tail};
