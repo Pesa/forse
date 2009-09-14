@@ -85,10 +85,13 @@ get_car_ahead(Sgm, Lane, Index) ->
 	[R | _Tail] = mnesia:read(?TRACK_TAB, Sgm),
 	Q = R#segment.queued_cars,
 
-	Filter = fun
-				(#car_position{exit_lane=Lane}) -> 
-					 true;
-				(_) -> false
+	Filter = fun(Pos) ->
+					 if
+						Pos == #car_position{exit_lane=Lane} ->
+							 true;
+						true -> 
+							 false
+					 end
 			 end,
 	
 	Sort = fun
@@ -135,11 +138,10 @@ simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index,
 next_segment(Id) -> 0.
 
 %%Extract car_position with car_id == Pilot from Queue
-find_pilot(Pilot, [H | T]) ->
-	if 
-		Pilot == H#car_position.car_id -> H;
-		true -> find_pilot(Pilot, T)
-	end;
+find_pilot(H#car_position.car_id, [H | T]) -> 
+	H; 
+find_pilot(Pilot, [H | T]) -> 
+	find_pilot(Pilot, T);
 find_pilot(_, []) ->
 	null.
 
