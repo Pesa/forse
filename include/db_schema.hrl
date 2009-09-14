@@ -37,7 +37,7 @@
 				 type,
 				 min_lane,
 				 max_lane,
-				 lenght,
+				 length,
 				 inclination,
 				 rain,
 				 curvature,
@@ -46,6 +46,7 @@
 %%------------------------
 %% id: unique numerical identifier
 %% name: pilot's name
+%% segment: segment.id pointing to the pilot's actual position
 %% skill: integer representing pilot's skill
 %% weight: pilot's weight
 %% car_status: tyres and fuel
@@ -54,10 +55,19 @@
 
 -record(pilot,{id,
 			   name,
+			   segment,
 			   skill,
 			   weight,
 			   car_status,
 			   team_name}).
+
+%%------------------------
+%% smg_id: segment id
+%% bound: max speed calculated at preelaboration time
+%%------------------------
+
+-record(speed_bound, {sgm_id,
+					  bound}).
 
 %%------------------------
 %% id: unique numerical identifier
