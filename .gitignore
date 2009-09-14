@@ -1,5 +1,6 @@
 .DS_Store
 .project
+.pydevproject
 .settings/
 ebin/
 *~
@@ -9,4 +10,6 @@ ebin/
 *.lot
 *.out
 *.pdf
+*.pyc
+*.pyo
 *.toc
