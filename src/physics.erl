@@ -1,24 +1,18 @@
 -module(physics).
 
-%%
-%% Include files
-%%
-
 -include("db_schema.hrl").
 -include("config.hrl").
 
-%%
 %% Exported Functions
-%%
 -export([simulate/2,
 		 preelaborate/1]).
 
-%%
-%% API Functions
-%%
-
 
 %%TODO Dove metto l'inclinazione della pista? nel calcolo di Amax Amin o altrove?
+
+%% ====================================================================
+%% External functions
+%% ====================================================================
 
 %% Calculates the time needed by Car to cover the next segment
 %% exiting from it in ExitLane lane.
@@ -26,7 +20,7 @@
 %% ExitLane: guess...
 
 simulate(Pilot, ExitLane) ->
-	[P | _Tail] = mnesia:read(pilot, Pilot),
+	[P | _] = mnesia:read(pilot, Pilot),
 	Sgm = next_segment(P#pilot.segment),
 	[S2 | _] = mnesia:read(?TRACK_TAB, P#pilot.segment),
 	Car = find_pilot(Pilot, S2#segment.queued_cars),
@@ -60,66 +54,59 @@ preelaborate(Pilot) ->
 	
 	ok.
 
-%%
-%% Local Functions
-%%
+
+%% --------------------------------------------------------------------
+%% Internal functions
+%% --------------------------------------------------------------------
 
 %% Calculates the time needed to cover Space with a starting
 %% speed of Speed and an ending speed of MaxSpeed. Amin is the 
 %% max deceleration of brakes (always negative) while Amax is 
 %% the maximum acceleration engine can supply. 
-
 calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
-	T1 = 2*Space / (Speed + MaxSpeed),
-	A = (MaxSpeed - Speed)/T1,
+	T1 = 2 * Space / (Speed + MaxSpeed),
+	A = (MaxSpeed - Speed) / T1,
 	if
 		A < Amin -> crash; %% TODO l'auto sbara
-		A > Amax -> (math:sqrt(math:pow(Speed,2) + 8*Amax*Space) - Speed)/(2*Amax); 
+		A > Amax -> (math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax);
 		true -> T1
 	end.
 
 %% returns null or a car_position record
 %% Index starts from 1
-
 get_car_ahead(Sgm, Lane, Index) ->
-	[R | _Tail] = mnesia:read(?TRACK_TAB, Sgm),
+	[R | _] = mnesia:read(?TRACK_TAB, Sgm),
 	Q = R#segment.queued_cars,
 
 	Filter = fun(Pos) ->
-					 if
-						Pos == #car_position{exit_lane=Lane} ->
-							 true;
-						true -> 
-							 false
+					 case Pos of
+						 #car_position{exit_lane = Lane} -> true;
+						 _ -> false
 					 end
 			 end,
-	
-	Sort = fun
-			  (Elem1, Elem2) -> Elem1#car_position.exit_t > Elem2#car_position.exit_t
+	Sort = fun(Elem1, Elem2) ->
+				   Elem1#car_position.exit_t > Elem2#car_position.exit_t
 		   end,
-
 	Slist = lists:sort(Sort, lists:filter(Filter, Q)),
-	
+
 	if
 		length(Slist) >= Index -> lists:nth(Index, Slist);
 		true -> null
 	end.
 
 %%TODO mettere a posto gli args.. sono troppi....
-
 simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index, 
 			 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
 	G = if
 			EnterLane == ExitLane -> 0;
 			true -> ?LANE_CHANGE_TIME
 		end,
-	
 	K = get_car_ahead(Sgm, ExitLane, Index),
-	
+
 	%%TODO trattare il caso in cui calculate_time ritorni crash...
-	
+
 	case K of
-		null -> 
+		null ->
 			G + calculate_time(Space, EnterSpeed, MaxExitSpeed, Amin, Amax);
 		_ when EnterLane == K#car_position.enter_lane ->
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
@@ -132,16 +119,15 @@ simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 
-
 %% Given a segment's id it calculates next segment's id
 %% TODO
 next_segment(Id) -> 0.
 
-%%Extract car_position with car_id == Pilot from Queue
-find_pilot(H#car_position.car_id, [H | T]) -> 
-	H; 
-find_pilot(Pilot, [H | T]) -> 
-	find_pilot(Pilot, T);
+%% Extract car_position with car_id == Pilot from the queue
+find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->
+	Pos;
+find_pilot(Pilot, [_ | Tail]) ->
+	find_pilot(Pilot, Tail);
 find_pilot(_, []) ->
 	null.
 
@@ -149,4 +135,3 @@ find_pilot(_, []) ->
 %% associated with Pilot
 preelab_tab_name(Pilot) ->
 	list_to_atom("pilot_" ++ integer_to_list(Pilot)).
-	
