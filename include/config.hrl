@@ -14,3 +14,10 @@
 			H#setting.value
 		end
 		).
+
+%% TODO tunare quando è ora!
+%% Represents the coefficient of friction of new slick tyres 
+%% with rain == 0
+-define(FRICTION_BASE, 10).
+
+-define(G, 9.81).

@@ -31,6 +31,7 @@ simulate(Pilot, ExitLane) ->
 	EnterSpeed = Car#car_position.speed,
 	
 	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
+	%% TODO MaxExitSpeed deve fare il minimo con la velocità max dell'auto data da motore
 	MaxExitSpeed = Bound#speed_bound.bound,
 	%%TODO mettere a posto sti valori
 	Amin = 0,
@@ -44,12 +45,14 @@ simulate(Pilot, ExitLane) ->
 
 preelaborate(Pilot) -> 
 	[P] = mnesia:read(pilot, Pilot),
-	[C] = mnesia:read(car_type, P#pilot.team_name),
+	%% [C] = mnesia:read(car_type, P#pilot.team_name), serve???
 	
-	%% la tabella con la preelaborazione si chiamerà preelab_tab_name(Pilot)
-	%% con righe di tipo speed_bound
-	%% TODO controlla se esiste la tabella, altrimenti la crea
-	%% preelabora
+	%% Controlla se esiste la tabella, altrimenti la crea
+	case table_exists(preelab_tab_name(Pilot)) of
+		false -> 
+			%%TODO crea la tabella
+			ok
+	end,
 	
 	ok.
 
@@ -135,3 +138,44 @@ find_pilot(_, []) ->
 preelab_tab_name(Pilot) ->
 	list_to_atom("pilot_" ++ integer_to_list(Pilot)).
 
+%% Pilot: pilot's id
+%% Sgm: segment's id
+%% Sgm MUST be of type bent
+preelaborate_bent(Pilot, Sgm) ->
+	G = ?G,
+	[S] = mnesia:read(?TRACK_TAB, Sgm),
+	R = S#segment.curvature,
+	Cos = math:cos(deg_to_rad(S#segment.inclination)),
+	
+	[P] = mnesia:read(pilot, Pilot),
+	K = friction(P#pilot.car_status, S#segment.rain),
+	math:sqrt(K*Cos*R*G).
+
+%% Check if a table exits
+table_exists(TableName) ->
+   Tables = mnesia:system_info(tables),
+   lists:member(TableName,Tables).
+
+%% Guess
+deg_to_rad(A)-> 
+	math:pi()*A/180.0.
+
+%% Calculates coefficient of friction
+friction(CarStatus, Rain) ->
+	A = consumption(CarStatus#car_status.tyres_consumption),
+	B = friction_tab(CarStatus#car_status.tyres_type, Rain),
+	A*B*?FRICTION_BASE.
+
+%% TODO
+consumption(Val) -> 0.
+
+%% Returns a float between 0 and 1
+%% Y = ((y2 - y1)/(x2 - x1))(X - x1) + y1
+friction_tab(slick, Rain) -> %% (0,1) (10,0.3)
+	-0.07*Rain + 1.0;
+
+friction_tab(intermediate, Rain) -> %% (0,0.9) (10,0.5)
+	-0.04*Rain + 0.9;
+
+friction_tab(wet, Rain) -> %% (0,0.7) (10,0.6)
+	-0.01*Rain + 0.7.
