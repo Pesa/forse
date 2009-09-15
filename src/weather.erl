@@ -48,7 +48,7 @@ schedule_change(NewWeather, Where, When) ->
 %% --------------------------------------------------------------------
 init([]) ->
 	% TODO: setup the pre-configured weather changes.
-    {ok, #state{}}.
+	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
