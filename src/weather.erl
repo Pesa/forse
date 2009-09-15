@@ -15,7 +15,7 @@
 		 terminate/2,
 		 code_change/3]).
 
--include("common.hrl").
+-include("db_schema.hrl").
 
 -record(state, {}).
 
@@ -61,7 +61,21 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({apply_change, NewWeather, Where}, _From, State) ->
-	% TODO: apply the changes in mnesia.
+	T = fun() ->
+				case mnesia:wread(?TRACK_TAB, Where) of
+					[Segment] -> mnesia:write(?TRACK_TAB, Segment#segment{rain = NewWeather});
+					_ -> mnesia:abort("invalid segment " ++ integer_to_list(Where))
+				end,
+				F = fun(Pilot, _) ->
+							mnesia:write(pilot, Pilot#pilot{run_preelab = true})
+					end,
+				mnesia:foldl(F, 0, pilot, write)
+		end,
+	case mnesia:sync_transaction(T) of
+		{atomic, _} -> event_dispatcher:notify(#weather_notif{new_weather = NewWeather,
+															  sector = Where});
+		{aborted, Reason} -> ?ERR({"failed to change weather", Reason})
+	end,
 	{reply, done, State};
 
 handle_call({schedule_change, NewWeather, Where, When}, _From, State) ->
@@ -109,8 +123,3 @@ terminate(_Reason, _State) ->
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
-
-
-%% --------------------------------------------------------------------
-%% Internal functions
-%% --------------------------------------------------------------------
