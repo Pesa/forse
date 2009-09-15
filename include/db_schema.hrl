@@ -4,6 +4,8 @@
 
 -include("common.hrl").
 
+-define(TRACK_TAB, track).
+
 %%------------------------
 %% car_id: ref to pilot table
 %% enter_t: the time in which the car entered in the current segment 
@@ -28,7 +30,7 @@
 %% max_lane: maximum lane index
 %% lenght: the lenght of the segment
 %% inclination: degrees
-%% rain: integer from 0 (sun) to N (heavy rain)
+%% rain: integer from 0 (sun) to 10 (heavy rain)
 %% curvature: guess..
 %% queued_cars: list of car_position
 %% -----------------------
@@ -81,3 +83,6 @@
 				  brake,
 				  power,
 				  weight}).
+
+-record(setting, {key,
+				  value}).

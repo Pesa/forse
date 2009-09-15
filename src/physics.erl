@@ -1,6 +1,5 @@
 -module(physics).
 
--include("db_schema.hrl").
 -include("config.hrl").
 
 %% Exported Functions
@@ -20,18 +19,18 @@
 %% ExitLane: guess...
 
 simulate(Pilot, ExitLane) ->
-	[P | _] = mnesia:read(pilot, Pilot),
+	[P] = mnesia:read(pilot, Pilot),
 	Sgm = next_segment(P#pilot.segment),
-	[S2 | _] = mnesia:read(?TRACK_TAB, P#pilot.segment),
+	[S2] = mnesia:read(?TRACK_TAB, P#pilot.segment),
 	Car = find_pilot(Pilot, S2#segment.queued_cars),
 	EnterLane = Car#car_position.exit_lane,
 	EnterTime = Car#car_position.exit_t,
 	
-	[S | _] = mnesia:read(?TRACK_TAB, Sgm),
+	[S] = mnesia:read(?TRACK_TAB, Sgm),
 	Space = S#segment.length,
 	EnterSpeed = Car#car_position.speed,
 	
-	[Bound | _] = mnesia:read(preelab_tab_name(Pilot), Sgm),
+	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
 	MaxExitSpeed = Bound#speed_bound.bound,
 	%%TODO mettere a posto sti valori
 	Amin = 0,
@@ -44,8 +43,8 @@ simulate(Pilot, ExitLane) ->
 %% in each segment of the track.
 
 preelaborate(Pilot) -> 
-	[P | _] = mnesia:read(pilot, Pilot),
-	[C | _] = mnesia:read(car_type, P#pilot.team_name),
+	[P] = mnesia:read(pilot, Pilot),
+	[C] = mnesia:read(car_type, P#pilot.team_name),
 	
 	%% la tabella con la preelaborazione si chiamerà preelab_tab_name(Pilot)
 	%% con righe di tipo speed_bound
@@ -75,7 +74,7 @@ calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% returns null or a car_position record
 %% Index starts from 1
 get_car_ahead(Sgm, Lane, Index) ->
-	[R | _] = mnesia:read(?TRACK_TAB, Sgm),
+	[R] = mnesia:read(?TRACK_TAB, Sgm),
 	Q = R#segment.queued_cars,
 
 	Filter = fun(Pos) ->
@@ -120,8 +119,8 @@ simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index,
 	end.
 
 %% Given a segment's id it calculates next segment's id
-%% TODO
-next_segment(Id) -> 0.
+next_segment(Id) -> 
+	(Id + 1) rem ?GET_SETTING(sgm_number).
 
 %% Extract car_position with car_id == Pilot from the queue
 find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->
@@ -135,3 +134,4 @@ find_pilot(_, []) ->
 %% associated with Pilot
 preelab_tab_name(Pilot) ->
 	list_to_atom("pilot_" ++ integer_to_list(Pilot)).
+
