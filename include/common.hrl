@@ -22,7 +22,7 @@
 %% ------------------------------------------------------------
 %% car_status
 %% fuel: amount of fuel left
-%% tyres_consumption: how much the tyres have been worn out (TODO)
+%% tyres_consumption: how much the tyres have been worn out (float from 0 to 100)
 %% tyres_type: type of car's tyres ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
 -record(car_status, {fuel,

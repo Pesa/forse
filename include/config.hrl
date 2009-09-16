@@ -21,3 +21,5 @@
 -define(FRICTION_BASE, 10).
 
 -define(G, 9.81).
+
+-define(FUEL_SPECIFIC_GRAVITY, 1).

@@ -71,8 +71,8 @@
 
 %% ------------------------
 %% team_name: name of the team to which the car belongs
-%% brake: determines max deceleration (must be negative)
-%% power: determines max speed and max acceleration
+%% brake: determines max deceleration (must be negative) F = m*a
+%% power: determines max speed and max acceleration. F = m*a
 %% weight: car's weight (excluding fuel)
 %% -----------------------
 -record(car_type,{team_name,

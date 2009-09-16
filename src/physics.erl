@@ -22,20 +22,27 @@ simulate(Pilot, ExitLane) ->
 	[P] = mnesia:read(pilot, Pilot),
 	Sgm = next_segment(P#pilot.segment),
 	[S2] = mnesia:read(?TRACK_TAB, P#pilot.segment),
-	Car = find_pilot(Pilot, S2#segment.queued_cars),
-	EnterLane = Car#car_position.exit_lane,
-	EnterTime = Car#car_position.exit_t,
+	CarPos = find_pilot(Pilot, S2#segment.queued_cars),
+	EnterLane = CarPos#car_position.exit_lane,
+	EnterTime = CarPos#car_position.exit_t,
 	
 	[S] = mnesia:read(?TRACK_TAB, Sgm),
 	Space = S#segment.length,
-	EnterSpeed = Car#car_position.speed,
+	EnterSpeed = CarPos#car_position.speed,
 	
 	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
 	%% TODO MaxExitSpeed deve fare il minimo con la velocità max dell'auto data da motore
 	MaxExitSpeed = Bound#speed_bound.bound,
-	%%TODO mettere a posto sti valori
-	Amin = 0,
-	Amax = 0,
+	
+	[Car] = mnesia:read(car_type, P#pilot.team_name),
+	FAcc = Car#car_type.power,
+	FDec = Car#car_type.brake,
+	Mass = Car#car_type.weight + P#pilot.weight + 
+			(P#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
+	Inc = deg_to_rad(S#segment.inclination),
+	
+	Amin = acceleration(FDec, Mass, Inc),
+	Amax = acceleration(FAcc, Mass, Inc),
 	
 	simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, 1,
 				 Space, EnterSpeed, MaxExitSpeed, Amin, Amax).
@@ -53,6 +60,8 @@ preelaborate(Pilot) ->
 			%%TODO crea la tabella
 			ok
 	end,
+	
+	%%TODO preelabora
 	
 	ok.
 
@@ -96,7 +105,7 @@ get_car_ahead(Sgm, Lane, Index) ->
 		true -> null
 	end.
 
-%%TODO mettere a posto gli args.. sono troppi....
+
 simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index, 
 			 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
 	G = if
@@ -166,8 +175,11 @@ friction(CarStatus, Rain) ->
 	B = friction_tab(CarStatus#car_status.tyres_type, Rain),
 	A*B*?FRICTION_BASE.
 
-%% TODO
-consumption(Val) -> 0.
+%% Returns a float from 1 to 0.5
+%% Y = (-3/500)X^2 + (1/10)X + 100
+consumption(Val) ->
+	Per = (-3.0/500.0)*math:pow(Val, 2) + Val/10.0 + 100.0,
+	Per/100.0.
 
 %% Returns a float between 0 and 1
 %% Y = ((y2 - y1)/(x2 - x1))(X - x1) + y1
@@ -179,3 +191,10 @@ friction_tab(intermediate, Rain) -> %% (0,0.9) (10,0.5)
 
 friction_tab(wet, Rain) -> %% (0,0.7) (10,0.6)
 	-0.01*Rain + 0.7.
+
+%% Acceleration
+%% F: force (brake or engine)
+%% M: mass
+%% Inc: inclination in rad
+acceleration(F, M, Inc) ->
+	F/M - math:sin(Inc)*?G.
