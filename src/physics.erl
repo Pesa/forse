@@ -7,13 +7,12 @@
 		 preelaborate/1]).
 
 
-%%TODO Dove metto l'inclinazione della pista? nel calcolo di Amax Amin o altrove?
-
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
-%% Calculates the time needed by Car to cover the next segment
+%% Calculates the time needed by Car to cover the next segment 
+%% or atom 'crash'
 %% exiting from it in ExitLane lane.
 %% Pilot: id in pilot table
 %% ExitLane: guess...
@@ -30,9 +29,6 @@ simulate(Pilot, ExitLane) ->
 	Space = S#segment.length,
 	EnterSpeed = CarPos#car_position.speed,
 	
-	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
-	%% TODO MaxExitSpeed deve fare il minimo con la velocità max dell'auto data da motore
-	MaxExitSpeed = Bound#speed_bound.bound,
 	
 	[Car] = mnesia:read(car_type, P#pilot.team_name),
 	FAcc = Car#car_type.power,
@@ -40,6 +36,9 @@ simulate(Pilot, ExitLane) ->
 	Mass = Car#car_type.weight + P#pilot.weight + 
 			(P#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
 	Inc = deg_to_rad(S#segment.inclination),
+	
+	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
+	MaxExitSpeed = lists:min([Bound#speed_bound.bound, max_speed(Car#car_type.power)]),
 	
 	Amin = acceleration(FDec, Mass, Inc),
 	Amax = acceleration(FAcc, Mass, Inc),
@@ -78,7 +77,7 @@ calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	if
-		A < Amin -> crash; %% TODO l'auto sbara
+		A < Amin -> crash;
 		A > Amax -> (math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax);
 		true -> T1
 	end.
@@ -114,25 +113,35 @@ simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index,
 		end,
 	K = get_car_ahead(Sgm, ExitLane, Index),
 
-	%%TODO trattare il caso in cui calculate_time ritorni crash...
-
 	case K of
 		null ->
 			G + calculate_time(Space, EnterSpeed, MaxExitSpeed, Amin, Amax);
 		_ when EnterLane == K#car_position.enter_lane ->
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
-			G + calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax);
+			add_g(G, calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ when EnterTime + G > K#car_position.enter_t + ?LANE_CHANGE_TIME ->
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
-			G + calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax);
+			add_g(G, calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ ->
 			simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 
+%% 
+add_g(_, crash) -> 
+	crash;
+add_g(G, T) ->
+	G + T.
+
 %% Given a segment's id it calculates next segment's id
 next_segment(Id) -> 
 	(Id + 1) rem ?GET_SETTING(sgm_number).
+
+%% Given a segment's id it calculates previous segment's id
+prev_segment(0) ->
+	?GET_SETTING(sgm_number) - 1;
+prev_segment(Id) ->
+	Id - 1.
 
 %% Extract car_position with car_id == Pilot from the queue
 find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->
@@ -198,3 +207,7 @@ friction_tab(wet, Rain) -> %% (0,0.7) (10,0.6)
 %% Inc: inclination in rad
 acceleration(F, M, Inc) ->
 	F/M - math:sin(Inc)*?G.
+
+%% Max speed the car can reach
+%% TODO fix the number
+max_speed(F) -> 42.
