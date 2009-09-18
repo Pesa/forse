@@ -62,8 +62,8 @@ init([]) ->
 %% --------------------------------------------------------------------
 handle_call({apply_change, NewWeather, Where}, _From, State) ->
 	T = fun() ->
-				case mnesia:wread(?TRACK_TAB, Where) of
-					[Segment] -> mnesia:write(?TRACK_TAB, Segment#segment{rain = NewWeather});
+				case mnesia:wread(track, Where) of
+					[Segment] -> mnesia:write(track, Segment#segment{rain = NewWeather});
 					_ -> mnesia:abort("invalid segment " ++ integer_to_list(Where))
 				end,
 				F = fun(Pilot, _) ->
