@@ -4,8 +4,6 @@
 
 -include("common.hrl").
 
--define(TRACK_TAB, track).
-
 %% ------------------------
 %% car_id: ref to pilot table
 %% enter_t: when the car entered the current segment
@@ -65,9 +63,12 @@
 %% ------------------------
 %% smg_id: segment id
 %% bound: maximum speed calculated at preelaboration time
+%% pit_bound: maximum speed calculated at preelaboration time 
+%% if car have to enter pitstop
 %% ------------------------
 -record(speed_bound, {sgm_id,
-					  bound}).
+					  bound,
+					  pit_bound}).
 
 %% ------------------------
 %% team_name: name of the team to which the car belongs

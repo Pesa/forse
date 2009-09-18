@@ -22,4 +22,8 @@
 
 -define(G, 9.81).
 
+%% TODO Fix value
 -define(FUEL_SPECIFIC_GRAVITY, 1).
+
+%% TODO Fix value
+-define(PIT_SPEED_LIM, 42).

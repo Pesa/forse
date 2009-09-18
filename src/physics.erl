@@ -14,30 +14,31 @@
 %% Calculates the time needed by Car to cover the next segment 
 %% or atom 'crash'
 %% exiting from it in ExitLane lane.
-%% Pilot: id in pilot table
+%% Pilot: record of type pilot
 %% ExitLane: guess...
 
-simulate(Pilot, ExitLane) ->
-	[P] = mnesia:read(pilot, Pilot),
-	Sgm = next_segment(P#pilot.segment),
-	[S2] = mnesia:read(?TRACK_TAB, P#pilot.segment),
-	CarPos = find_pilot(Pilot, S2#segment.queued_cars),
+simulate(Pilot, ExitLane) when is_record(Pilot, pilot)->
+	%%TODO Aggiungere il controllo che si possa fare quel cambio di corsia!!
+	Sgm = next_segment(Pilot#pilot.segment),
+	[S2] = mnesia:read(track, Pilot#pilot.segment),
+	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
 	EnterLane = CarPos#car_position.exit_lane,
 	EnterTime = CarPos#car_position.exit_t,
 	
-	[S] = mnesia:read(?TRACK_TAB, Sgm),
+	[S] = mnesia:read(track, Sgm),
 	Space = S#segment.length,
 	EnterSpeed = CarPos#car_position.speed,
 	
 	
-	[Car] = mnesia:read(car_type, P#pilot.team_name),
+	[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
 	FAcc = Car#car_type.power,
 	FDec = Car#car_type.brake,
-	Mass = Car#car_type.weight + P#pilot.weight + 
-			(P#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
+	Mass = Car#car_type.weight + Pilot#pilot.weight + 
+			(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
 	Inc = deg_to_rad(S#segment.inclination),
 	
-	[Bound] = mnesia:read(preelab_tab_name(Pilot), Sgm),
+	[Bound] = mnesia:read(preelab_tab_name(Pilot#pilot.id), Sgm),
+	%% TODO bound o pit_bound???? devo controllare sul pilota
 	MaxExitSpeed = lists:min([Bound#speed_bound.bound, max_speed(Car#car_type.power)]),
 	
 	Amin = acceleration(FDec, Mass, Inc),
@@ -49,18 +50,27 @@ simulate(Pilot, ExitLane) ->
 %% Calculates max speed the car with id equal to Pilot can have
 %% in each segment of the track.
 
-preelaborate(Pilot) -> 
-	[P] = mnesia:read(pilot, Pilot),
+preelaborate(Pilot) when is_record(Pilot, pilot) -> 
 	%% [C] = mnesia:read(car_type, P#pilot.team_name), serve???
 	
 	%% Controlla se esiste la tabella, altrimenti la crea
-	case table_exists(preelab_tab_name(Pilot)) of
+	case table_exists(preelab_tab_name(Pilot#pilot.id)) of
 		false -> 
 			%%TODO crea la tabella
 			ok
 	end,
 	
 	%%TODO preelabora
+	%% per ogni segmento:
+	%% se è bent usa preelaborate_bent e lo imposta come valore
+	%% sia per bound che per pit_bound crea una lista di record
+	%% speed_bound
+	%% se è pitlane o pitsop imposta #speed_bound.pit_bound a ?PIT_SPEED_LIM
+	%% e bound ad undef
+	
+	Bounds = bent_and_pit(Pilot),
+	
+	
 	
 	ok.
 
@@ -85,7 +95,7 @@ calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% returns null or a car_position record
 %% Index starts from 1
 get_car_ahead(Sgm, Lane, Index) ->
-	[R] = mnesia:read(?TRACK_TAB, Sgm),
+	[R] = mnesia:read(track, Sgm),
 	Q = R#segment.queued_cars,
 
 	Filter = fun(Pos) ->
@@ -159,14 +169,13 @@ preelab_tab_name(Pilot) ->
 %% Pilot: pilot's id
 %% Sgm: segment's id
 %% Sgm MUST be of type bent
-preelaborate_bent(Pilot, Sgm) ->
+preelaborate_bent(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	G = ?G,
-	[S] = mnesia:read(?TRACK_TAB, Sgm),
+	[S] = mnesia:read(track, Sgm),
 	R = S#segment.curvature,
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
 	
-	[P] = mnesia:read(pilot, Pilot),
-	K = friction(P#pilot.car_status, S#segment.rain),
+	K = friction(Pilot#pilot.car_status, S#segment.rain),
 	math:sqrt(K*Cos*R*G).
 
 %% Check if a table exits
@@ -211,3 +220,55 @@ acceleration(F, M, Inc) ->
 %% Max speed the car can reach
 %% TODO fix the number
 max_speed(F) -> 42.
+
+%% Recursively calculates speed bound for Att
+%% Att: bound | pit_bound
+%% FDec: power of brakes
+%% Sgm: id of the segment that is being computed
+%% LastSgm: id of min speed bound segment
+%% VNext: speed bound of the next segment
+%% preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext)
+
+%% TODO DA RIFARE A#b.Var non funge
+preelaborate_sgm_rec(Att, FDec, LastSgm, LastSgm, VNext) ->
+	[];
+
+preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext) ->
+	[S] = mnesia:read(track, Sgm),
+	Val = asd. %%TODO
+
+
+
+%% Returns a list of speed_bound
+
+bent_and_pit(Pilot) when is_record(Pilot, pilot) ->
+	bent_and_pit_rec(Pilot, ?GET_SETTING(sgm_number) - 1).
+
+%% First time should be invoked with 
+%% Sgm == ?GET_SETTING(sgm_number) - 1
+bent_and_pit_rec(_Pilot, -1) ->
+	[];
+
+bent_and_pit_rec(Pilot, Sgm) ->
+	[S] = mnesia:read(track, Sgm),
+	case S#segment.type of
+		pitstop -> 
+			R = #speed_bound{sgm_id = Sgm,
+							 bound = undef,
+							 pit_bound = ?PIT_SPEED_LIM},
+			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
+		pitlane ->
+			R = #speed_bound{sgm_id = Sgm,
+							 bound = undef,
+							 pit_bound = ?PIT_SPEED_LIM},
+			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
+		bent ->
+			Bound = preelaborate_bent(Pilot, Sgm),
+			R = #speed_bound{sgm_id = Sgm,
+							 bound = Bound,
+							 pit_bound = Bound},
+			[R | bent_and_pit_rec(Pilot, Sgm - 1)]
+	end.
+
+
+	
