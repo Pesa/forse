@@ -19,9 +19,6 @@
 
 -define(CAR_NAME(Id), {global, id_to_name(Id)}).
 
--record(state, {id,
-				pilot = #pilot{}}).
-
 
 %% ====================================================================
 %% External functions
@@ -51,7 +48,8 @@ set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 %% --------------------------------------------------------------------
 init([Id]) ->
 	scheduler:queue_work(0, {?MODULE, move, [Id]}),
-	{ok, #state{id = Id}}.
+	% TODO: finire inizializzazione dello stato
+	{ok, #pilot{id = Id}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -67,7 +65,7 @@ handle_call({move}, _From, State) ->
 	% TODO: invocare qualcosa in physics
 	NextTime = todo,
 	Reply = {requeue, NextTime,
-			 {?MODULE, move, [State#state.id]}},
+			 {?MODULE, move, [State#pilot.id]}},
 	{reply, Reply, State};
 
 handle_call(#next_pitstop{lap = Lap, gen_lap = GenLap}, _From, State) ->

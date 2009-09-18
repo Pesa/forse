@@ -47,8 +47,10 @@
 %% skill: integer representing pilot's skill
 %% weight: pilot's weight
 %% car_status: current car status
-%% segment: segment.id pointing to the pilot's current position
+%% lap: current lap
+%% segment: id of the current segment
 %% team_name: reference to car_type tab
+%% next_pitstop: lap of the next pitstop
 %% run_preelab: set to true when the preelaboration phase must be re-run
 %% -----------------------
 -record(pilot,{id,
@@ -56,8 +58,10 @@
 			   skill,
 			   weight,
 			   car_status = #car_status{},
-			   segment,
+			   lap = 0,
+			   segment = 0,
 			   team_name,
+			   next_pitstop = -1,
 			   run_preelab = true}).
 
 %% ------------------------
@@ -66,9 +70,9 @@
 %% pit_bound: maximum speed calculated at preelaboration time 
 %% if car have to enter pitstop
 %% ------------------------
--record(speed_bound, {sgm_id,
-					  bound,
-					  pit_bound}).
+-record(speed_bound,{sgm_id,
+					 bound,
+					 pit_bound}).
 
 %% ------------------------
 %% team_name: name of the team to which the car belongs
