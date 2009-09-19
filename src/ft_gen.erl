@@ -21,7 +21,7 @@
 %%%-----------------------------------------------------------------
 %%% Fault-tolerant version of the gen module.
 %%%-----------------------------------------------------------------
--export([start/5, start/6,
+-export([start_link/4, start_link/5,
 		 debug_options/1,
 		 call/3, call/4,
 		 reply/2]).
@@ -32,24 +32,22 @@
 
 %%-----------------------------------------------------------------
 
--type linkage()   :: 'link' | 'nolink'.
 -type emgr_name() :: {'local', atom()} | {'global', term()}.
 
 -type start_ret() :: {'ok', pid()} | 'ignore' | {'error', term()}.
 
--type opts_flag() :: 'trace' | 'log' | 'statistics' | 'debug'
-						| {'logfile', string()}.
--type options()   :: [{'timeout', timeout()} | {'debug', [opts_flag()]}].
+-type opts_flag() :: 'trace' | 'log' | 'statistics' | 'debug' | {'logfile', string()}.
+
+-type options()   :: [{'debug', [opts_flag()]}].
 
 %%-----------------------------------------------------------------
 %% Starts a generic process.
 %% start(GenMod, LinkP, Mod, Args, Options)
 %% start(GenMod, LinkP, Name, Mod, Args, Options)
 %%    GenMod = atom(), callback module implementing the 'real' fsm
-%%    LinkP = link | nolink
 %%    Name = {local, atom()} | {global, term()}
 %%    Args = term(), init arguments (to Mod:init/1)
-%%    Options = [{timeout, Timeout} | {debug, [Flag]}]
+%%    Options = [{debug, [Flag]}]
 %%      Flag = trace | log | {logfile, File} | statistics | debug
 %%          (debug == log && statistics)
 %% Returns: {ok, Pid} | ignore |{error, Reason} |
@@ -57,51 +55,53 @@
 %%    The 'already_started' is returned only if Name is given 
 %%-----------------------------------------------------------------
 
--spec start(module(), linkage(), emgr_name(), module(), term(), options()) ->
+-spec start_link(module(), emgr_name(), module(), term(), options()) ->
 	start_ret().
 
-start(GenMod, LinkP, Name, Mod, Args, Options) ->
+start_link(GenMod, Name, Mod, Args, Options) ->
 	case where(Name) of
 		undefined ->
-			do_spawn(GenMod, LinkP, Name, Mod, Args, Options);
+			do_spawn(GenMod, Name, Mod, Args, Options);
 		Pid ->
 			{error, {already_started, Pid}}
 	end.
 
--spec start(module(), linkage(), module(), term(), options()) -> start_ret().
+-spec start_link(module(), module(), term(), options()) -> start_ret().
 
-start(GenMod, LinkP, Mod, Args, Options) ->
-	do_spawn(GenMod, LinkP, Mod, Args, Options).
+start_link(GenMod, Mod, Args, Options) ->
+	% TODO: the Name-less variant is probably unused: check and remove.
+	do_spawn(GenMod, Mod, Args, Options).
 
 %%-----------------------------------------------------------------
 %% Spawn the process (and link) maybe at another node.
-%% If spawn without link, set parent to ourselves 'self'!!!
 %%-----------------------------------------------------------------
-do_spawn(GenMod, link, Mod, Args, Options) ->
-	Time = timeout(Options),
-	proc_lib:start_link(?MODULE, init_it,
-						[GenMod, self(), self(), Mod, Args, Options], 
-						Time,
-						spawn_opts(Options));
-do_spawn(GenMod, _, Mod, Args, Options) ->
-	Time = timeout(Options),
-	proc_lib:start(?MODULE, init_it,
-				   [GenMod, self(), self, Mod, Args, Options], 
-				   Time,
-				   spawn_opts(Options)).
+do_spawn(GenMod, Mod, Args, Options) ->
+	% TODO: the Name-less variant is probably unused: check and remove.
+	Node = choose_node(),
+	Pid = proc_lib:spawn_opt(Node, ?MODULE, init_it,
+							 [GenMod, self(), self(), Mod, Args, Options],
+							 [link]),
+	sync_wait(Pid).
 
-do_spawn(GenMod, link, Name, Mod, Args, Options) ->
-	Time = timeout(Options),
-	proc_lib:start_link(?MODULE, init_it,
-						[GenMod, self(), self(), Name, Mod, Args, Options],
-						Time,
-						spawn_opts(Options));
-do_spawn(GenMod, _, Name, Mod, Args, Options) ->
-	Time = timeout(Options),
-	proc_lib:start(?MODULE, init_it,
-				   [GenMod, self(), self, Name, Mod, Args, Options], 
-				   Time,
-				   spawn_opts(Options)).
+do_spawn(GenMod, Name, Mod, Args, Options) ->
+	Node = choose_node(),
+	Pid = proc_lib:spawn_opt(Node, ?MODULE, init_it,
+							 [GenMod, self(), self(), Name, Mod, Args, Options],
+							 [link]),
+	sync_wait(Pid).
+
+choose_node() ->
+	% TODO: implement me!
+	todo.
+
+% Adapted from proc_lib:sync_wait/2.
+sync_wait(Pid) ->
+	receive
+		{ack, Pid, Return} ->
+			Return;
+		{'EXIT', Pid, Reason} ->
+			{error, Reason}
+	end.
 
 %%-----------------------------------------------------------------
 %% Initiate the new process.
@@ -129,10 +129,6 @@ init_it2(GenMod, Starter, Parent, Name, Mod, Args, Options) ->
 %% Request is sent to the Pid, and the response must be
 %% {Tag, _, Reply}.
 %%-----------------------------------------------------------------
-
-%%% New call function which uses the new monitor BIF
-%%% call(ServerId, Label, Request)
-
 call(Process, Label, Request) -> 
 	call(Process, Label, Request, ?default_timeout).
 
@@ -287,22 +283,6 @@ name_register({global, Name} = GN) ->
 	case global:register_name(Name, self()) of
 		yes -> true;
 		no -> {false, where(GN)}
-	end.
-
-timeout(Options) ->
-	case opt(timeout, Options) of
-		{ok, Time} ->
-			Time;
-		_ ->
-			infinity
-	end.
-
-spawn_opts(Options) ->
-	case opt(spawn_opt, Options) of
-		{ok, Opts} ->
-			Opts;
-		_ ->
-			[]
 	end.
 
 opt(Op, [{Op, Value}|_]) ->

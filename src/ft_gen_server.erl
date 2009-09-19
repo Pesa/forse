@@ -122,7 +122,7 @@ behaviour_info(_Other) ->
 %%%    Name ::= {local, atom()} | {global, atom()}
 %%%    Mod  ::= atom(), callback module implementing the 'real' server
 %%%    Args ::= term(), init arguments (to Mod:init/1)
-%%%    Options ::= [{timeout, Timeout} | {debug, [Flag]}]
+%%%    Options ::= [{debug, [Flag]}]
 %%%      Flag ::= trace | log | {logfile, File} | statistics | debug
 %%%          (debug == log && statistics)
 %%% Returns: {ok, Pid} |
@@ -130,10 +130,11 @@ behaviour_info(_Other) ->
 %%%          {error, Reason}
 %%% -----------------------------------------------------------------
 start_link(Mod, Args, Options) ->
-	ft_gen:start(?MODULE, link, Mod, Args, Options).
+	% TODO: the Name-less variant is probably unused: check and remove.
+	ft_gen:start_link(?MODULE, Mod, Args, Options).
 
 start_link(Name, Mod, Args, Options) ->
-	ft_gen:start(?MODULE, link, Name, Mod, Args, Options).
+	ft_gen:start_link(?MODULE, Name, Mod, Args, Options).
 
 %% -----------------------------------------------------------------
 %% Make a call to a generic server.
@@ -144,17 +145,17 @@ start_link(Name, Mod, Args, Options) ->
 %% ----------------------------------------------------------------- 
 atomic_call(Name, Request) ->
 	case catch ft_gen:call(Name, '$atomic_gen_call', Request) of
-		{ok,Res} ->
+		{ok, Res} ->
 			Res;
-		{'EXIT',Reason} ->
+		{'EXIT', Reason} ->
 			exit({Reason, {?MODULE, call, [Name, Request]}})
 	end.
 
 atomic_call(Name, Request, Timeout) ->
 	case catch ft_gen:call(Name, '$atomic_gen_call', Request, Timeout) of
-		{ok,Res} ->
+		{ok, Res} ->
 			Res;
-		{'EXIT',Reason} ->
+		{'EXIT', Reason} ->
 			exit({Reason, {?MODULE, call, [Name, Request, Timeout]}})
 	end.
 
@@ -320,7 +321,8 @@ do_send(Dest, Msg) ->
 	% TODO: send() isn't reliable enough
 	case catch erlang:send(Dest, Msg, [noconnect]) of
 		noconnect ->
-			spawn(erlang, send, [Dest,Msg]);
+			% TODO: this is async, which is bad for us
+			spawn(erlang, send, [Dest, Msg]);
 		Other ->
 			Other
 	end.
@@ -665,7 +667,7 @@ terminate(Reason, Name, Msg, Mod, State, Debug) ->
 					exit(normal);
 				shutdown ->
 					exit(shutdown);
-				{shutdown,_}=Shutdown ->
+				{shutdown,_} = Shutdown ->
 					exit(Shutdown);
 				_ ->
 					error_info(Reason, Name, Msg, State, Debug),
