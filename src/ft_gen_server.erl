@@ -82,13 +82,11 @@
 %%% ---------------------------------------------------
 
 %% API
--export([start/3, start/4,
-		 start_link/3, start_link/4,
-		 call/2, call/3,
-		 cast/2, reply/2,
-		 abcast/2, abcast/3,
+-export([start_link/3, start_link/4,
+		 atomic_call/2, atomic_call/3,
+		 atomic_cast/2,
+		 reply/2,
 		 multi_call/2, multi_call/3, multi_call/4,
-		 enter_loop/3, enter_loop/4, enter_loop/5,
 		 wake_hib/5]).
 
 -export([behaviour_info/1]).
@@ -104,6 +102,7 @@
 
 -import(error_logger, [format/2]).
 
+
 %%%=========================================================================
 %%%  API
 %%%=========================================================================
@@ -118,8 +117,6 @@ behaviour_info(_Other) ->
 
 %%%  -----------------------------------------------------------------
 %%% Starts a generic server.
-%%% start(Mod, Args, Options)
-%%% start(Name, Mod, Args, Options)
 %%% start_link(Mod, Args, Options)
 %%% start_link(Name, Mod, Args, Options) where:
 %%%    Name ::= {local, atom()} | {global, atom()}
@@ -132,18 +129,11 @@ behaviour_info(_Other) ->
 %%%          {error, {already_started, Pid}} |
 %%%          {error, Reason}
 %%% -----------------------------------------------------------------
-start(Mod, Args, Options) ->
-	ft_gen:start(?MODULE, nolink, Mod, Args, Options).
-
-start(Name, Mod, Args, Options) ->
-	ft_gen:start(?MODULE, nolink, Name, Mod, Args, Options).
-
 start_link(Mod, Args, Options) ->
 	ft_gen:start(?MODULE, link, Mod, Args, Options).
 
 start_link(Name, Mod, Args, Options) ->
 	ft_gen:start(?MODULE, link, Name, Mod, Args, Options).
-
 
 %% -----------------------------------------------------------------
 %% Make a call to a generic server.
@@ -152,7 +142,7 @@ start_link(Name, Mod, Args, Options) ->
 %% If the client is trapping exits and is linked server termination
 %% is handled here (? Shall we do that here (or rely on timeouts) ?).
 %% ----------------------------------------------------------------- 
-call(Name, Request) ->
+atomic_call(Name, Request) ->
 	case catch ft_gen:call(Name, '$atomic_gen_call', Request) of
 		{ok,Res} ->
 			Res;
@@ -160,7 +150,7 @@ call(Name, Request) ->
 			exit({Reason, {?MODULE, call, [Name, Request]}})
 	end.
 
-call(Name, Request, Timeout) ->
+atomic_call(Name, Request, Timeout) ->
 	case catch ft_gen:call(Name, '$atomic_gen_call', Request, Timeout) of
 		{ok,Res} ->
 			Res;
@@ -171,22 +161,23 @@ call(Name, Request, Timeout) ->
 %% -----------------------------------------------------------------
 %% Make a cast to a generic server.
 %% -----------------------------------------------------------------
-cast({global,Name}, Request) ->
-	% TODO:send() isn't reliable enough
+atomic_cast({global, Name}, Request) ->
+	% TODO: send() isn't reliable enough, implement our protocol
 	catch global:send(Name, cast_msg(Request)),
 	ok;
-cast({Name,Node}=Dest, Request) when is_atom(Name), is_atom(Node) -> 
+atomic_cast({Name, Node} = Dest, Request) when is_atom(Name), is_atom(Node) ->
 	do_cast(Dest, Request);
-cast(Dest, Request) when is_atom(Dest) ->
+atomic_cast(Dest, Request) when is_atom(Dest) ->
 	do_cast(Dest, Request);
-cast(Dest, Request) when is_pid(Dest) ->
+atomic_cast(Dest, Request) when is_pid(Dest) ->
 	do_cast(Dest, Request).
 
 do_cast(Dest, Request) -> 
 	do_send(Dest, cast_msg(Request)),
 	ok.
 
-cast_msg(Request) -> {'$atomic_gen_cast',Request}.
+cast_msg(Request) ->
+	{'$atomic_gen_cast', Request}.
 
 %% -----------------------------------------------------------------
 %% Send a reply to the client.
@@ -194,21 +185,6 @@ cast_msg(Request) -> {'$atomic_gen_cast',Request}.
 reply({To, Tag}, Reply) ->
 	% TODO: convert into a call/atomic_cast
 	catch To ! {Tag, Reply}.
-
-%% -----------------------------------------------------------------
-%% Asyncronous broadcast, returns nothing, it's just send'n prey
-%%------------------------------------------------------------------
-% TODO: remove?
-abcast(Name, Request) when is_atom(Name) ->
-	do_abcast([node() | nodes()], Name, cast_msg(Request)).
-
-abcast(Nodes, Name, Request) when is_list(Nodes), is_atom(Name) ->
-	do_abcast(Nodes, Name, cast_msg(Request)).
-
-do_abcast([Node|Nodes], Name, Msg) when is_atom(Node) ->
-	do_send({Name,Node},Msg),
-	do_abcast(Nodes, Name, Msg);
-do_abcast([], _,_) -> abcast.
 
 %%% -----------------------------------------------------------------
 %%% Make a call to servers at several nodes.
@@ -236,35 +212,8 @@ multi_call(Nodes, Name, Req, Timeout)
 	do_multi_call(Nodes, Name, Req, Timeout).
 
 
-%%-----------------------------------------------------------------
-%% enter_loop(Mod, Options, State, <ServerName>, <TimeOut>) ->_ 
-%%   
-%% Description: Makes an existing process into an ft_gen_server. 
-%%              The calling process will enter the ft_gen_server receive 
-%%              loop and become an ft_gen_server process.
-%%              The process *must* have been started using one of the 
-%%              start functions in proc_lib, see proc_lib(3). 
-%%              The user is responsible for any initialization of the 
-%%              process, including registering a name for it.
-%%-----------------------------------------------------------------
-% TODO: remove?
-enter_loop(Mod, Options, State) ->
-	enter_loop(Mod, Options, State, self(), infinity).
-
-enter_loop(Mod, Options, State, ServerName = {_, _}) ->
-	enter_loop(Mod, Options, State, ServerName, infinity);
-
-enter_loop(Mod, Options, State, Timeout) ->
-	enter_loop(Mod, Options, State, self(), Timeout).
-
-enter_loop(Mod, Options, State, ServerName, Timeout) ->
-	Name = get_proc_name(ServerName),
-	Parent = get_parent(),
-	Debug = debug_options(Name, Options),
-	loop(Parent, Name, State, Mod, Timeout, Debug).
-
 %%%========================================================================
-%%% Gen-callback functions
+%%% gen callback functions
 %%%========================================================================
 
 %%% ---------------------------------------------------
@@ -323,6 +272,7 @@ unregister_name({global,Name}) ->
 	_ = global:unregister_name(Name);
 unregister_name(Pid) when is_pid(Pid) ->
 	Pid.
+
 
 %%%========================================================================
 %%% Internal functions
@@ -660,6 +610,7 @@ reply(Name, {To, Tag}, Reply, State, Debug) ->
 %%-----------------------------------------------------------------
 %% Callback functions for system messages handling.
 %%-----------------------------------------------------------------
+
 system_continue(Parent, Debug, [Name, State, Mod, Time]) ->
 	loop(Parent, Name, State, Mod, Time, Debug).
 
@@ -673,6 +624,7 @@ system_code_change([Name, State, Mod, Time], _Module, OldVsn, Extra) ->
 		{ok, NewState} -> {ok, [Name, NewState, Mod, Time]};
 		Else -> Else
 	end.
+
 
 %%-----------------------------------------------------------------
 %% Format debug messages.  Print them as the call-back module sees
@@ -701,7 +653,6 @@ print_event(Dev, Event, Name) ->
 %%% ---------------------------------------------------
 %%% Terminate the server.
 %%% ---------------------------------------------------
-
 terminate(Reason, Name, Msg, Mod, State, Debug) ->
 	case catch Mod:terminate(Reason, State) of
 		% TODO: cleanup/remove our mnesia table if Reason is normal or shutdown
@@ -753,6 +704,7 @@ error_info(Reason, Name, Msg, State, Debug) ->
 	sys:print_log(Debug),
 	ok.
 
+
 %%% ---------------------------------------------------
 %%% Misc. functions.
 %%% ---------------------------------------------------
@@ -790,50 +742,6 @@ dbg_opts(Name, Opts) ->
 			[];
 		Dbg ->
 			Dbg
-	end.
-
-get_proc_name(Pid) when is_pid(Pid) ->
-	Pid;
-get_proc_name({local, Name}) ->
-	case process_info(self(), registered_name) of
-		{registered_name, Name} ->
-			Name;
-		{registered_name, _Name} ->
-			exit(process_not_registered);
-		[] ->
-			exit(process_not_registered)
-	end;    
-get_proc_name({global, Name}) ->
-	case global:safe_whereis_name(Name) of
-		undefined ->
-			exit(process_not_registered_globally);
-		Pid when Pid =:= self() ->
-			Name;
-		_Pid ->
-			exit(process_not_registered_globally)
-	end.
-
-get_parent() ->
-	case get('$ancestors') of
-		[Parent | _] when is_pid(Parent)->
-			Parent;
-		[Parent | _] when is_atom(Parent)->
-			name_to_pid(Parent);
-		_ ->
-			exit(process_was_not_started_by_proc_lib)
-	end.
-
-name_to_pid(Name) ->
-	case whereis(Name) of
-		undefined ->
-			case global:safe_whereis_name(Name) of
-				undefined ->
-					exit(could_not_find_registerd_name);
-				Pid ->
-					Pid
-			end;
-		Pid ->
-			Pid
 	end.
 
 %%-----------------------------------------------------------------
