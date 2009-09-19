@@ -79,11 +79,13 @@
 %% brake: determines max deceleration (must be negative) F = m*a
 %% power: determines max speed and max acceleration. F = m*a
 %% weight: car's weight (excluding fuel)
+%% pitstop_sgm: id of the segment containing the team's pits
 %% -----------------------
 -record(car_type,{team_name,
 				  brake,
 				  power,
-				  weight}).
+				  weight,
+				  pitstop_sgm}).
 
 %% ------------------------
 -record(setting, {key, value}).

@@ -3,7 +3,7 @@
 -include("config.hrl").
 
 %% Exported Functions
--export([simulate/2,
+-export([simulate/3,
 		 preelaborate/1]).
 
 
@@ -16,36 +16,49 @@
 %% exiting from it in ExitLane lane.
 %% Pilot: record of type pilot
 %% ExitLane: guess...
+%% Pit: true if pilot wants to stop at the pits
 
-simulate(Pilot, ExitLane) when is_record(Pilot, pilot)->
-	%%TODO Aggiungere il controllo che si possa fare quel cambio di corsia!!
+simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
+	%% TODO aggiungere chiamata ai box al posto di simulate_rec se
+	%% l'auto è nel sgm e lane giuste.
 	Sgm = next_segment(Pilot#pilot.segment),
 	[S2] = mnesia:read(track, Pilot#pilot.segment),
 	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
 	EnterLane = CarPos#car_position.exit_lane,
-	EnterTime = CarPos#car_position.exit_t,
-	
 	[S] = mnesia:read(track, Sgm),
-	Space = S#segment.length,
-	EnterSpeed = CarPos#car_position.speed,
 	
-	
-	[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
-	FAcc = Car#car_type.power,
-	FDec = Car#car_type.brake,
-	Mass = Car#car_type.weight + Pilot#pilot.weight + 
-			(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
-	Inc = deg_to_rad(S#segment.inclination),
-	
-	[Bound] = mnesia:read(preelab_tab_name(Pilot#pilot.id), Sgm),
-	%% TODO bound o pit_bound???? devo controllare sul pilota
-	MaxExitSpeed = lists:min([Bound#speed_bound.bound, max_speed(Car#car_type.power)]),
-	
-	Amin = acceleration(FDec, Mass, Inc),
-	Amax = acceleration(FAcc, Mass, Inc),
-	
-	simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, 1,
-				 Space, EnterSpeed, MaxExitSpeed, Amin, Amax).
+	case allow_move(Pilot, S, EnterLane, ExitLane) of
+		false -> crash;
+		true ->
+			EnterTime = CarPos#car_position.exit_t,
+			Space = S#segment.length,
+			EnterSpeed = CarPos#car_position.speed,
+			
+			[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
+			FAcc = Car#car_type.power,
+			FDec = Car#car_type.brake,
+			Mass = Car#car_type.weight + Pilot#pilot.weight + 
+					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
+			Inc = deg_to_rad(S#segment.inclination),
+			
+			[Bound] = mnesia:read(preelab_tab_name(Pilot#pilot.id), Sgm),
+			
+			%% If in pit area use lane bound otherwise choose using Pit value
+			PL = is_pit_area_lane(S, ExitLane),
+			SB = case is_pit_area(S) of
+					 true when PL -> Bound#speed_bound.pit_bound;
+					 true -> Bound#speed_bound.bound;
+					 false when Pit -> Bound#speed_bound.pit_bound;
+					 false -> Bound#speed_bound.bound
+				 end,
+			MaxExitSpeed = lists:min([SB, max_speed(Car#car_type.power)]),
+			
+			Amin = acceleration(FDec, Mass, Inc),
+			Amax = acceleration(FAcc, Mass, Inc),
+			
+			simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, 1,
+						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
+	end.
 
 %% Calculates max speed the car with id equal to Pilot can have
 %% in each segment of the track.
@@ -270,5 +283,52 @@ bent_and_pit_rec(Pilot, Sgm) ->
 			[R | bent_and_pit_rec(Pilot, Sgm - 1)]
 	end.
 
+%%%%%%%%
 
-	
+is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
+	if 
+		Sgm#segment.max_lane == Lane -> true;
+		true -> false
+	end;
+
+is_pit_area_lane(#segment{type = pitstop} = Sgm, Lane) ->
+	if
+		Sgm#segment.max_lane - 1 =< Lane -> true;
+		true -> false
+	end;
+
+is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
+	false.
+
+
+%% True if segment's type is pitlane | pitstop
+
+is_pit_area(#segment{type = pitlane}) -> 
+	true;
+
+is_pit_area(#segment{type = pitstop}) -> 
+	true;
+
+is_pit_area(Sgm) when is_record(Sgm, segment) ->
+	false.
+
+%% Checks if Pilot can move from EnterLane to ExitLane in Sgm
+allow_move(Pilot, Sgm, EnterLane, ExitLane) 
+  when is_record(Pilot, pilot) andalso is_record(Sgm, segment) ->
+	OwnsPits = are_team_pits(Pilot, Sgm),
+	PS = Sgm#segment.type == pitstop andalso EnterLane == Sgm#segment.max_lane - 1,
+	PL = Sgm#segment.type == pitlane andalso EnterLane == Sgm#segment.max_lane,
+	if
+		ExitLane < Sgm#segment.min_lane -> false;
+		ExitLane > Sgm#segment.max_lane -> false;
+		erlang:abs(ExitLane - EnterLane) > 1 -> false;
+		PL andalso ExitLane /= EnterLane -> false;
+		PS andalso ExitLane < EnterLane -> false;
+		PS andalso ExitLane == Sgm#segment.max_lane andalso not OwnsPits -> false;
+		PS andalso ExitLane == Sgm#segment.max_lane - 1 andalso OwnsPits -> false;
+		true -> true
+	end.
+
+are_team_pits(Pilot, Sgm) ->
+	[T] = mnesia:read(car_type, Pilot#pilot.team_name),
+	T#car_type.pitstop_sgm == Sgm#segment.id.
