@@ -21,6 +21,7 @@
 %%%-----------------------------------------------------------------
 %%% Fault-tolerant version of the gen module.
 %%%-----------------------------------------------------------------
+
 -export([start_link/4, start_link/5,
 		 debug_options/1,
 		 call/3, call/4,
@@ -30,8 +31,6 @@
 
 -define(default_timeout, 5000).
 
-%%-----------------------------------------------------------------
-
 -type emgr_name() :: {'local', atom()} | {'global', term()}.
 
 -type start_ret() :: {'ok', pid()} | 'ignore' | {'error', term()}.
@@ -39,6 +38,7 @@
 -type opts_flag() :: 'trace' | 'log' | 'statistics' | 'debug' | {'logfile', string()}.
 
 -type options()   :: [{'debug', [opts_flag()]}].
+
 
 %%-----------------------------------------------------------------
 %% Starts a generic process.
@@ -73,7 +73,7 @@ start_link(GenMod, Mod, Args, Options) ->
 	do_spawn(GenMod, Mod, Args, Options).
 
 %%-----------------------------------------------------------------
-%% Spawn the process (and link) maybe at another node.
+%% Spawns the process and links to it, possibly at another node.
 %%-----------------------------------------------------------------
 do_spawn(GenMod, Mod, Args, Options) ->
 	% TODO: the Name-less variant is probably unused: check and remove.
@@ -90,11 +90,18 @@ do_spawn(GenMod, Name, Mod, Args, Options) ->
 							 [link]),
 	sync_wait(Pid).
 
+%%-----------------------------------------------------------------
+%% Chooses a node among the alive ones where the process
+%% must be (re-)spawned.
+%%-----------------------------------------------------------------
 choose_node() ->
 	% TODO: implement me!
 	todo.
 
-% Adapted from proc_lib:sync_wait/2.
+%%-----------------------------------------------------------------
+%% Waits for an ack message from the spawned process or returns
+%% an error if the process died. Adapted from proc_lib:sync_wait/2.
+%%-----------------------------------------------------------------
 sync_wait(Pid) ->
 	receive
 		{ack, Pid, Return} ->
