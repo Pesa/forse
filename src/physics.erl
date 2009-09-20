@@ -3,90 +3,16 @@
 -include("config.hrl").
 
 %% Exported Functions
--export([simulate/3,
-		 preelaborate/1]).
+-export([simulate/10,
+		 bent_max_speed/2,
+		 deg_to_rad/1,
+		 acceleration/3,
+		 engine_max_speed/1]).
 
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
-
-%% Calculates the time needed by Car to cover the next segment 
-%% or atom 'crash'
-%% exiting from it in ExitLane lane.
-%% Pilot: record of type pilot
-%% ExitLane: guess...
-%% Pit: true if pilot wants to stop at the pits
-
-simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
-	%% TODO aggiungere chiamata ai box al posto di simulate_rec se
-	%% l'auto è nel sgm e lane giuste.
-	Sgm = next_segment(Pilot#pilot.segment),
-	[S2] = mnesia:read(track, Pilot#pilot.segment),
-	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
-	EnterLane = CarPos#car_position.exit_lane,
-	[S] = mnesia:read(track, Sgm),
-	
-	case allow_move(Pilot, S, EnterLane, ExitLane) of
-		false -> crash;
-		true ->
-			EnterTime = CarPos#car_position.exit_t,
-			Space = S#segment.length,
-			EnterSpeed = CarPos#car_position.speed,
-			
-			[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
-			FAcc = Car#car_type.power,
-			FDec = Car#car_type.brake,
-			Mass = Car#car_type.weight + Pilot#pilot.weight + 
-					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
-			Inc = deg_to_rad(S#segment.inclination),
-			
-			[Bound] = mnesia:read(preelab_tab_name(Pilot#pilot.id), Sgm),
-			
-			%% If in pit area use lane bound otherwise choose using Pit value
-			PL = is_pit_area_lane(S, ExitLane),
-			SB = case is_pit_area(S) of
-					 true when PL -> Bound#speed_bound.pit_bound;
-					 true -> Bound#speed_bound.bound;
-					 false when Pit -> Bound#speed_bound.pit_bound;
-					 false -> Bound#speed_bound.bound
-				 end,
-			MaxExitSpeed = lists:min([SB, max_speed(Car#car_type.power)]),
-			
-			Amin = acceleration(FDec, Mass, Inc),
-			Amax = acceleration(FAcc, Mass, Inc),
-			
-			simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, 1,
-						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
-	end.
-
-%% Calculates max speed the car with id equal to Pilot can have
-%% in each segment of the track.
-
-preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	%% [C] = mnesia:read(car_type, P#pilot.team_name), serve???
-	
-	%% Controlla se esiste la tabella, altrimenti la crea
-	case table_exists(preelab_tab_name(Pilot#pilot.id)) of
-		false -> 
-			%%TODO crea la tabella
-			ok
-	end,
-	
-	%%TODO preelabora
-	%% per ogni segmento:
-	%% se è bent usa preelaborate_bent e lo imposta come valore
-	%% sia per bound che per pit_bound crea una lista di record
-	%% speed_bound
-	%% se è pitlane o pitsop imposta #speed_bound.pit_bound a ?PIT_SPEED_LIM
-	%% e bound ad undef
-	
-	Bounds = bent_and_pit(Pilot),
-	
-	
-	
-	ok.
-
 
 %% --------------------------------------------------------------------
 %% Internal functions
@@ -128,7 +54,7 @@ get_car_ahead(Sgm, Lane, Index) ->
 	end.
 
 
-simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index, 
+simulate(Sgm, EnterLane, ExitLane, EnterTime, Index, 
 			 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
 	G = if
 			EnterLane == ExitLane -> 0;
@@ -146,7 +72,7 @@ simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index,
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
 			add_g(G, calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ ->
-			simulate_rec(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,
+			simulate(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 
@@ -156,33 +82,10 @@ add_g(_, crash) ->
 add_g(G, T) ->
 	G + T.
 
-%% Given a segment's id it calculates next segment's id
-next_segment(Id) -> 
-	(Id + 1) rem ?GET_SETTING(sgm_number).
-
-%% Given a segment's id it calculates previous segment's id
-prev_segment(0) ->
-	?GET_SETTING(sgm_number) - 1;
-prev_segment(Id) ->
-	Id - 1.
-
-%% Extract car_position with car_id == Pilot from the queue
-find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->
-	Pos;
-find_pilot(Pilot, [_ | Tail]) ->
-	find_pilot(Pilot, Tail);
-find_pilot(_, []) ->
-	null.
-
-%% Returns the name of the preelaboration table
-%% associated with Pilot
-preelab_tab_name(Pilot) ->
-	list_to_atom("pilot_" ++ integer_to_list(Pilot)).
-
 %% Pilot: pilot's id
 %% Sgm: segment's id
 %% Sgm MUST be of type bent
-preelaborate_bent(Pilot, Sgm) when is_record(Pilot, pilot) ->
+bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	G = ?G,
 	[S] = mnesia:read(track, Sgm),
 	R = S#segment.curvature,
@@ -190,11 +93,6 @@ preelaborate_bent(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	
 	K = friction(Pilot#pilot.car_status, S#segment.rain),
 	math:sqrt(K*Cos*R*G).
-
-%% Check if a table exits
-table_exists(TableName) ->
-   Tables = mnesia:system_info(tables),
-   lists:member(TableName,Tables).
 
 %% Guess
 deg_to_rad(A)-> 
@@ -232,103 +130,4 @@ acceleration(F, M, Inc) ->
 
 %% Max speed the car can reach
 %% TODO fix the number
-max_speed(F) -> 42.
-
-%% Recursively calculates speed bound for Att
-%% Att: bound | pit_bound
-%% FDec: power of brakes
-%% Sgm: id of the segment that is being computed
-%% LastSgm: id of min speed bound segment
-%% VNext: speed bound of the next segment
-%% preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext)
-
-%% TODO DA RIFARE A#b.Var non funge
-preelaborate_sgm_rec(Att, FDec, LastSgm, LastSgm, VNext) ->
-	[];
-
-preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext) ->
-	[S] = mnesia:read(track, Sgm),
-	Val = asd. %%TODO
-
-
-
-%% Returns a list of speed_bound
-
-bent_and_pit(Pilot) when is_record(Pilot, pilot) ->
-	bent_and_pit_rec(Pilot, ?GET_SETTING(sgm_number) - 1).
-
-%% First time should be invoked with 
-%% Sgm == ?GET_SETTING(sgm_number) - 1
-bent_and_pit_rec(_Pilot, -1) ->
-	[];
-
-bent_and_pit_rec(Pilot, Sgm) ->
-	[S] = mnesia:read(track, Sgm),
-	case S#segment.type of
-		pitstop -> 
-			R = #speed_bound{sgm_id = Sgm,
-							 bound = undef,
-							 pit_bound = ?PIT_SPEED_LIM},
-			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
-		pitlane ->
-			R = #speed_bound{sgm_id = Sgm,
-							 bound = undef,
-							 pit_bound = ?PIT_SPEED_LIM},
-			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
-		bent ->
-			Bound = preelaborate_bent(Pilot, Sgm),
-			R = #speed_bound{sgm_id = Sgm,
-							 bound = Bound,
-							 pit_bound = Bound},
-			[R | bent_and_pit_rec(Pilot, Sgm - 1)]
-	end.
-
-%%%%%%%%
-
-is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
-	if 
-		Sgm#segment.max_lane == Lane -> true;
-		true -> false
-	end;
-
-is_pit_area_lane(#segment{type = pitstop} = Sgm, Lane) ->
-	if
-		Sgm#segment.max_lane - 1 =< Lane -> true;
-		true -> false
-	end;
-
-is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
-	false.
-
-
-%% True if segment's type is pitlane | pitstop
-
-is_pit_area(#segment{type = pitlane}) -> 
-	true;
-
-is_pit_area(#segment{type = pitstop}) -> 
-	true;
-
-is_pit_area(Sgm) when is_record(Sgm, segment) ->
-	false.
-
-%% Checks if Pilot can move from EnterLane to ExitLane in Sgm
-allow_move(Pilot, Sgm, EnterLane, ExitLane) 
-  when is_record(Pilot, pilot) andalso is_record(Sgm, segment) ->
-	OwnsPits = are_team_pits(Pilot, Sgm),
-	PS = Sgm#segment.type == pitstop andalso EnterLane == Sgm#segment.max_lane - 1,
-	PL = Sgm#segment.type == pitlane andalso EnterLane == Sgm#segment.max_lane,
-	if
-		ExitLane < Sgm#segment.min_lane -> false;
-		ExitLane > Sgm#segment.max_lane -> false;
-		erlang:abs(ExitLane - EnterLane) > 1 -> false;
-		PL andalso ExitLane /= EnterLane -> false;
-		PS andalso ExitLane < EnterLane -> false;
-		PS andalso ExitLane == Sgm#segment.max_lane andalso not OwnsPits -> false;
-		PS andalso ExitLane == Sgm#segment.max_lane - 1 andalso OwnsPits -> false;
-		true -> true
-	end.
-
-are_team_pits(Pilot, Sgm) ->
-	[T] = mnesia:read(car_type, Pilot#pilot.team_name),
-	T#car_type.pitstop_sgm == Sgm#segment.id.
+engine_max_speed(F) -> 42.
