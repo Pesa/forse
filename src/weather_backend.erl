@@ -22,7 +22,7 @@
 %% ====================================================================
 
 start_link() ->
-	gen_server:start_link(?LOCAL_NAME, ?MODULE, [], []).
+	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
 %% ====================================================================
 %% Server functions

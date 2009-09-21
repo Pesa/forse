@@ -72,7 +72,7 @@ handle_call({subscribe, Service, Callback}, _From, State) ->
 		not_found ->
 			{reply, {error, service_not_found}, State};
 		_ ->
-			gen_server:cast(Backend, {subscribe, Callback}),
+			gen_server:cast({global, Backend}, {subscribe, Callback}),
 			{reply, ok, State}
 	end;
 
@@ -153,4 +153,4 @@ service_map(Service) ->
 %% Casts Msg to all processes in the Destinations list
 %% --------------------------------------------------------------------
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
-	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).
+	lists:foreach(fun(D) -> gen_server:cast({global, D}, Msg) end, Destinations).
