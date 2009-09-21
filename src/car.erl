@@ -62,15 +62,29 @@ init([Id]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({move}, _From, State) ->
-	% TODO: invocare qualcosa in physics
+	PitStop = State#pilot.next_pitstop =< State#pilot.lap,
+	% TODO
+	track:simulate(State, todo, PitStop),
 	NextTime = todo,
 	Reply = {requeue, NextTime,
 			 {?MODULE, move, [State#pilot.id]}},
 	{reply, Reply, State};
 
-handle_call(#next_pitstop{lap = Lap, gen_lap = GenLap}, _From, State) ->
-	% TODO: vedi algoritmo nel quaderno
-	{reply, ok, State};
+handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->
+	Lap = State#pilot.lap,
+	OldStop = State#pilot.next_pitstop,
+	NewState = if
+				   State#pilot.pitstop_count /= SC ->
+					   % the message is obsolete: ignore it
+					   State;
+				   OldStop == -1;
+				   OldStop > Lap;
+				   NewStop > Lap ->
+					   State#pilot{next_pitstop = NewStop};
+				   true ->
+					   State
+			   end,
+	{reply, ok, NewState};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),

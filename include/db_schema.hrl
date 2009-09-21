@@ -46,22 +46,24 @@
 %% name: pilot's name
 %% skill: integer representing pilot's skill
 %% weight: pilot's weight
+%% team_name: reference to car_type tab
 %% car_status: current car status
 %% lap: current lap
 %% segment: id of the current segment
-%% team_name: reference to car_type tab
 %% next_pitstop: lap of the next pitstop
+%% pitstop_count: number of pit stops the car has done
 %% run_preelab: set to true when the preelaboration phase must be re-run
 %% -----------------------
 -record(pilot,{id,
 			   name,
 			   skill,
 			   weight,
+			   team_name,
 			   car_status = #car_status{},
 			   lap = 0,
 			   segment = 0,
-			   team_name,
 			   next_pitstop = -1,
+			   pitstop_count = 0,
 			   run_preelab = true}).
 
 %% ------------------------

@@ -39,9 +39,10 @@
 %% ------------------------------------------------------------
 %% next_pitstop
 %% lap: lap in which the car should stop at the pits
-%% gen_lap: lap in which this message was sent
+%% stops_count: number of pit stops the car had done when this
+%%				message was sent, according to the team
 %% ------------------------------------------------------------
--record(next_pitstop, {lap, gen_lap}).
+-record(next_pitstop, {lap, stops_count}).
 
 %% ------------------------------------------------------------
 %% chrono_notif
