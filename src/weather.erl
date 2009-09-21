@@ -79,7 +79,9 @@ handle_call({apply_change, NewWeather, Where}, _From, State) ->
 	{reply, done, State};
 
 handle_call({schedule_change, NewWeather, Where, When}, _From, State) ->
-	Reply = scheduler:queue_work(When, {?MODULE, apply_change, [NewWeather, Where]}),
+	Reply = scheduler:queue_work(When, #callback{mod = ?MODULE,
+												 func = apply_change,
+												 args = [NewWeather, Where]}),
 	{reply, Reply, State};
 
 handle_call(Msg, From, State) ->

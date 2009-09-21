@@ -47,7 +47,9 @@ set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([Id]) ->
-	scheduler:queue_work(0, {?MODULE, move, [Id]}),
+	scheduler:queue_work(0, #callback{mod = ?MODULE,
+									  func = move,
+									  args = [Id]}),
 	% TODO: finire inizializzazione dello stato
 	{ok, #pilot{id = Id}}.
 
@@ -66,8 +68,9 @@ handle_call({move}, _From, State) ->
 	% TODO
 	track:simulate(State, todo, PitStop),
 	NextTime = todo,
-	Reply = {requeue, NextTime,
-			 {?MODULE, move, [State#pilot.id]}},
+	Reply = {requeue, NextTime, #callback{mod = ?MODULE,
+										  func = move,
+										  args = [State#pilot.id]}},
 	{reply, Reply, State};
 
 handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->
