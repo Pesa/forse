@@ -27,7 +27,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 	EnterLane = CarPos#car_position.exit_lane,
 	[S] = mnesia:read(track, Sgm),
 	
-	case access:allow_move(Pilot, S, EnterLane, ExitLane) of
+	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
 		crash -> crash;
 		pits -> ok; %%TODO inserire chiamata ai box
 		true ->
@@ -66,12 +66,13 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 %% in each segment of the track.
 
 preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	%% [C] = mnesia:read(car_type, P#pilot.team_name), serve???
+	[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
+	FDec = Car#car_type.brake,
 	
 	%% Controlla se esiste la tabella, altrimenti la crea
 	case table_exists(preelab_tab_name(Pilot#pilot.id)) of
 		false -> 
-			%%TODO crea la tabella
+			%%TODO crea la tabella CONTROLLARE QUI QUALCOSA
 			ok
 	end,
 	
@@ -83,7 +84,20 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	%% se è pitlane o pitsop imposta #speed_bound.pit_bound a ?PIT_SPEED_LIM
 	%% e bound ad undef
 	
+	%%preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext)
+	
 	Bounds = preelab_bent_and_pit(Pilot),
+	
+	{MinBoundIndex, MinSpeed} = min_bound(Bounds),
+	BoundsPre = preelaborate_sgm_rec(Bounds, #speed_bound.bound, FDec, 
+									 prev_segment(MinBoundIndex), MinBoundIndex,
+									 MinSpeed),
+	
+	{MinPitBoundIndex, MinPitSpeed} = min_pit_bound(Bounds),
+	FinalBoundsPre = preelaborate_sgm_rec(BoundsPre, #speed_bound.pit_bound, FDec,
+										prev_segment(MinPitBoundIndex),
+										MinPitBoundIndex, minPitSpeed),
+	
 	
 	ok.
 
@@ -136,12 +150,10 @@ bent_and_pit_rec(Pilot, Sgm) ->
 	case S#segment.type of
 		pitstop -> 
 			R = #speed_bound{sgm_id = Sgm,
-							 bound = undef,
 							 pit_bound = ?PIT_SPEED_LIM},
 			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
 		pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
-							 bound = undef,
 							 pit_bound = ?PIT_SPEED_LIM},
 			[R | bent_and_pit_rec(Pilot, Sgm - 1)];
 		bent ->
@@ -166,6 +178,12 @@ is_pit_area_lane(#segment{type = pitstop} = Sgm, Lane) ->
 		true -> false
 	end;
 
+is_pit_area_lane(#segment{type = pre_pitstop} = Sgm, Lane) ->
+	if
+		Sgm#segment.max_lane == Lane -> true;
+		true -> false
+	end;
+
 is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
 	false.
 
@@ -178,21 +196,79 @@ is_pit_area(#segment{type = pitlane}) ->
 is_pit_area(#segment{type = pitstop}) -> 
 	true;
 
+is_pit_area(#segment{type = pre_pitstop}) -> 
+	true;
+
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
 
-%% Recursively calculates speed bound for Att
-%% Att: bound | pit_bound
+%% Recursively calculates speed bound for AttIndex
+%% BoundList:
+%% AttIndex: 
 %% FDec: power of brakes
 %% Sgm: id of the segment that is being computed
 %% LastSgm: id of min speed bound segment
 %% VNext: speed bound of the next segment
-%% preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext)
 
-%% TODO DA RIFARE A#b.Var non funge
-%% preelaborate_sgm_rec(Att, FDec, LastSgm, LastSgm, VNext) ->
-%% 	[];
-%% 
-%% preelaborate_sgm_rec(Att, FDec, Sgm, LastSgm, VNext) ->
-%% 	[S] = mnesia:read(track, Sgm),
-%% 	Val = asd. %%TODO
+
+preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext) ->
+	[];
+
+preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext) ->
+	[S] = mnesia:read(track, Sgm),
+	Length = S#segment.length,
+	Calc = physics:sgm_max_speed(VNext, FDec, Length),
+	
+	case lists:keyfind(Sgm, #speed_bound.sgm_id, BoundList) of
+		false ->
+			NewBound = setelement(AttIndex, #speed_bound{sgm_id = Sgm}, Calc),
+			Rec = preelaborate_sgm_rec(BoundList, AttIndex, FDec, 
+									   prev_segment(Sgm), LastSgm, Calc),
+			[NewBound | Rec];
+		OldBound ->
+			NewBoundList = lists:keydelete(Sgm, #speed_bound.sgm_id, BoundList),
+			NewBound = if
+						   element(AttIndex, OldBound) == undefined 
+							 orelse element(AttIndex, OldBound) > Calc ->
+							   setelement(AttIndex, OldBound, Calc);
+						   true ->
+							   OldBound
+					   end,
+			Rec = preelaborate_sgm_rec(NewBoundList, AttIndex, FDec,
+									   prev_segment(Sgm), LastSgm, 
+									   element(AttIndex, NewBound)),
+			[NewBound | Rec]
+	end.
+
+%% Returns the id of the segment which has the minimum bound or 0
+min_bound(List) ->
+	R = min_bound_rec(List, #speed_bound.bound),
+	case R of
+		error -> {0, track_error}; %% No bents or pits in this track!!
+		#speed_bound{sgm_id = Id, bound = B} -> {Id, B}
+	end.
+
+%% Returns the id of the segment which has the minimum pit_bound or 0
+min_pit_bound(List) ->
+	R = min_bound_rec(List, #speed_bound.pit_bound),
+	case R of
+		error -> {0, track_error}; %% No bents or pits in this track!!
+		#speed_bound{sgm_id = Id, pit_bound = B} -> {Id, B}
+	end.
+
+%% Returns speed_bound record that has minimum element in the Index-th 
+%% position of the record or error
+min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
+	Min = min_bound_rec(Tail, Index),
+	if
+		element(Index, Head) == undefined -> 
+			Min;
+		Min == error orelse element(Index, Min) > element(Index, Head) ->
+			Head;
+		true ->
+			Min
+	end;
+
+min_bound_rec([], _Index) ->
+	error.
+

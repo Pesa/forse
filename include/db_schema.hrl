@@ -21,7 +21,7 @@
 
 %% ------------------------
 %% id: unique numerical identifier
-%% type: straight | pitstop | pitlane | bent | intermediate
+%% type: straight | pre_pitlane | post_pitlane | pitstop | pitlane | bent | intermediate
 %% TODO: il traguardo e le postazioni di partenza?
 %% min_lane: minimum lane index
 %% max_lane: maximum lane index
