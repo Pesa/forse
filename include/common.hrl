@@ -20,6 +20,14 @@
 %%% ========================
 
 %% ------------------------------------------------------------
+%% callback
+%% mod: module's name (atom)
+%% func: function's name (atom), must belong to mod
+%% args: list of arguments to mod:func
+%% ------------------------------------------------------------
+-record(callback, {mod, func, args}).
+
+%% ------------------------------------------------------------
 %% car_status
 %% fuel: amount of fuel left
 %% tyres_consumption: how much the tyres have been worn out (float from 0 to 100)
