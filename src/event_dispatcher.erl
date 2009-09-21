@@ -4,7 +4,7 @@
 
 %% External exports
 -export([start_link/0, 
-		 subscribe/1,
+		 subscribe/2,
 		 notify/1]).
 
 %% gen_server callbacks
@@ -32,8 +32,8 @@
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
-subscribe(Service) ->
-	gen_server:call(?GLOBAL_NAME, {subscribe, Service}, infinity).
+subscribe(Service, Callback) when is_record(Callback, callback) ->
+	gen_server:call(?GLOBAL_NAME, {subscribe, Service, Callback}, infinity).
 
 notify(Msg) ->
 	gen:server_call(?GLOBAL_NAME, Msg, infinity).
@@ -65,18 +65,18 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
-% Subscription message
-handle_call({subscribe, Service}, From, State) ->
+% Subscription request
+handle_call({subscribe, Service, Callback}, _From, State) ->
 	Backend = service_map(Service),
 	case Backend of
 		not_found ->
 			{reply, {error, service_not_found}, State};
 		_ ->
-			gen_server:cast(Backend, {subscribe, From}),
+			gen_server:cast(Backend, {subscribe, Callback}),
 			{reply, ok, State}
 	end;
 
-% Race messages
+% Race notifications
 handle_call(Msg, _From, State) when is_record(Msg, chrono_notif)->
 	internal_dispatching(Msg, ?CHRONO_OBS),
 	{reply, ok, State};
@@ -88,7 +88,11 @@ handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
 	internal_dispatching(Msg, ?WEATHER_OBS),
-	{reply, ok, State}.
+	{reply, ok, State};
+
+handle_call(Msg, From, State) ->
+	?WARN({"unhandled call", Msg, "from", From}),
+	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -133,8 +137,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% --------------------------------------------------------------------
 %% Function: service_map/1
-%% Purpose: Mapping from services to dispatcher backends
-%% Returns: atom
+%% Mapping from services to dispatcher backends
 %% --------------------------------------------------------------------
 service_map(Service) ->
 	case Service of
@@ -147,7 +150,7 @@ service_map(Service) ->
 
 %% --------------------------------------------------------------------
 %% Function: internal_dispatching/2
-%% Purpose: Casts Msg to all processes in the Destinations list
+%% Casts Msg to all processes in the Destinations list
 %% --------------------------------------------------------------------
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
 	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).

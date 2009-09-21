@@ -60,21 +60,21 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast({subscribe, From}, State) when is_pid(From) ->
-	% TODO: quando un observer muore, va tolto dalla lista;
-	%		usare un monitor?
-	NewObs = State#state.observers ++ [From],
-    {noreply, State#state{observers = NewObs}};
+handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
+	NewObs = State#state.observers ++ [Callback],
+	{noreply, State#state{observers = NewObs}};
 
-handle_cast(Msg, State) when is_record(Msg, chrono_notif)
-						orelse is_record(Msg, pitstop_notif)
-						orelse is_record(Msg, surpass_notif)
-						orelse is_record(Msg, weather_notif) ->
-	lists:foreach(fun(X) -> gen_server:call(X, to_string(Msg)) end,
-				  State#state.observers),
-	% TODO: togliere l'entry dal journal su mnesia
+handle_cast(Msg, State) when is_record(Msg, chrono_notif);
+							 is_record(Msg, pitstop_notif);
+							 is_record(Msg, surpass_notif);
+							 is_record(Msg, weather_notif) ->
+	lists:foreach(
+	  fun(#callback{mod = M, func = F, args = A}) ->
+			  % TODO: detect dead subscriber
+			  apply(M, F, [{update, to_string(Msg)} | A])
+	  end,
+	  State#state.observers),
 	{noreply, State}.
-
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
@@ -102,9 +102,11 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
+
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
 	atom_to_list(C) ++ " has gone through intermediate " ++ integer_to_list(Inter) ++
 		" of lap " ++ integer_to_list(Lap) ++ " in " ++ float_to_list(T) ++

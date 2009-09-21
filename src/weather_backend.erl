@@ -60,14 +60,11 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast({subscribe, From}, State) ->
-	%TODO add subscriber in mnesia
-	OldObs = State#state.observers,
-	NewState = State#state{observers = [From | OldObs]}, 
-    {noreply, NewState};
+handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
+	NewObs = State#state.observers ++ [Callback],
+	{noreply, State#state{observers = NewObs}};
 
 handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
-	%TODO togliere l'entry nel journal
 	%TODO elaborare i dati ricevuti
 	{noreply, State}.
 
