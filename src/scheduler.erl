@@ -162,10 +162,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
-process_next(State) when State#state.running
-					andalso State#state.token_available
-					andalso (State#state.timing_info)#timing.timer == undefined ->
-	% all the preconditions are met: process the next item on the workqueue
+% Processes the next item on the workqueue, if all preconditions are met.
+process_next(State) when State#state.running,
+						 State#state.token_available,
+						 (State#state.timing_info)#timing.timer == undefined ->
 	[{Time, M, F, A} | Tail] = State#state.workqueue,
 	% start a new timer
 	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
@@ -179,6 +179,7 @@ process_next(State) ->
 	?DBG("preconditions not satisfied."),
 	State.
 
+% Sends the token to the worker identified by the arguments.
 give_token(Mod, Fun, Args) ->
 	case apply(Mod, Fun, Args) of
 		{requeue, Time, {M, F, A}} ->
@@ -190,9 +191,11 @@ give_token(Mod, Fun, Args) ->
 	end,
 	work_done().
 
+% Gives the token back to the main scheduler process.
 work_done() ->
 	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
 
+% Checks whether a new timer should be started and, if so, starts it.
 new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
 	?DBG({"starting timer at", CurrentTime, "expiring at", NextTime}),
 	SleepAmount = (NextTime - CurrentTime) div Timing#timing.speedup,
@@ -204,6 +207,7 @@ new_timer(Timing, [{CurrentTime, _}]) ->
 				  start = CurrentTime,
 				  expiry = undefined}.
 
+% Adjusts the expiration time of the currently pending timer, if necessary.
 recalculate_timer(#timing{timer = undefined, start = Start, speedup = Speedup}, [{NextTime, _} | _]) ->
 	new_timer(#timing{speedup = Speedup}, [{Start, unused}, {NextTime, unused}]);
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _]) ->
@@ -217,20 +221,23 @@ recalculate_timer(#timing{timer = Timer, expiry = Expiry, speedup = Speedup}, [{
 			expiry = NextTime,
 			speedup = Speedup}.
 
+% Starts a timer which fires after SleepAmount milliseconds.
 start_timer(SleepAmount) ->
 	erlang:start_timer(erlang:max(0, SleepAmount), ?MODULE, wakeup).
 
+% Cancels any pending timer.
 reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
 	?DBG("  resetting timing info ..."),
 	case Timer of
 		undefined ->
-			true;
+			ok;
 		_ ->
 			erlang:cancel_timer(Timer),
 			?DBG("    timer canceled.")
 	end,
 	#timing{speedup = Speedup}.
 
+% Inserts {Time, M, F, A} in the workqueue.
 insert({Time, M, F, A}, List) when is_list(List) ->
 	[ X || X <- List, element(1, X) =< Time ]
 	++ [{Time, M, F, A}] ++
