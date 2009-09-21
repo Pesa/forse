@@ -45,8 +45,8 @@ start_simulation() ->
 pause_simulation() ->
 	gen_server:call(?GLOBAL_NAME, {pause}).
 
-queue_work(Time, {Mod, Fun, Args}) ->
-	gen_server:call(?GLOBAL_NAME, {enqueue, Time, {Mod, Fun, Args}}, infinity).
+queue_work(Time, Callback) when is_record(Callback, callback) ->
+	gen_server:call(?GLOBAL_NAME, {enqueue, Time, Callback}, infinity).
 
 
 %% ====================================================================
@@ -95,10 +95,10 @@ handle_call({pause}, _From, State) ->
 	{reply, ok, State#state{running = false,
 							timing_info = NewTiming}};
 
-handle_call({enqueue, Time, {M, F, A}}, _From, State) ->
-	?DBG({"enqueuing new work", {M, F, A}, "at time", Time}),
-	% enqueue the new work
-	NewQueue = insert({Time, M, F, A}, State#state.workqueue),
+handle_call({enqueue, Time, Callback}, _From, State) ->
+	?DBG({"enqueuing new work", Callback, "at time", Time}),
+	% enqueue the new callback
+	NewQueue = insert({Time, Callback}, State#state.workqueue),
 	% update the timer if needed
 	NewTiming = recalculate_timer(State#state.timing_info, NewQueue),
 	{reply, ok, State#state{timing_info = NewTiming,
@@ -166,12 +166,12 @@ code_change(_OldVsn, State, _Extra) ->
 process_next(State) when State#state.running,
 						 State#state.token_available,
 						 (State#state.timing_info)#timing.timer == undefined ->
-	[{Time, M, F, A} | Tail] = State#state.workqueue,
+	[{Time, Callback} | Tail] = State#state.workqueue,
+	Args = [Time | Callback#callback.args],
 	% start a new timer
 	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
 	% send the token by invoking the provided callback in a separate process
-	?DBG({"sending token to", {M, F, A}, "at time", Time}),
-	spawn_link(?MODULE, give_token, [M, F, [Time | A]]),
+	spawn_link(?MODULE, give_token, [Callback#callback{args = Args}]),
 	State#state{token_available = false,
 				timing_info = NewTiming,
 				workqueue = Tail};
@@ -180,14 +180,15 @@ process_next(State) ->
 	State.
 
 % Sends the token to the worker identified by the arguments.
-give_token(Mod, Fun, Args) ->
-	case apply(Mod, Fun, Args) of
-		{requeue, Time, {M, F, A}} ->
-			queue_work(Time, {M, F, A});
+give_token(#callback{mod = M, func = F, args = A} = CB) ->
+	?DBG({"sending token to", CB}),
+	case apply(M, F, A) of
+		{requeue, Time, NewCB} when is_record(NewCB, callback) ->
+			queue_work(Time, NewCB);
 		done ->
-			true;
+			ok;
 		Else ->
-			?WARN({"worker", {Mod, Fun, Args}, "returned unexpected value", Else})
+			?WARN({CB, "returned unexpected value", Else})
 	end,
 	work_done().
 
@@ -237,8 +238,8 @@ reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
 	end,
 	#timing{speedup = Speedup}.
 
-% Inserts {Time, M, F, A} in the workqueue.
-insert({Time, M, F, A}, List) when is_list(List) ->
+% Inserts {Time, Callback} in the workqueue.
+insert({Time, Callback}, List) when is_list(List) ->
 	[ X || X <- List, element(1, X) =< Time ]
-	++ [{Time, M, F, A}] ++
+	++ [{Time, Callback}] ++
 	[ X || X <- List, element(1, X) > Time ].
