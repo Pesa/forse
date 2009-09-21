@@ -5,6 +5,7 @@
 %% Exported Functions
 -export([simulate/10,
 		 bent_max_speed/2,
+		 sgm_max_speed/3,
 		 deg_to_rad/1,
 		 acceleration/3,
 		 engine_max_speed/1]).
@@ -93,6 +94,9 @@ bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	
 	K = friction(Pilot#pilot.car_status, S#segment.rain),
 	math:sqrt(K*Cos*R*G).
+
+sgm_max_speed(VNext, FDec, S) ->
+	math:sqrt(math:pow(VNext, 2) - 2*FDec*S).
 
 %% Guess
 deg_to_rad(A)-> 
