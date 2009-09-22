@@ -63,11 +63,11 @@ init([]) ->
 handle_call({apply_change, NewWeather, Where}, _From, State) ->
 	T = fun() ->
 				case mnesia:wread(track, Where) of
-					[Segment] -> mnesia:write(track, Segment#segment{rain = NewWeather});
+					[Segment] -> mnesia:write(track, Segment#segment{rain = NewWeather}, write);
 					_ -> mnesia:abort("invalid segment " ++ integer_to_list(Where))
 				end,
 				F = fun(Pilot, _) ->
-							mnesia:write(pilot, Pilot#pilot{run_preelab = true})
+							mnesia:write(Pilot#pilot{run_preelab = true})
 					end,
 				mnesia:foldl(F, 0, pilot, write)
 		end,
@@ -79,9 +79,8 @@ handle_call({apply_change, NewWeather, Where}, _From, State) ->
 	{reply, done, State};
 
 handle_call({schedule_change, NewWeather, Where, When}, _From, State) ->
-	Reply = scheduler:queue_work(When, #callback{mod = ?MODULE,
-												 func = apply_change,
-												 args = [NewWeather, Where]}),
+	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather, Where]},
+	Reply = scheduler:queue_work(When, Callback),
 	{reply, Reply, State};
 
 handle_call(Msg, From, State) ->
