@@ -7,6 +7,10 @@
 		 subscribe/2,
 		 notify/1]).
 
+%% Backends exports
+-export([notify_init/2,
+		 notify_update/2]).
+
 %% gen_server callbacks
 -export([init/1,
 		 handle_call/3,
@@ -132,13 +136,36 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 %% --------------------------------------------------------------------
+%% Functions exported to backends
+%% --------------------------------------------------------------------
+
+notify_init(InitMsg, Callbacks) ->
+	do_notify({init, InitMsg}, Callbacks).
+
+notify_update(UpdateMsg, Callbacks) ->
+	do_notify({update, UpdateMsg}, Callbacks).
+
+
+%% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
 
-%% --------------------------------------------------------------------
-%% Function: service_map/1
-%% Mapping from services to dispatcher backends
-%% --------------------------------------------------------------------
+% Applies each callback in Callbacks list, adding Msg as last argument.
+% Returns an updated callback list, without the failing ones.
+do_notify(Msg, Callbacks) when is_list(Callbacks) ->
+	Fun = fun(#callback{mod = M, func = F, args = A} = CB, Acc) ->
+				  case catch apply(M, F, A ++ [Msg]) of
+					  ok -> Acc ++ [CB];
+					  _ -> Acc
+				  end
+		  end,
+	lists:foldl(Fun, [], Callbacks).
+
+% Casts Msg to each (globally-registered) process in the Destinations list.
+internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
+	lists:foreach(fun(D) -> gen_server:cast({global, D}, Msg) end, Destinations).
+
+% Mapping from services to dispatcher backends.
 service_map(Service) ->
 	case Service of
 		debug_log -> debug_log_backend;
@@ -147,10 +174,3 @@ service_map(Service) ->
 		weather -> weather_backend;
 		_ -> not_found
 	end.
-
-%% --------------------------------------------------------------------
-%% Function: internal_dispatching/2
-%% Casts Msg to all processes in the Destinations list
-%% --------------------------------------------------------------------
-internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
-	lists:foreach(fun(D) -> gen_server:cast({global, D}, Msg) end, Destinations).
