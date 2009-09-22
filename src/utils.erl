@@ -1,37 +1,20 @@
 -module(utils).
 
-%%
-%% Include files
-%%
-
-%%
 %% Exported Functions
-%%
 -export([mnesia_read/2]).
 
-%%
-%% API Functions
-%%
 
-%%% =======================
-%%%  Common utility funs
-%%% =======================
+%%% ==========================
+%%%  Common utility functions
+%%% ==========================
 
-%% If transaction fails raises exception
+% Wraps a mnesia:read/2 in a transaction context.
+% If the transaction fails, an exception is raised.
 mnesia_read(Tab, Key) ->
-	Fun = fun() ->
-				  [R] = mnesia:read(Tab, Key),
-				  R
-		  end,
-	{T, Res} = mnesia:transaction(Fun),
-	case T of
-		%% if T == aborted raises an exception
-		atomic -> Res
+	F = fun() ->
+				[R] = mnesia:read(Tab, Key),
+				R
+		end,
+	case mnesia:transaction(F) of
+		{atomic, Res} -> Res
 	end.
-
-
-
-%%
-%% Local Functions
-%%
-
