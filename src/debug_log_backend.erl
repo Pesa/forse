@@ -68,13 +68,8 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif);
 							 is_record(Msg, pitstop_notif);
 							 is_record(Msg, surpass_notif);
 							 is_record(Msg, weather_notif) ->
-	lists:foreach(
-	  fun(#callback{mod = M, func = F, args = A}) ->
-			  % TODO: detect dead subscriber
-			  apply(M, F, [{update, to_string(Msg)} | A])
-	  end,
-	  State#state.observers),
-	{noreply, State}.
+	NewObs = event_dispatcher:notify_update(to_string(Msg), State#state.observers),
+	{noreply, State#state{observers = NewObs}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
