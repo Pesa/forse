@@ -1,13 +1,15 @@
 -module(track).
 
+%% Exported Functions
+-export([simulate/3,
+		 preelaborate/1]).
+
 %%
 %% Include files
 %%
 -include("config.hrl").
 
-%% Exported Functions
--export([simulate/3,
-		 preelaborate/1]).
+
 
 %%
 %% API Functions
@@ -22,27 +24,27 @@
 
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 	Sgm = next_segment(Pilot#pilot.segment),
-	[S2] = mnesia:read(track, Pilot#pilot.segment),
+	S2 = mnesia_read(track, Pilot#pilot.segment),
 	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
 	EnterLane = CarPos#car_position.exit_lane,
-	[S] = mnesia:read(track, Sgm),
+	S = mnesia_read(track, Sgm),
 	
 	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
 		crash -> crash;
-		pits -> ok; %%TODO inserire chiamata ai box
+		pits -> ok; %%TODO inserire chiamata ai box per stimare il tempo?
 		true ->
 			EnterTime = CarPos#car_position.exit_t,
 			Space = S#segment.length,
 			EnterSpeed = CarPos#car_position.speed,
 			
-			[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
+			Car = mnesia_read(car_type, Pilot#pilot.team_name),
 			FAcc = Car#car_type.power,
 			FDec = Car#car_type.brake,
 			Mass = Car#car_type.weight + Pilot#pilot.weight + 
 					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
 			Inc = physics:deg_to_rad(S#segment.inclination),
 			
-			[Bound] = mnesia:read(preelab_tab_name(Pilot#pilot.id), Sgm),
+			Bound = mnesia_read(preelab_tab_name(Pilot#pilot.id), Sgm),
 			
 			%% If in pit area use lane bound otherwise choose using Pit value
 			PL = is_pit_area_lane(S, ExitLane),
@@ -66,25 +68,8 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 %% in each segment of the track.
 
 preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	[Car] = mnesia:read(car_type, Pilot#pilot.team_name),
+	Car = mnesia_read(car_type, Pilot#pilot.team_name),
 	FDec = Car#car_type.brake,
-	
-	%% Controlla se esiste la tabella, altrimenti la crea
-	case table_exists(preelab_tab_name(Pilot#pilot.id)) of
-		false -> 
-			%%TODO crea la tabella CONTROLLARE QUI QUALCOSA
-			ok
-	end,
-	
-	%%TODO preelabora
-	%% per ogni segmento:
-	%% se è bent usa preelaborate_bent e lo imposta come valore
-	%% sia per bound che per pit_bound crea una lista di record
-	%% speed_bound
-	%% se è pitlane o pitsop imposta #speed_bound.pit_bound a ?PIT_SPEED_LIM
-	%% e bound ad undef
-	
-	%%preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext)
 	
 	Bounds = preelab_bent_and_pit(Pilot),
 	
@@ -96,10 +81,25 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	{MinPitBoundIndex, MinPitSpeed} = min_pit_bound(Bounds),
 	FinalBoundsPre = preelaborate_sgm_rec(BoundsPre, #speed_bound.pit_bound, FDec,
 										prev_segment(MinPitBoundIndex),
-										MinPitBoundIndex, minPitSpeed),
+										MinPitBoundIndex, MinPitSpeed),
 	
+	%% Drops existing pre-elab tab and creates a new one
+	TabName = preelab_tab_name(Pilot#pilot.id),
+	case table_exists(TabName) of
+		false ->
+			create_pilot_tab(Pilot);
+		true ->
+			mnesia:delete_table(TabName),
+			create_pilot_tab(Pilot)
+	end,
 	
-	ok.
+	Trans = fun() ->
+					Write = fun(Elem) ->
+									mnesia:write(TabName, Elem, write)
+							end,
+					lists:foreach(Write, FinalBoundsPre)
+			end,
+	mnesia:transaction(Trans).
 
 
 %%
@@ -146,7 +146,7 @@ bent_and_pit_rec(_Pilot, -1) ->
 	[];
 
 bent_and_pit_rec(Pilot, Sgm) ->
-	[S] = mnesia:read(track, Sgm),
+	S = mnesia_read(track, Sgm),
 	case S#segment.type of
 		pitstop -> 
 			R = #speed_bound{sgm_id = Sgm,
@@ -215,7 +215,7 @@ preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext) ->
 	[];
 
 preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext) ->
-	[S] = mnesia:read(track, Sgm),
+	S = mnesia_read(track, Sgm),
 	Length = S#segment.length,
 	Calc = physics:sgm_max_speed(VNext, FDec, Length),
 	
@@ -272,3 +272,9 @@ min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
 min_bound_rec([], _Index) ->
 	error.
 
+%% Creates an empty pilot pre-elaboration tab
+create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
+	TabName = preelab_tab_name(Pilot#pilot.id),
+	TabDef = [{attributes, record_info(fields, speed_bound)},
+			  {record_name, speed_bound}],
+	mnesia:create_table(TabName, TabDef).

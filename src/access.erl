@@ -1,13 +1,15 @@
 -module(access).
 
+%% Exported Functions
+
+-export([allow_move/5]).
+
 
 %% Include files
 
 -include("config.hrl").
 
-%% Exported Functions
 
--export([allow_move/5]).
 
 %%
 %% API Functions
@@ -45,6 +47,6 @@ allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 %%
 
 are_team_pits(Pilot, Sgm) ->
-	[T] = mnesia:read(car_type, Pilot#pilot.team_name),
+	T = mnesia_read(car_type, Pilot#pilot.team_name),
 	T#car_type.pitstop_sgm == Sgm#segment.id.
 

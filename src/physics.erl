@@ -1,7 +1,5 @@
 -module(physics).
 
--include("config.hrl").
-
 %% Exported Functions
 -export([simulate/10,
 		 bent_max_speed/2,
@@ -9,6 +7,8 @@
 		 deg_to_rad/1,
 		 acceleration/3,
 		 engine_max_speed/1]).
+
+-include("config.hrl").
 
 
 %% ====================================================================
@@ -35,7 +35,7 @@ calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% returns null or a car_position record
 %% Index starts from 1
 get_car_ahead(Sgm, Lane, Index) ->
-	[R] = mnesia:read(track, Sgm),
+	R = mnesia_read(track, Sgm),
 	Q = R#segment.queued_cars,
 
 	Filter = fun(Pos) ->
@@ -88,7 +88,7 @@ add_g(G, T) ->
 %% Sgm MUST be of type bent
 bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	G = ?G,
-	[S] = mnesia:read(track, Sgm),
+	S = mnesia_read(track, Sgm),
 	R = S#segment.curvature,
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
 	
