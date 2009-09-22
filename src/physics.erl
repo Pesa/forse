@@ -35,7 +35,7 @@ calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% returns null or a car_position record
 %% Index starts from 1
 get_car_ahead(Sgm, Lane, Index) ->
-	R = mnesia_read(track, Sgm),
+	R = utils:mnesia_read(track, Sgm),
 	Q = R#segment.queued_cars,
 
 	Filter = fun(Pos) ->
@@ -88,7 +88,7 @@ add_g(G, T) ->
 %% Sgm MUST be of type bent
 bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	G = ?G,
-	S = mnesia_read(track, Sgm),
+	S = utils:mnesia_read(track, Sgm),
 	R = S#segment.curvature,
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
 	

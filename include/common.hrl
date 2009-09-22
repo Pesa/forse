@@ -14,23 +14,6 @@
 -define(DBG(Msg), true).
 -endif.
 
-%%% =======================
-%%%  Common utility funs
-%%% =======================
-
-%% If transaction fails raises exception
-mnesia_read(Tab, Key) ->
-	Fun = fun() ->
-				  [R] = mnesia:read(Tab, Key),
-				  R
-		  end,
-	{T, Res} = mnesia:transaction(Fun),
-	case T of
-		%% if T == aborted raises an exception
-		atomic -> Res
-	end.
-
-
 %%% ========================
 %%%  Global messages format
 %%% ========================

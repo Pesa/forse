@@ -47,6 +47,6 @@ allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 %%
 
 are_team_pits(Pilot, Sgm) ->
-	T = mnesia_read(car_type, Pilot#pilot.team_name),
+	T = utils:mnesia_read(car_type, Pilot#pilot.team_name),
 	T#car_type.pitstop_sgm == Sgm#segment.id.
 

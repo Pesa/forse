@@ -24,10 +24,10 @@
 
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 	Sgm = next_segment(Pilot#pilot.segment),
-	S2 = mnesia_read(track, Pilot#pilot.segment),
+	S2 = utils:mnesia_read(track, Pilot#pilot.segment),
 	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
 	EnterLane = CarPos#car_position.exit_lane,
-	S = mnesia_read(track, Sgm),
+	S = utils:mnesia_read(track, Sgm),
 	
 	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
 		crash -> crash;
@@ -37,14 +37,14 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 			Space = S#segment.length,
 			EnterSpeed = CarPos#car_position.speed,
 			
-			Car = mnesia_read(car_type, Pilot#pilot.team_name),
+			Car = utils:mnesia_read(car_type, Pilot#pilot.team_name),
 			FAcc = Car#car_type.power,
 			FDec = Car#car_type.brake,
 			Mass = Car#car_type.weight + Pilot#pilot.weight + 
 					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
 			Inc = physics:deg_to_rad(S#segment.inclination),
 			
-			Bound = mnesia_read(preelab_tab_name(Pilot#pilot.id), Sgm),
+			Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), Sgm),
 			
 			%% If in pit area use lane bound otherwise choose using Pit value
 			PL = is_pit_area_lane(S, ExitLane),
@@ -68,7 +68,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 %% in each segment of the track.
 
 preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	Car = mnesia_read(car_type, Pilot#pilot.team_name),
+	Car =utils:mnesia_read(car_type, Pilot#pilot.team_name),
 	FDec = Car#car_type.brake,
 	
 	Bounds = preelab_bent_and_pit(Pilot),
@@ -146,7 +146,7 @@ bent_and_pit_rec(_Pilot, -1) ->
 	[];
 
 bent_and_pit_rec(Pilot, Sgm) ->
-	S = mnesia_read(track, Sgm),
+	S =utils:mnesia_read(track, Sgm),
 	case S#segment.type of
 		pitstop -> 
 			R = #speed_bound{sgm_id = Sgm,
@@ -215,7 +215,7 @@ preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext) ->
 	[];
 
 preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext) ->
-	S = mnesia_read(track, Sgm),
+	S =utils:mnesia_read(track, Sgm),
 	Length = S#segment.length,
 	Calc = physics:sgm_max_speed(VNext, FDec, Length),
 	

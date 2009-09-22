@@ -10,7 +10,7 @@
 
 -define(GET_SETTING(Key),
 		begin
-			H = mnesia_read(setting, Key),
+			H = utils:mnesia_read(setting, Key),
 			H#setting.value
 		end
 		).
