@@ -15,9 +15,10 @@
 		end
 		).
 
-%% TODO tunare quando è ora!
 %% Represents the coefficient of friction of new slick tyres 
 %% with rain == 0
+
+%% http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef TODO
 -define(FRICTION_BASE, 10).
 
 -define(G, 9.81).

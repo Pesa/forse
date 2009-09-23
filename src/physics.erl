@@ -5,7 +5,7 @@
 		 bent_max_speed/2,
 		 sgm_max_speed/3,
 		 deg_to_rad/1,
-		 acceleration/3,
+		 acceleration/5,
 		 engine_max_speed/1]).
 
 -include("config.hrl").
@@ -95,8 +95,8 @@ bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
 	K = friction(Pilot#pilot.car_status, S#segment.rain),
 	math:sqrt(K*Cos*R*G).
 
-sgm_max_speed(VNext, FDec, S) ->
-	math:sqrt(math:pow(VNext, 2) - 2*FDec*S).
+sgm_max_speed(VNext, Amin, S) ->
+	math:sqrt(math:pow(VNext, 2) - 2*Amin*S).
 
 %% Guess
 deg_to_rad(A)-> 
@@ -104,9 +104,15 @@ deg_to_rad(A)->
 
 %% Calculates coefficient of friction
 friction(CarStatus, Rain) ->
+	K = friction_coeff(CarStatus, Rain),
+	K*?FRICTION_BASE.
+
+%% Calculates a coefficient for the coefficient of friction
+%% float between 0 and 1
+friction_coeff(CarStatus, Rain) ->
 	A = consumption(CarStatus#car_status.tyres_consumption),
 	B = friction_tab(CarStatus#car_status.tyres_type, Rain),
-	A*B*?FRICTION_BASE.
+	A*B.
 
 %% Returns a float from 1 to 0.5
 %% Y = (-3/500)X^2 + (1/10)X + 100
@@ -129,8 +135,9 @@ friction_tab(wet, Rain) -> %% (0,0.7) (10,0.6)
 %% F: force (brake or engine)
 %% M: mass
 %% Inc: inclination in rad
-acceleration(F, M, Inc) ->
-	F/M - math:sin(Inc)*?G.
+acceleration(F, M, Inc, CarStatus, Rain) ->
+	K = 1 - (1 - friction_coeff(CarStatus, Rain)) / 2,
+	K * (F/M - math:sin(Inc)*?G).
 
 %% Max speed the car can reach
 %% TODO fix the number

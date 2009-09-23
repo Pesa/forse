@@ -15,8 +15,8 @@
 %% API Functions
 %%
 
-%% Calculates the time needed by Car to cover the next segment 
-%% or atom 'crash'
+%% Calculates the time needed by Car to cover the next segment,
+%% atom 'crash' or atom 'pits'
 %% exiting from it in ExitLane lane.
 %% Pilot: record of type pilot
 %% ExitLane: guess...
@@ -31,7 +31,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 	
 	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
 		crash -> crash;
-		pits -> ok; %%TODO inserire chiamata ai box per stimare il tempo?
+		pits -> pits;
 		true ->
 			EnterTime = CarPos#car_position.exit_t,
 			Space = S#segment.length,
@@ -56,8 +56,8 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 				 end,
 			MaxExitSpeed = lists:min([SB, physics:engine_max_speed(Car#car_type.power)]),
 			
-			Amin = physics:acceleration(FDec, Mass, Inc),
-			Amax = physics:acceleration(FAcc, Mass, Inc),
+			Amin = physics:acceleration(FDec, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
+			Amax = physics:acceleration(FAcc, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
 			
 			physics:simulate(Sgm, EnterLane, ExitLane, EnterTime, 1,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
@@ -68,7 +68,11 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 %% in each segment of the track.
 
 preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	Car =utils:mnesia_read(car_type, Pilot#pilot.team_name),
+	Car = utils:mnesia_read(car_type, Pilot#pilot.team_name),
+	CarStatus = Pilot#pilot.car_status,
+	Mass = Car#car_type.weight + Pilot#pilot.weight 
+			+ (Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
+	
 	FDec = Car#car_type.brake,
 	
 	Bounds = preelab_bent_and_pit(Pilot),
@@ -76,12 +80,13 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	{MinBoundIndex, MinSpeed} = min_bound(Bounds),
 	BoundsPre = preelaborate_sgm_rec(Bounds, #speed_bound.bound, FDec, 
 									 prev_segment(MinBoundIndex), MinBoundIndex,
-									 MinSpeed),
+									 MinSpeed, CarStatus, Mass),
 	
 	{MinPitBoundIndex, MinPitSpeed} = min_pit_bound(Bounds),
 	FinalBoundsPre = preelaborate_sgm_rec(BoundsPre, #speed_bound.pit_bound, FDec,
-										prev_segment(MinPitBoundIndex),
-										MinPitBoundIndex, MinPitSpeed),
+										  prev_segment(MinPitBoundIndex),
+										  MinPitBoundIndex, MinPitSpeed,
+										  CarStatus, Mass),
 	
 	%% Drops existing pre-elab tab and creates a new one
 	TabName = preelab_tab_name(Pilot#pilot.id),
@@ -211,19 +216,23 @@ is_pit_area(Sgm) when is_record(Sgm, segment) ->
 %% VNext: speed bound of the next segment
 
 
-preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext) ->
+preelaborate_sgm_rec(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass) ->
 	[];
 
-preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext) ->
-	S =utils:mnesia_read(track, Sgm),
+preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass) ->
+	S = utils:mnesia_read(track, Sgm),
 	Length = S#segment.length,
-	Calc = physics:sgm_max_speed(VNext, FDec, Length),
+	Incl = physics:deg_to_rad(S#segment.inclination),
+	
+	Amin = physiscs:acceleration(FDec, Mass, Incl, CarStatus, S#segment.rain),
+	Calc = physics:sgm_max_speed(VNext, Amin, Length),
 	
 	case lists:keyfind(Sgm, #speed_bound.sgm_id, BoundList) of
 		false ->
 			NewBound = setelement(AttIndex, #speed_bound{sgm_id = Sgm}, Calc),
 			Rec = preelaborate_sgm_rec(BoundList, AttIndex, FDec, 
-									   prev_segment(Sgm), LastSgm, Calc),
+									   prev_segment(Sgm), LastSgm, Calc, 
+									   CarStatus, Mass),
 			[NewBound | Rec];
 		OldBound ->
 			NewBoundList = lists:keydelete(Sgm, #speed_bound.sgm_id, BoundList),
@@ -236,7 +245,8 @@ preelaborate_sgm_rec(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext) ->
 					   end,
 			Rec = preelaborate_sgm_rec(NewBoundList, AttIndex, FDec,
 									   prev_segment(Sgm), LastSgm, 
-									   element(AttIndex, NewBound)),
+									   element(AttIndex, NewBound), 
+									   CarStatus, Mass),
 			[NewBound | Rec]
 	end.
 
