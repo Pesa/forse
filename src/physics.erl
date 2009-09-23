@@ -23,13 +23,21 @@
 %% speed of Speed and an ending speed of MaxSpeed. Amin is the 
 %% max deceleration of brakes (always negative) while Amax is 
 %% the maximum acceleration engine can supply. 
-calculate_time(Space, Speed, MaxSpeed, Amin, Amax) ->
+calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
-	if
-		A < Amin -> crash;
-		A > Amax -> (math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax);
-		true -> T1
+	{Time, Acc} = if
+					  A < Amin -> 
+						  {crash, 0};
+					  A > Amax -> 
+						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax),
+						   Amax};
+					  true -> 
+						  {T1, A}
+				  end,
+	case Time of
+		crash -> {crash, 0};
+		_ -> {Time, Speed + Acc * Time}
 	end.
 
 %% returns null or a car_position record
@@ -62,26 +70,32 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 			true -> ?LANE_CHANGE_TIME
 		end,
 	K = get_car_ahead(Sgm, ExitLane, Index),
+	
+	GK = if
+			 K#car_position.enter_lane == K#car_position.exit_lane -> 0;
+			 true -> ?LANE_CHANGE_TIME
+		 end,
+
 
 	case K of
 		null ->
-			G + calculate_time(Space, EnterSpeed, MaxExitSpeed, Amin, Amax);
+			add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax));
 		_ when EnterLane == K#car_position.enter_lane ->
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
-			add_g(G, calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax));
-		_ when EnterTime + G > K#car_position.enter_t + ?LANE_CHANGE_TIME ->
+			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
+		_ when EnterTime + G > K#car_position.enter_t + GK ->
 			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
-			add_g(G, calculate_time(Space, EnterSpeed, MaxSpeed, Amin, Amax));
+			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ ->
 			simulate(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 
 %% 
-add_g(_, crash) -> 
-	crash;
-add_g(G, T) ->
-	G + T.
+add_g(_, {crash, Speed}) -> 
+	{crash, Speed};
+add_g(G, {T, Speed}) ->
+	{G + T, Speed}.
 
 %% Pilot: pilot's id
 %% Sgm: segment's id

@@ -15,10 +15,14 @@
 % Returns: 'run' | 'pits' | 'crash'
 allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 													  is_record(Sgm, segment) ->
-	PS = Sgm#segment.type == pitstop andalso EnterLane == Sgm#segment.max_lane - 1,
-	PL = Sgm#segment.type == pitlane andalso EnterLane == Sgm#segment.max_lane,
-	PrePL = Sgm#segment.type == pre_pitlane andalso EnterLane == Sgm#segment.max_lane,
-	PostPL = Sgm#segment.type == post_pitlane andalso EnterLane == Sgm#segment.max_lane,
+	MaxL = Sgm#segment.max_lane,
+	MinL = Sgm#segment.min_lane,
+	Type = Sgm#segment.type,
+	
+	PS = Type == pitstop andalso EnterLane == MaxL - 1,
+	PL = Type == pitlane andalso EnterLane == MaxL,
+	PrePL = Type == pre_pitlane andalso EnterLane == MaxL,
+	PostPL = Type == post_pitlane andalso EnterLane == MaxL,
 	% TODO: si riesce a ottimizzare meglio?
 	%		(per evitare la lettura dal DB)
 	OwnPits = if
@@ -28,15 +32,18 @@ allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 				  true ->
 					  unused
 			  end,
+	
 	if
-		ExitLane < Sgm#segment.min_lane;
-		ExitLane > Sgm#segment.max_lane;
+		ExitLane < MinL;
+		ExitLane > MaxL;
 		abs(ExitLane - EnterLane) > 1;
 		PL andalso ExitLane /= EnterLane;
-		Sgm#segment.type == pre_pitlane andalso ExitLane == Sgm#segment.max_lane andalso not Pit;
+		Type == pre_pitlane andalso ExitLane == MaxL andalso not Pit;
 		ExitLane < EnterLane andalso (PrePL orelse PostPL orelse PS);
-		PS andalso ExitLane == Sgm#segment.max_lane andalso not OwnPits;
-		PS andalso ExitLane == Sgm#segment.max_lane - 1 andalso OwnPits -> crash;
-		PS andalso ExitLane == Sgm#segment.max_lane andalso OwnPits -> pits;
+		PS andalso ExitLane == MaxL andalso not OwnPits;
+		PS andalso ExitLane == MaxL - 1 andalso OwnPits; 
+		Type == pitlane andalso EnterLane /= MaxL andalso ExitLane == MaxL; 
+		Type == pitstop andalso EnterLane < MaxL - 1 andalso ExitLane >= MaxL - 1 -> crash;
+		PS andalso ExitLane == MaxL andalso OwnPits -> pits;
 		true -> run
 	end.

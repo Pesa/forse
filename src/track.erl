@@ -2,6 +2,7 @@
 
 %% Exported Functions
 -export([simulate/3,
+		 move/3,
 		 preelaborate/1]).
 
 %%
@@ -15,23 +16,81 @@
 %% API Functions
 %%
 
+%% Moves the car to the next segment returning 
+%% {crash, _} | {NextTime, PilotState}
+%% Pilot: record of type pilot
+%% ExitLane: guess...
+%% Pit: true if pilot wants to stop at the pits
+
+move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
+	Sgm = next_segment(Pilot#pilot.segment),
+	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
+	CarPos = find_pilot(Pilot#pilot.id, SOld#segment.queued_cars),
+	EnterLane = CarPos#car_position.exit_lane,
+	S = utils:mnesia_read(track, Sgm),
+	
+	{Time, Speed} = simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
+	case Time of
+		crash -> 
+			crash; %% TODO oppure altro?
+		pits -> fixme; %%TODO chiamata ai box etc..
+		_ -> 
+			NewCarPos = CarPos#car_position{speed = Speed,
+											enter_t = CarPos#car_position.exit_t,
+											exit_t = CarPos#car_position.exit_t + Time,
+											enter_lane = EnterLane,
+											exit_lane = ExitLane},
+			%% TODO inserisco NewCarPos nel db e cancello CarPos
+			
+			
+			%%TODO mando i messaggi necessari al dispatcher
+			case S#segment.type of
+				intermediate -> asd;
+				traguardo -> asd;
+				_ -> ok
+			end,
+			
+			Lap = if
+					  S#segment.type == traguardo -> %% TODO Fix the name
+						  Pilot#pilot.lap + 1;
+					  true ->
+						  Pilot#pilot.lap
+				  end,
+			
+			NewCarStatus = fixme, %% TODO aggiungere funzione che calcola usura pneumatici e carburante
+			
+			NewPilot = Pilot#pilot{lap = Lap,
+								   segment = Sgm,
+								   lane = ExitLane,
+								   car_status = NewCarStatus
+								   },
+			{NewCarPos#car_position.exit_t, NewPilot}
+	end.
+	
+
 %% Calculates the time needed by Car to cover the next segment,
 %% atom 'crash' or atom 'pits'
-%% exiting from it in ExitLane lane.
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
 
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 	Sgm = next_segment(Pilot#pilot.segment),
-	S2 = utils:mnesia_read(track, Pilot#pilot.segment),
-	CarPos = find_pilot(Pilot#pilot.id, S2#segment.queued_cars),
+	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
+	CarPos = find_pilot(Pilot#pilot.id, SOld#segment.queued_cars),
 	EnterLane = CarPos#car_position.exit_lane,
 	S = utils:mnesia_read(track, Sgm),
 	
+	{Time, _Speed} = simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
+	Time.
+
+simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos) 
+  when is_record(Pilot, pilot), 
+	   is_record(S, segment), 
+	   is_record(CarPos, car_position) ->
 	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
-		crash -> crash;
-		pits -> pits;
+		crash -> {crash, 0};
+		pits -> {pits, 0};
 		true ->
 			EnterTime = CarPos#car_position.exit_t,
 			Space = S#segment.length,
@@ -44,7 +103,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
 			Inc = physics:deg_to_rad(S#segment.inclination),
 			
-			Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), Sgm),
+			Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), S#segment.id),
 			
 			%% If in pit area use lane bound otherwise choose using Pit value
 			PL = is_pit_area_lane(S, ExitLane),
@@ -59,7 +118,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot)->
 			Amin = physics:acceleration(FDec, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
 			Amax = physics:acceleration(FAcc, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
 			
-			physics:simulate(Sgm, EnterLane, ExitLane, EnterTime, 1,
+			physics:simulate(S#segment.id, EnterLane, ExitLane, EnterTime, 1,
 						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 

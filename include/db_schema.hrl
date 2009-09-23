@@ -62,6 +62,7 @@
 			   car_status = #car_status{},
 			   lap = 0,
 			   segment = 0,
+			   lane= 0,
 			   next_pitstop = -1,
 			   pitstop_count = 0,
 			   run_preelab = true}).
