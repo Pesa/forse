@@ -9,6 +9,9 @@
 		 pause_simulation/0,
 		 queue_work/2]).
 
+%% Private exports
+-export([give_token/1]).
+
 %% gen_server callbacks
 -export([init/1,
 		 handle_call/3,
@@ -19,6 +22,7 @@
 
 -include("common.hrl").
 
+% TODO: spostare speedup in state
 -record(timing, {timer,
 				 start,
 				 expiry,
@@ -89,18 +93,26 @@ handle_call({start}, _From, State) ->
 	% the scheduler is already running
 	{reply, ok, State};
 
-handle_call({pause}, _From, State) ->
+handle_call({pause}, _From, State) when State#state.running ->
 	?DBG("pausing execution ..."),
 	NewTiming = reset_timing(State#state.timing_info),
 	{reply, ok, State#state{running = false,
 							timing_info = NewTiming}};
+handle_call({pause}, _From, State) ->
+	% the scheduler is already paused
+	{reply, ok, State};
 
 handle_call({enqueue, Time, Callback}, _From, State) ->
 	?DBG({"enqueuing new work", Callback, "at time", Time}),
 	% enqueue the new callback
 	NewQueue = insert({Time, Callback}, State#state.workqueue),
 	% update the timer if needed
-	NewTiming = recalculate_timer(State#state.timing_info, NewQueue),
+	NewTiming = case State#state.running of
+					true ->
+						recalculate_timer(State#state.timing_info, NewQueue);
+					false ->
+						State#state.timing_info
+				end,
 	{reply, ok, State#state{timing_info = NewTiming,
 							workqueue = NewQueue}};
 
@@ -163,18 +175,24 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 % Processes the next item on the workqueue, if all preconditions are met.
-process_next(State) when State#state.running,
-						 State#state.token_available,
-						 (State#state.timing_info)#timing.timer == undefined ->
-	[{Time, Callback} | Tail] = State#state.workqueue,
-	Args = [Time | Callback#callback.args],
-	% start a new timer
-	NewTiming = new_timer(State#state.timing_info, State#state.workqueue),
-	% send the token by invoking the provided callback in a separate process
-	spawn_link(?MODULE, give_token, [Callback#callback{args = Args}]),
-	State#state{token_available = false,
-				timing_info = NewTiming,
-				workqueue = Tail};
+process_next(#state{timing_info = Timing} = State)
+  when State#state.running,
+	   State#state.token_available,
+	   Timing#timing.timer == undefined ->
+	case State#state.workqueue of
+		[{Time, Callback} | Tail] ->
+			Args = [Time | Callback#callback.args],
+			% start a new timer
+			NewTiming = new_timer(Timing, State#state.workqueue),
+			% send the token by invoking the provided callback in a separate process
+			spawn_link(?MODULE, give_token, [Callback#callback{args = Args}]),
+			State#state{token_available = false,
+						timing_info = NewTiming,
+						workqueue = Tail};
+		[] ->
+			?DBG("empty workqueue."),
+			State
+	end;
 process_next(State) ->
 	?DBG("preconditions not satisfied."),
 	State.
@@ -190,11 +208,8 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 		Else ->
 			?WARN({CB, "returned unexpected value", Else})
 	end,
-	work_done().
-
-% Gives the token back to the main scheduler process.
-work_done() ->
-	gen_sever:call(?GLOBAL_NAME, {done}, infinity).
+	% give the token back to the main scheduler process
+	gen_server:call(?GLOBAL_NAME, {done}, infinity).
 
 % Checks whether a new timer should be started and, if so, starts it.
 new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
@@ -203,10 +218,12 @@ new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
 	Timing#timing{timer = start_timer(SleepAmount),
 				  start = CurrentTime,
 				  expiry = NextTime};
-new_timer(Timing, [{CurrentTime, _}]) ->
-	Timing#timing{timer = undefined,
-				  start = CurrentTime,
-				  expiry = undefined}.
+new_timer(#timing{start = undefined, speedup = Speedup}, [{CurrentTime, _}]) ->
+	#timing{start = CurrentTime,
+			speedup = Speedup};
+new_timer(#timing{start = Start, speedup = Speedup}, [{CurrentTime, _}]) ->
+	#timing{start = erlang:max(CurrentTime, Start),
+			speedup = Speedup}.
 
 % Adjusts the expiration time of the currently pending timer, if necessary.
 recalculate_timer(#timing{timer = undefined, start = Start, speedup = Speedup}, [{NextTime, _} | _]) ->
@@ -224,19 +241,19 @@ recalculate_timer(#timing{timer = Timer, expiry = Expiry, speedup = Speedup}, [{
 
 % Starts a timer which fires after SleepAmount milliseconds.
 start_timer(SleepAmount) ->
-	erlang:start_timer(erlang:max(0, SleepAmount), ?MODULE, wakeup).
+	erlang:start_timer(erlang:max(0, SleepAmount), self(), wakeup).
 
 % Cancels any pending timer.
-reset_timing(#timing{timer = Timer, speedup = Speedup}) ->
-	?DBG("  resetting timing info ..."),
+reset_timing(#timing{timer = Timer} = Timing) ->
 	case Timer of
 		undefined ->
 			ok;
 		_ ->
 			erlang:cancel_timer(Timer),
-			?DBG("    timer canceled.")
+			?DBG("timer canceled.")
 	end,
-	#timing{speedup = Speedup}.
+	Timing#timing{timer = undefined,
+				  expiry = undefined}.
 
 % Inserts {Time, Callback} in the workqueue.
 insert({Time, Callback}, List) when is_list(List) ->
