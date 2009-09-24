@@ -32,7 +32,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	{Time, Speed} = simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
 	case Time of
 		crash -> 
-			crash; %% TODO oppure altro?
+			{crash, 0};
 		pits ->
 			%% TODO:
 			%% effettua la chiamata ai team antani(car_id, car_status, lap)
@@ -45,30 +45,49 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 											enter_lane = EnterLane,
 											exit_lane = ExitLane},
 			
+			MaxSpeed = lists:max([Pilot#pilot.max_speed, NewCarPos#car_position.speed]),
 			%% Update car_position in track table
 			move_car(SOld, S, NewCarPos),
 			
+			NewCarStatus = update_car_status(Pilot#pilot.car_status, S),
+			
+			
 			%%TODO mando i messaggi necessari al dispatcher
-			case S#segment.type of
-				intermediate -> asd;
-				traguardo -> asd;
-				_ -> ok
-			end,
+			NewPilot = case S#segment.type of
+						   intermediate ->
+							   Msg = #chrono_notif{car = Pilot#pilot.id,
+												   lap = Pilot#pilot.lap,
+												   intermediate = S#segment.id,
+												   time = NewCarPos#car_position.exit_t,
+												   max_speed = MaxSpeed,
+												   status = NewCarStatus},
+							   event_dispatcher:notify(Msg),
+							   Pilot#pilot{segment = Sgm,
+										   lane = ExitLane,
+										   car_status = NewCarStatus,
+										   max_speed = 0};
+						   finish_line ->
+							   Msg = #chrono_notif{car = Pilot#pilot.id,
+												   lap = Pilot#pilot.lap + 1,
+												   intermediate = S#segment.id,
+												   time = NewCarPos#car_position.exit_t,
+												   max_speed = MaxSpeed,
+												   status = NewCarStatus},
+							   event_dispatcher:notify(Msg),
+							   
+							   %% TODO deve inviare a qualcuno qualcosa se la gara è finita?
+							   
+							   Pilot#pilot{segment = Sgm,
+										   lane = ExitLane,
+										   car_status = NewCarStatus,
+										   max_speed = 0};
+						   _ -> 
+							   Pilot#pilot{segment = Sgm,
+										   lane = ExitLane,
+										   car_status = NewCarStatus
+										  }
+					   end,
 			
-			Lap = if
-					  S#segment.type == traguardo -> %% TODO Fix the name
-						  Pilot#pilot.lap + 1;
-					  true ->
-						  Pilot#pilot.lap
-				  end,
-			
-			NewCarStatus = fixme, %% TODO aggiungere funzione che calcola usura pneumatici e carburante
-			
-			NewPilot = Pilot#pilot{lap = Lap,
-								   segment = Sgm,
-								   lane = ExitLane,
-								   car_status = NewCarStatus
-								   },
 			{NewCarPos#car_position.exit_t, NewPilot}
 	end.
 	
@@ -396,5 +415,8 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 				  end,
 	lists:foreach(SendMessage, Surpassed).
 
-						
-	
+%% Returns car status after driving Sgm
+update_car_status(Status, Sgm) when is_record(Status, car_status),
+									is_record(Sgm, segment) ->
+	%% TODO Add implementation
+	Status.
