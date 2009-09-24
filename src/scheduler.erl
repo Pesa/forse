@@ -24,7 +24,7 @@
 
 % TODO: spostare speedup in state
 -record(timing, {timer,
-				 start,
+				 start = 0,
 				 expiry,
 				 speedup = 1}).
 -record(state, {running = false,
@@ -66,8 +66,9 @@ queue_work(Time, Callback) when is_record(Callback, callback) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	% TODO: populate speedup and workqueue from config file
+	% TODO: populate speedup and workqueue(?) from config file
 	% usando file:consult(...)
+	% Also restart the timer if it's a failover case.
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -218,9 +219,6 @@ new_timer(Timing, [{CurrentTime, _}, {NextTime, _} | _]) ->
 	Timing#timing{timer = start_timer(SleepAmount),
 				  start = CurrentTime,
 				  expiry = NextTime};
-new_timer(#timing{start = undefined, speedup = Speedup}, [{CurrentTime, _}]) ->
-	#timing{start = CurrentTime,
-			speedup = Speedup};
 new_timer(#timing{start = Start, speedup = Speedup}, [{CurrentTime, _}]) ->
 	#timing{start = erlang:max(CurrentTime, Start),
 			speedup = Speedup}.
