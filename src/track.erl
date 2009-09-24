@@ -33,15 +33,20 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	case Time of
 		crash -> 
 			crash; %% TODO oppure altro?
-		pits -> fixme; %%TODO chiamata ai box etc..
+		pits ->
+			%% TODO:
+			%% effettua la chiamata ai team antani(car_id, car_status, lap)
+			%% effettua il log sul dispatcher
+			fixme;
 		_ -> 
 			NewCarPos = CarPos#car_position{speed = Speed,
 											enter_t = CarPos#car_position.exit_t,
 											exit_t = CarPos#car_position.exit_t + Time,
 											enter_lane = EnterLane,
 											exit_lane = ExitLane},
-			%% TODO inserisco NewCarPos nel db e cancello CarPos
 			
+			%% Update car_position in track table
+			move_car(SOld, S, NewCarPos),
 			
 			%%TODO mando i messaggi necessari al dispatcher
 			case S#segment.type of
@@ -153,8 +158,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 		false ->
 			create_pilot_tab(Pilot);
 		true ->
-			mnesia:delete_table(TabName),
-			create_pilot_tab(Pilot)
+			ok
 	end,
 	
 	Trans = fun() ->
@@ -347,3 +351,50 @@ create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
 	TabDef = [{attributes, record_info(fields, speed_bound)},
 			  {record_name, speed_bound}],
 	mnesia:create_table(TabName, TabDef).
+
+%% Delete car_status queued in OldS and insert CS in NewS
+%% OldS: Old segment
+%% NewS: New segment
+%% CS: car status
+move_car(OldS, NewS, CS) when is_record(CS, car_position),
+							  is_record(OldS, segment),
+							  is_record(NewS, segment) ->
+	
+	OldQUpdate = lists:keydelete(CS#car_position.car_id, 
+								 #car_position.car_id, 
+								 OldS#segment.queued_cars),
+	OldSUpdate = OldS#segment{queued_cars = OldQUpdate},
+	
+	NewQ = NewS#segment.queued_cars,
+	%% Check if CS surpassed some cars in NewQ
+	Surpass = fun(Elem) when is_record(Elem, car_position) ->
+						if
+							Elem#car_position.enter_t < CS#car_position.enter_t
+							  andalso Elem#car_position.exit_t > CS#car_position.exit_t ->
+								true;
+							true ->
+								false
+						end
+				end,
+	Surpassed = lists:filter(Surpass, NewQ),
+	
+	NewQUpdate = [CS | NewQ],
+	NewSUpdate = NewS#segment{queued_cars = NewQUpdate},
+	
+	%% Insert the updated segments in track table
+	Trans = fun() ->
+					mnesia:write(track, OldSUpdate, write),
+					mnesia:write(track, NewSUpdate, write)
+			end,
+	mnesia:transaction(Trans),
+	
+	%% Send surpass notification to event_dispatcher
+	SendMessage = fun(Elem) when is_record(Elem, car_position) ->
+						  Msg = #surpass_notif{surpasser = CS#car_position.car_id,
+											   surpassed = Elem#car_position.car_id},
+						  event_dispatcher:notify(Msg)
+				  end,
+	lists:foreach(SendMessage, Surpassed).
+
+						
+	
