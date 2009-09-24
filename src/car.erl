@@ -17,7 +17,7 @@
 
 -include("db_schema.hrl").
 
--define(CAR_NAME(Id), {global, id_to_name(Id)}).
+-define(CAR_NAME(Id), {global, utils:build_id_atom("car_", Id)}).
 
 
 %% ====================================================================
@@ -133,6 +133,3 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-
-id_to_name(Id) ->
-	list_to_atom("car_" ++ integer_to_list(Id)).

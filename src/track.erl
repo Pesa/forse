@@ -206,7 +206,7 @@ prev_segment(Id) ->
 %% Returns the name of the preelaboration table
 %% associated with Pilot
 preelab_tab_name(Pilot) ->
-	list_to_atom("pilot_" ++ integer_to_list(Pilot)).
+	utils:build_id_atom("pilot_", Pilot).
 
 %% Check if a table exits
 table_exists(TableName) ->

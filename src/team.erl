@@ -15,7 +15,7 @@
 
 -include("common.hrl").
 
--define(TEAM_NAME(Id), {global, id_to_name(Id)}).
+-define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
 -record(state, {}).
 
@@ -95,6 +95,3 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
-
-id_to_name(Id) ->
-	list_to_atom("team_" ++ integer_to_list(Id)).
