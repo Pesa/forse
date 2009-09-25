@@ -120,7 +120,7 @@ simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 			Space = S#segment.length,
 			EnterSpeed = CarPos#car_position.speed,
 			
-			Car = utils:mnesia_read(car_type, Pilot#pilot.team_name),
+			Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 			FAcc = Car#car_type.power,
 			FDec = Car#car_type.brake,
 			Mass = Car#car_type.weight + Pilot#pilot.weight + 
@@ -151,7 +151,7 @@ simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 %% in each segment of the track.
 
 preelaborate(Pilot) when is_record(Pilot, pilot) -> 
-	Car = utils:mnesia_read(car_type, Pilot#pilot.team_name),
+	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
 	Mass = Car#car_type.weight + Pilot#pilot.weight 
 			+ (Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,

@@ -33,7 +33,7 @@ allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 		ExitLane < EnterLane andalso (PrePL orelse PostPL orelse PS) ->
 			crash;
 		PS ->
-			T = utils:mnesia_read(car_type, Pilot#pilot.team_name),
+			T = utils:mnesia_read(car_type, Pilot#pilot.team),
 			OwnPits = T#car_type.pitstop_sgm == Sgm#segment.id,
 			if
 				ExitLane == MaxL andalso not OwnPits;
