@@ -47,7 +47,7 @@
 %% name: pilot's name
 %% skill: integer representing the pilot's skill
 %% weight: pilot's weight
-%% team_name: reference to car_type tab
+%% team: id of the pilot's team
 %% car_status: current car status
 %% lap: current lap
 %% segment: id of the current segment
@@ -61,7 +61,7 @@
 			   name,
 			   skill,
 			   weight,
-			   team_name,
+			   team,
 			   car_status = #car_status{},
 			   lap = 0,
 			   segment = 0,
@@ -72,13 +72,15 @@
 			   run_preelab = true}).
 
 %% --------------------------------------------------
+%% id: unique numerical identifier
 %% team_name: name of the team to which the car belongs
 %% brake: determines max deceleration, must be negative [F = m*a]
 %% power: determines max speed and max acceleration [F = m*a]
 %% weight: car's weight (excluding fuel)
 %% pitstop_sgm: id of the segment containing the team's pits
 %% --------------------------------------------------
--record(car_type,{team_name,
+-record(car_type,{id,
+				  team_name,
 				  brake,
 				  power,
 				  weight,
