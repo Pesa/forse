@@ -33,13 +33,13 @@ start_link() ->
 %% --------------------------------------------------------------------
 init([]) ->
 	% TODO: implement the complete startup sequence
-	% (gen_leaders?)
-	% init mnesia
-	% build track table
-	% scheduler
-	% dispatcher_sup
-	% weather
-	% teams and cars (how?)
+	% gen_leaders?
+	% init mnesia?
+	% scheduler OK
+	% dispatcher_sup OK
+	% weather TODO (missing initial config)
+	% team_sup TODO
+	% build track table TODO
 	Children = [
 				{scheduler,
 				 {scheduler, start_link, []},
