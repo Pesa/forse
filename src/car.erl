@@ -24,8 +24,9 @@
 %% External functions
 %% ====================================================================
 
-start_link(CarId) ->
-	gen_server:start_link(?CAR_NAME(CarId), ?MODULE, [CarId], []).
+start_link(Config) when is_list(Config) ->
+	{id, CarId} = lists:keyfind(id, 1, Config),
+	gen_server:start_link(?CAR_NAME(CarId), ?MODULE, Config, []).
 
 move(_Time, CarId) ->
 	gen_server:call(?CAR_NAME(CarId), {move}, infinity).
@@ -46,12 +47,23 @@ set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init([Id]) ->
-	scheduler:queue_work(0, #callback{mod = ?MODULE,
-									  func = move,
-									  args = [Id]}),
-	% TODO: finire inizializzazione dello stato
-	{ok, #pilot{id = Id}}.
+init(Config) ->
+	State = lists:foldl(
+			  fun({id, Id}, P) ->
+					  P#pilot{id = Id};
+				 ({name, Name}, P) ->
+					  P#pilot{name = Name};
+				 ({skill, Skill}, P) ->
+					  P#pilot{skill = Skill};
+				 ({weight, Weight}, P) ->
+					  P#pilot{weight = Weight};
+				 ({team, Team}, P) ->
+					  P#pilot{team = Team};
+				 (_, P) -> P
+			  end, #pilot{}, Config),
+	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
+									  args = [State#pilot.id]}),
+	{ok, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
