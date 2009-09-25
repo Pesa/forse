@@ -23,8 +23,9 @@
 %% External functions
 %% ====================================================================
 
-start_link(TeamId) ->
-	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, [TeamId], []).
+start_link(Config) when is_list(Config) ->
+	{id, TeamId} = lists:keyfind(id, 1, Config),
+	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
 
 %% ====================================================================
@@ -39,7 +40,8 @@ start_link(TeamId) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init([]) ->
+init(Config) ->
+	% TODO: create and init car_type mnesia table
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------

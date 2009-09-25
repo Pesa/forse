@@ -30,7 +30,7 @@ start_link(TeamId, Config) when is_integer(TeamId),
 %% --------------------------------------------------------------------
 init({Id, Config}) ->
 	Team = {utils:build_id_atom("team_", Id),
-			{team, start_link, [Id]},
+			{team, start_link, [{id, Id} | Config]},
 			permanent, 5000, worker,
 			[team]},
 	Cars = case lists:keyfind(cars, 1, Config) of
@@ -38,7 +38,7 @@ init({Id, Config}) ->
 				   ToChildSpecs = fun(C) ->
 										  {id, CarId} = lists:keyfind(id, 1, C),
 										  {utils:build_id_atom("car_", CarId),
-										   {car, start_link, [C]},
+										   {car, start_link, [{team, Id} | C]},
 										   transient, 5000, worker,
 										   [car]}
 								  end,
