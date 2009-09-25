@@ -4,7 +4,7 @@
 -export([allow_move/5]).
 
 %% Include files
--include("config.hrl").
+-include("db_schema.hrl").
 
 
 %%

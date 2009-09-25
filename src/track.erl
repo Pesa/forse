@@ -8,7 +8,7 @@
 %%
 %% Include files
 %%
--include("config.hrl").
+-include("db_schema.hrl").
 
 
 
@@ -34,10 +34,42 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 		crash -> 
 			{crash, 0};
 		pits ->
-			%% TODO:
-			%% effettua la chiamata ai team antani(car_id, car_status, lap)
-			%% effettua il log sul dispatcher
-			fixme;
+			CarStatus = Pilot#pilot.car_status,
+
+			Ops = #pitstop_ops{}, %%TODO effettua la chiamata ai team antani(car_id, car_status, lap)
+			
+			PitOpsTime = pits_operation_time(Ops),
+			
+			NewCarPos = CarPos#car_position{speed = 0,
+											enter_t = CarPos#car_position.exit_t,
+											exit_t = CarPos#car_position.exit_t + PitOpsTime,
+											enter_lane = EnterLane,
+											exit_lane = ExitLane},
+			
+			%% Update car_position in track table
+			move_car(SOld, S, NewCarPos),
+			Fuel = CarStatus#car_status.fuel + Ops#pitstop_ops.fuel,
+			
+			NewCarStatus = case Ops#pitstop_ops.tyres == null of
+							   true ->
+								   CarStatus#car_status{fuel = Fuel};
+							   false ->
+								   #car_status{fuel = Fuel,
+											   tyres_consumption = 0.0,
+											   tyres_type = Ops#pitstop_ops.tyres}
+						   end,
+			
+			NewPilot = Pilot#pilot{segment = Sgm,
+								   lane = ExitLane,
+								   car_status = NewCarStatus,
+								   next_pitstop = -1,
+								   pitstop_count = Pilot#pilot.pitstop_count + 1,
+								   run_preelab = true},
+			
+			%% Sends pitsop_notif to event_dispatcher
+			event_dispatcher:notify(#pitstop_notif{car = Pilot#pilot.id,
+												   ops = Ops}),
+			{NewCarPos#car_position.exit_t, NewPilot};
 		_ -> 
 			NewCarPos = CarPos#car_position{speed = Speed,
 											enter_t = CarPos#car_position.exit_t,
@@ -51,8 +83,6 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			
 			NewCarStatus = update_car_status(Pilot#pilot.car_status, S),
 			
-			
-			%%TODO mando i messaggi necessari al dispatcher
 			NewPilot = case S#segment.type of
 						   intermediate ->
 							   Msg = #chrono_notif{car = Pilot#pilot.id,
@@ -76,11 +106,13 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 							   event_dispatcher:notify(Msg),
 							   
 							   %% TODO deve inviare a qualcuno qualcosa se la gara è finita?
+							   %% Controllare se la gara è finita e fare qualcosa..
 							   
 							   Pilot#pilot{segment = Sgm,
 										   lane = ExitLane,
 										   car_status = NewCarStatus,
-										   max_speed = 0};
+										   max_speed = 0,
+										   run_preelab = true};
 						   _ -> 
 							   Pilot#pilot{segment = Sgm,
 										   lane = ExitLane,
@@ -112,39 +144,46 @@ simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
   when is_record(Pilot, pilot), 
 	   is_record(S, segment), 
 	   is_record(CarPos, car_position) ->
-	case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
-		crash -> {crash, 0};
-		pits -> {pits, 0};
+	CS = Pilot#pilot.car_status,
+	if
+		CS#car_status.tyres_consumption >= 100.0;
+		CS#car_status.fuel =< 0.0 ->
+			{crash, 0};
 		true ->
-			EnterTime = CarPos#car_position.exit_t,
-			Space = S#segment.length,
-			EnterSpeed = CarPos#car_position.speed,
-			
-			Car = utils:mnesia_read(car_type, Pilot#pilot.team),
-			FAcc = Car#car_type.power,
-			FDec = Car#car_type.brake,
-			Mass = Car#car_type.weight + Pilot#pilot.weight + 
-					(Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
-			Inc = physics:deg_to_rad(S#segment.inclination),
-			
-			Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), S#segment.id),
-			
-			%% If in pit area use lane bound otherwise choose using Pit value
-			PL = is_pit_area_lane(S, ExitLane),
-			SB = case is_pit_area(S) of
-					 true when PL -> Bound#speed_bound.pit_bound;
-					 true -> Bound#speed_bound.bound;
-					 false when Pit -> Bound#speed_bound.pit_bound;
-					 false -> Bound#speed_bound.bound
-				 end,
-			MaxExitSpeed = lists:min([SB, physics:engine_max_speed(Car#car_type.power)]),
-			
-			Amin = physics:acceleration(FDec, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
-			Amax = physics:acceleration(FAcc, Mass, Inc, Pilot#pilot.car_status, S#segment.rain),
-			
-			physics:simulate(S#segment.id, EnterLane, ExitLane, EnterTime, 1,
-						 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
-	end.
+			case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
+				crash -> {crash, 0};
+				pits -> {pits, 0};
+				true ->
+					EnterTime = CarPos#car_position.exit_t,
+					Space = S#segment.length,
+					EnterSpeed = CarPos#car_position.speed,
+					
+					Car = utils:mnesia_read(car_type, Pilot#pilot.team),
+					FAcc = Car#car_type.power,
+					FDec = Car#car_type.brake,
+					Mass = Car#car_type.weight + Pilot#pilot.weight + 
+																 (Pilot#pilot.car_status)#car_status.fuel*?FUEL_SPECIFIC_GRAVITY,
+					Inc = physics:deg_to_rad(S#segment.inclination),
+					
+					Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), S#segment.id),
+					
+					%% If in pit area use lane bound otherwise choose using Pit value
+					PL = is_pit_area_lane(S, ExitLane),
+					SB = case is_pit_area(S) of
+							 true when PL -> Bound#speed_bound.pit_bound;
+							 true -> Bound#speed_bound.bound;
+							 false when Pit -> Bound#speed_bound.pit_bound;
+							 false -> Bound#speed_bound.bound
+						 end,
+					MaxExitSpeed = lists:min([SB, physics:engine_max_speed(Car#car_type.power)]),
+					
+					Amin = physics:acceleration(FDec, Mass, Inc, CS, S#segment.rain),
+					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
+					
+					physics:simulate(S#segment.id, EnterLane, ExitLane, EnterTime, 1,
+									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
+			end
+		end.
 
 
 %% Calculates max speed the car with id equal to Pilot can have
@@ -195,11 +234,11 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 
 %% Given a segment's id it calculates next segment's id
 next_segment(Id) -> 
-	(Id + 1) rem ?GET_SETTING(sgm_number).
+	(Id + 1) rem utils:get_setting(sgm_number).
 
 %% Given a segment's id it calculates previous segment's id
 prev_segment(0) ->
-	?GET_SETTING(sgm_number) - 1;
+	utils:get_setting(sgm_number) - 1;
 prev_segment(Id) ->
 	Id - 1.
 
@@ -225,10 +264,10 @@ find_pilot(_, []) ->
 %% Returns a list of speed_bound
 
 preelab_bent_and_pit(Pilot) when is_record(Pilot, pilot) ->
-	bent_and_pit_rec(Pilot, ?GET_SETTING(sgm_number) - 1).
+	bent_and_pit_rec(Pilot, utils:get_setting(sgm_number) - 1).
 
 %% First time should be invoked with 
-%% Sgm == ?GET_SETTING(sgm_number) - 1
+%% Sgm == utils:get_setting(sgm_number) - 1
 bent_and_pit_rec(_Pilot, -1) ->
 	[];
 
@@ -418,5 +457,28 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 %% Returns car status after driving Sgm
 update_car_status(Status, Sgm) when is_record(Status, car_status),
 									is_record(Sgm, segment) ->
-	%% TODO Add implementation
-	Status.
+	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
+	TCons = tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
+	Status#car_status{fuel = Status#car_status.fuel - FCons,
+					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
+
+%% Returns the time needed to perform Ops during a pitstop
+pits_operation_time(#pitstop_ops{fuel = F, tyres = T}) ->
+	FuelTime = F * ?TIME_PER_L + 2000,
+	if
+		T == null;
+		FuelTime > ?TYRES_CHANGE -> 
+			FuelTime;
+		true -> 
+			?TYRES_CHANGE
+	end.
+
+%% Returns percentual consumption of tyres
+tyres_cons(slick, Rain) ->
+	-0.0001 * Rain + 0.004;
+
+tyres_cons(intermediate, Rain) ->
+	-0.0003 * Rain + 0.006;
+
+tyres_cons(wet, Rain) ->
+	-0.0005 * Rain + 0.008.

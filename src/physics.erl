@@ -8,7 +8,7 @@
 		 acceleration/5,
 		 engine_max_speed/1]).
 
--include("config.hrl").
+-include("db_schema.hrl").
 
 
 %% ====================================================================
