@@ -2,14 +2,6 @@
 %%%  Configuration parameters
 %%% ==========================
 
--include("db_schema.hrl").
-
--define(GET_SETTING(Key),
-		begin
-			H = utils:mnesia_read(setting, Key),
-			H#setting.value
-		end).
-
 % Length of a segment in meters.
 -define(SEGMENT_LENGTH, 5).
 
