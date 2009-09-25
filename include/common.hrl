@@ -1,3 +1,5 @@
+-include("config.hrl").
+
 %%% =======================
 %%%  Common utility macros
 %%% =======================
@@ -32,9 +34,9 @@
 %% tyres_consumption: how much the tyres have been worn out (float from 0 to 100)
 %% tyres_type: type of car's tyres ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
--record(car_status, {fuel,
-					 tyres_consumption,
-					 tyres_type}).
+-record(car_status, {fuel = ?TANK_DIM,
+					 tyres_consumption = 0,
+					 tyres_type = slick}).
 
 %% ------------------------------------------------------------
 %% pitstop_ops
