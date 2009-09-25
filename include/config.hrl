@@ -24,7 +24,15 @@
 -define(G, 9.81).
 
 %% TODO Fix value
--define(FUEL_SPECIFIC_GRAVITY, 1).
+-define(FUEL_SPECIFIC_GRAVITY, 0.7).
 
 %% TODO Fix value
 -define(PIT_SPEED_LIM, 42).
+
+%% TODO Fix the value
+-define(TYRES_CHANGE, 5000).
+-define(TIME_PER_L, 83). %% 12 l/s
+
+-define(TANK_DIM, 120).
+
+-define(L_PER_SGM, 0.0042)
