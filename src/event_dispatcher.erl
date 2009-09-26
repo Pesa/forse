@@ -151,15 +151,15 @@ notify_update(UpdateMsg, Callbacks) ->
 %% --------------------------------------------------------------------
 
 % Applies each callback in Callbacks list, adding Msg as last argument.
-% Returns an updated callback list, without the failing ones.
+% Returns an updated callback list, without the ones that have failed.
 do_notify(Msg, Callbacks) when is_list(Callbacks) ->
 	Fun = fun(#callback{mod = M, func = F, args = A} = CB, Acc) ->
 				  case catch apply(M, F, A ++ [Msg]) of
-					  ok -> Acc ++ [CB];
+					  ok -> [CB | Acc];
 					  _ -> Acc
 				  end
 		  end,
-	lists:foldl(Fun, [], Callbacks).
+	lists:reverse(lists:foldl(Fun, [], Callbacks)).
 
 % Casts Msg to each (globally-registered) process in the Destinations list.
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
