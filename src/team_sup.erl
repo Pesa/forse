@@ -35,14 +35,13 @@ init({Id, Config}) ->
 			[team]},
 	Cars = case lists:keyfind(cars, 1, Config) of
 			   {cars, CarsConfig} ->
-				   ToChildSpecs = fun(C) ->
-										  {id, CarId} = lists:keyfind(id, 1, C),
-										  {utils:build_id_atom("car_", CarId),
-										   {car, start_link, [[{team, Id} | C]]},
-										   transient, 5000, worker,
-										   [car]}
-								  end,
-				   lists:map(ToChildSpecs, CarsConfig);
+				   lists:map(fun(C) ->
+									 {id, CarId} = lists:keyfind(id, 1, C),
+									 {utils:build_id_atom("car_", CarId),
+									  {car, start_link, [[{team, Id} | C]]},
+									  transient, 5000, worker,
+									  [car]}
+							 end, CarsConfig);
 			   false -> []
 		   end,
 	{ok, {{one_for_one, 20, 30},
