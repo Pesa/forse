@@ -116,7 +116,7 @@ handle_call({enqueue, Time, Callback}, _From, State) ->
 	{reply, ok, State#state{timing_info = NewTiming,
 							workqueue = NewQueue}};
 
-handle_call({done}, _From, State) ->
+handle_call(done, _From, State) ->
 	?DBG("got the token back."),
 	NewState = State#state{token_available = true},
 	{reply, ok, process_next(NewState)};
@@ -214,7 +214,7 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 			?WARN({CB, "returned unexpected value", Else})
 	end,
 	% give the token back to the main scheduler process
-	gen_server:call(?GLOBAL_NAME, {done}, infinity).
+	gen_server:call(?GLOBAL_NAME, done, infinity).
 
 % Starts a new timer to expire at Expiry.
 new_timer(Now, Expiry, Speedup) ->
