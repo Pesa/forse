@@ -43,10 +43,10 @@ set_speedup(NewSpeedup) when is_integer(NewSpeedup) ->
 	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
 
 start_simulation() ->
-	gen_server:call(?GLOBAL_NAME, {start}).
+	gen_server:call(?GLOBAL_NAME, start).
 
 pause_simulation() ->
-	gen_server:call(?GLOBAL_NAME, {pause}).
+	gen_server:call(?GLOBAL_NAME, pause).
 
 queue_work(Time, Callback) when is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {enqueue, Time, Callback}, infinity).
@@ -84,20 +84,20 @@ handle_call({speedup, NewSpeedup}, _From, State) ->
 	?DBG({"changing speedup factor to", NewSpeedup}),
 	{reply, ok, State#state{speedup = NewSpeedup}};
 
-handle_call({start}, _From, State) when not State#state.running ->
+handle_call(start, _From, State) when not State#state.running ->
 	?DBG("starting/resuming execution ..."),
 	NewState = State#state{running = true},
 	{reply, ok, process_next(NewState)};
-handle_call({start}, _From, State) ->
+handle_call(start, _From, State) ->
 	% the scheduler is already running
 	{reply, ok, State};
 
-handle_call({pause}, _From, State) when State#state.running ->
+handle_call(pause, _From, State) when State#state.running ->
 	?DBG("pausing execution ..."),
 	NewTiming = reset_timing(State#state.timing_info),
 	{reply, ok, State#state{running = false,
 							timing_info = NewTiming}};
-handle_call({pause}, _From, State) ->
+handle_call(pause, _From, State) ->
 	% the scheduler is already paused
 	{reply, ok, State};
 
