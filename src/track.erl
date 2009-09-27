@@ -31,6 +31,10 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	
 	{Time, Speed} = simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
 	case Time of
+		race_ended ->
+			%% Removes car from the track returning an inconsistent Pilot status
+			remove_car(SOld, Pilot#pilot.id),
+			{race_ended, Pilot};
 		crash -> 
 			{crash, 0};
 		pits ->
@@ -105,9 +109,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 												   status = NewCarStatus},
 							   event_dispatcher:notify(Msg),
 							   
-							   %% TODO deve inviare a qualcuno qualcosa se la gara è finita?
-							   %% Controllare se la gara è finita e fare qualcosa..
-							   
+						   
 							   Pilot#pilot{segment = Sgm,
 										   lane = ExitLane,
 										   car_status = NewCarStatus,
@@ -145,7 +147,10 @@ simulate_priv(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 	   is_record(S, segment), 
 	   is_record(CarPos, car_position) ->
 	CS = Pilot#pilot.car_status,
+	TotalLaps = utils:get_setting(total_laps),
 	if
+		Pilot#pilot.lap > TotalLaps ->
+			{race_ended, 0};
 		CS#car_status.tyres_consumption >= 100.0;
 		CS#car_status.fuel =< 0.0 ->
 			{crash, 0};
@@ -453,6 +458,17 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 						  event_dispatcher:notify(Msg)
 				  end,
 	lists:foreach(SendMessage, Surpassed).
+
+%% Removes car_position of index PilotId from segment S
+remove_car(S, PilotId) when is_record(S, segment) ->
+	QueueUpdate = lists:keydelete(PilotId, 
+								  #car_position.car_id, 
+								  S#segment.queued_cars),
+	SUpdate = S#segment{queued_cars = QueueUpdate},
+	Trans = fun() ->
+					mnesia:write(track, SUpdate, write)
+			end,
+	mnesia:transaction(Trans).
 
 %% Returns car status after driving Sgm
 update_car_status(Status, Sgm) when is_record(Status, car_status),
