@@ -84,6 +84,12 @@
 -record(surpass_notif, {surpasser, surpassed}).
 
 %% ------------------------------------------------------------
+%% retire_notif
+%% car: ID of the retired car
+%% ------------------------------------------------------------
+-record(retire_notif, {car}).
+
+%% ------------------------------------------------------------
 %% weather_notif (TODO)
 %% new_weather: how the weather changed
 %% sector: number of the sector in which the weather changed

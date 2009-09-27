@@ -24,6 +24,7 @@
 -define(PITSTOP_OBS, [debug_log_backend, race_info_backend]).
 -define(CHRONO_OBS, [debug_log_backend, team_backend, race_info_backend]).
 -define(SURPASS_OBS, [debug_log_backend, team_backend, race_info_backend]).
+-define(RETIRE_OBS, [debug_log_backend, race_info_backend]).
 -define(WEATHER_OBS, [debug_log_backend, weather_backend, team_backend, race_info_backend]).
 
 -record(state, {}).
@@ -89,6 +90,9 @@ handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
 	internal_dispatching(Msg, ?SURPASS_OBS),
+	{reply, ok, State};
+handle_call(Msg, _From, State) when is_record(Msg, retire_notif)->
+	internal_dispatching(Msg, ?RETIRE_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
 	internal_dispatching(Msg, ?WEATHER_OBS),
