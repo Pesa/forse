@@ -51,7 +51,8 @@ init(Config) ->
 				   ({power, Power}, CT) ->
 						CT#car_type{power = Power};
 				   ({weight, Weight}, CT) ->
-						CT#car_type{weight = Weight}
+						CT#car_type{weight = Weight};
+				   (_, CT) -> CT
 				end, #car_type{}, Config),
 	T = fun() ->
 				mnesia:write(CarType)
