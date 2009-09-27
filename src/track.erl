@@ -217,7 +217,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	
 	%% Drops existing pre-elab tab and creates a new one
 	TabName = preelab_tab_name(Pilot#pilot.id),
-	case table_exists(TabName) of
+	case utils:table_exists(TabName) of
 		false ->
 			create_pilot_tab(Pilot);
 		true ->
@@ -251,12 +251,6 @@ prev_segment(Id) ->
 %% associated with Pilot
 preelab_tab_name(Pilot) ->
 	utils:build_id_atom("pilot_", Pilot).
-
-%% Check if a table exits
-table_exists(TableName) ->
-   Tables = mnesia:system_info(tables),
-   lists:member(TableName,Tables).
-
 
 %% Extract car_position with car_id == Pilot from the queue
 find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->

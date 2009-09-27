@@ -3,7 +3,8 @@
 %% Exported functions
 -export([build_id_atom/2,
 		 get_setting/1,
-		 mnesia_read/2]).
+		 mnesia_read/2,
+		 table_exists/1]).
 
 -include("db_schema.hrl").
 
@@ -31,3 +32,8 @@ mnesia_read(Tab, Key) ->
 	case mnesia:transaction(F) of
 		{atomic, Res} -> Res
 	end.
+
+% Returns true if a mnesia table named TableName
+% exists, false otherwise.
+table_exists(TableName) ->
+	lists:member(TableName, mnesia:system_info(tables)).
