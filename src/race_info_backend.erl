@@ -76,6 +76,10 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
+handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
+	%TODO elaborare i dati ricevuti
+	{noreply, State};
+
 handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State}.
