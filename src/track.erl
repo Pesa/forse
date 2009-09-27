@@ -17,7 +17,7 @@
 %%
 
 %% Moves the car to the next segment returning 
-%% {crash, _} | {NextTime, PilotState}
+%% {crash, _} | {NextTime, PilotState} | {race_ended, _}
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
@@ -36,7 +36,9 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			remove_car(SOld, Pilot#pilot.id),
 			{race_ended, Pilot};
 		crash -> 
-			{crash, 0};
+			remove_car(SOld, Pilot#pilot.id),
+			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id}),
+			{crash, Pilot};
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
 
@@ -127,7 +129,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	
 
 %% Calculates the time needed by Car to cover the next segment,
-%% atom 'crash' or atom 'pits'
+%% atom 'crash', atom 'pits' or atom 'race_ended'
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
