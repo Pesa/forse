@@ -48,7 +48,7 @@ init([]) ->
 				  [scheduler]}],
 	Dispatcher = [{dispatcher,
 				   {dispatcher_sup, start_link, []},
-				   permanent, 5000, supervisor,
+				   permanent, infinity, supervisor,
 				   [dispatcher_sup]}],
 	Weather = [{weather,
 				{weather, start_link, []},
@@ -57,7 +57,7 @@ init([]) ->
 	ToChildSpecs = fun(C, Id) ->
 						   {{utils:build_id_atom("team_sup_", Id),
 							 {team_sup, start_link, [Id, C]},
-							 permanent, 5000, supervisor,
+							 permanent, infinity, supervisor,
 							 [team_sup]},
 							Id + 1}
 				   end,
