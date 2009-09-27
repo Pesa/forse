@@ -67,6 +67,7 @@ handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
 handle_cast(Msg, State) when is_record(Msg, chrono_notif);
 							 is_record(Msg, pitstop_notif);
 							 is_record(Msg, surpass_notif);
+							 is_record(Msg, retire_notif);
 							 is_record(Msg, weather_notif) ->
 	NewObs = event_dispatcher:notify_update(to_string(Msg), State#state.observers),
 	{noreply, State#state{observers = NewObs}}.
@@ -102,13 +103,17 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
+% Converts a notification record into a human-readable string.
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
-	atom_to_list(C) ++ " has gone through intermediate " ++ integer_to_list(Inter) ++
-		" of lap " ++ integer_to_list(Lap) ++ " in " ++ float_to_list(T) ++
-		" milliseconds, with a maximum speed of " ++ float_to_list(S) ++ " Km/h";
+	"Car " ++ atom_to_list(C) ++ " has gone through intermediate " ++
+		integer_to_list(Inter) ++ " of lap " ++ integer_to_list(Lap) ++
+		" in " ++ float_to_list(T) ++ " milliseconds, with a maximum speed of " ++
+		float_to_list(S) ++ " Km/h";
 to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = _Fuel, tyres = _Tyres}}) ->
-	atom_to_list(C) ++ " stopped at the pits";
+	"Car " ++ atom_to_list(C) ++ " stopped at the pits";
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
-	atom_to_list(Surpasser) ++ " surpassed " ++ atom_to_list(Surpassed);
+	"Car " ++ atom_to_list(Surpasser) ++ " surpassed car " ++ atom_to_list(Surpassed);
+to_string(#retire_notif{car = C}) ->
+	"Car " ++ atom_to_list(C) ++ " retired";
 to_string(#weather_notif{new_weather = W, sector = S}) ->
 	"Weather changed to " ++ atom_to_list(W) ++ " in sector " ++ integer_to_list(S).
