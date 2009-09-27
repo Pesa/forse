@@ -35,7 +35,8 @@ init([]) ->
 	{ok, TeamsConfig} = file:consult("../examples/teams.conf"),
 	% TODO: implement the complete startup sequence
 	% gen_leaders?
-	% init mnesia?
+	% init mnesia:
+	%	- create car_type table
 	% scheduler OK
 	% dispatcher_sup OK
 	% weather TODO (missing initial config)

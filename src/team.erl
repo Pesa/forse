@@ -13,7 +13,7 @@
 		 terminate/2,
 		 code_change/3]).
 
--include("common.hrl").
+-include("db_schema.hrl").
 
 -define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
@@ -41,7 +41,22 @@ start_link(Config) when is_list(Config) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init(Config) ->
-	% TODO: create and init car_type mnesia table
+	CarType = lists:foldl(
+				fun({id, Id}, CT) ->
+						CT#car_type{id = Id};
+				   ({team_name, Name}, CT) ->
+						CT#car_type{team_name = Name};
+				   ({brake, Brake}, CT) ->
+						CT#car_type{brake = Brake};
+				   ({power, Power}, CT) ->
+						CT#car_type{power = Power};
+				   ({weight, Weight}, CT) ->
+						CT#car_type{weight = Weight}
+				end, #car_type{}, Config),
+	T = fun() ->
+				mnesia:write(CarType)
+		end,
+	{atomic, ok} = mnesia:sync_transaction(T),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
