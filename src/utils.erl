@@ -12,10 +12,13 @@
 %%%  Common utility functions
 %%% ==========================
 
-% Returns an atom created by appending Id to Prefix.
-build_id_atom(Prefix, Id) when is_list(Prefix),
-							   is_integer(Id) ->
-	list_to_atom(Prefix ++ integer_to_list(Id)).
+% Returns an atom created by appending Suffix to Prefix.
+build_id_atom(Prefix, Suffix) when is_list(Prefix), is_atom(Suffix) ->
+	list_to_atom(Prefix ++ atom_to_list(Suffix));
+build_id_atom(Prefix, Suffix) when is_list(Prefix), is_integer(Suffix) ->
+	list_to_atom(Prefix ++ integer_to_list(Suffix));
+build_id_atom(Prefix, Suffix) when is_list(Prefix), is_list(Suffix) ->
+	list_to_atom(Prefix ++ Suffix).
 
 % Returns the value associated with the setting Key.
 get_setting(Key) ->
