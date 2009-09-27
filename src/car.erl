@@ -78,8 +78,52 @@ init(Config) ->
 handle_call({move}, _From, State) ->
 	PitStop = State#pilot.next_pitstop =< State#pilot.lap,
 	% TODO
-	track:simulate(State, todo, PitStop),
-	NextTime = todo,
+	
+	Sim = fun(Elem) when is_integer(Elem)->
+				  {Elem, track:simulate(State, Elem, PitStop)}
+		  end,
+	EnterLane = State#pilot.lane,
+	SimRes = lists:map(Sim, [EnterLane -1,
+							 EnterLane,
+							 EnterLane + 1]),
+
+	%% TODO considerare il caso in cui si debba andare ai box
+	%% e lo spostamento verso il max da fare...
+	
+	Pits = lists:keyfind(pits, 2, SimRes),
+	End = lists:keyfind(race_ended, 2, SimRes),
+	Pred = fun
+			  ({_, crash}) ->
+				   true;
+			  (_) ->
+				   false
+		   end,
+	Crash = lists:all(Pred, SimRes),
+	
+	if
+		Pits /= false ->
+			{ExitLane, _} = Pits;
+		End /= false ->
+			{ExitLane, _} = End;
+		Crash ->
+			ExitLane = EnterLane;
+		true ->
+			Fun = fun
+					 ({_, A}, {_, B}) when is_number(A),
+										   is_number(B) ->
+						  A < B;
+					 (_, {_, B}) when not is_number(B) ->
+						  true;
+					 (_, _) ->
+						  false
+				  end,
+			[{ExitLane, _} | _] = lists:sort(Fun, SimRes)
+	end,
+	
+	{NextTime, NewState} = track:move(State, ExitLane, PitStop),
+	%%TODO continuo da qui....
+	
+	
 	Reply = {requeue, NextTime, #callback{mod = ?MODULE,
 										  func = move,
 										  args = [State#pilot.id]}},
