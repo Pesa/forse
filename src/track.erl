@@ -471,7 +471,11 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 update_car_status(Status, Sgm) when is_record(Status, car_status),
 									is_record(Sgm, segment) ->
 	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
-	TCons = tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
+	BentCoeff = case Sgm#segment.type of
+					bent -> 1.5;
+					_ -> 1
+				end,
+	TCons = BentCoeff * tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
 	Status#car_status{fuel = Status#car_status.fuel - FCons,
 					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
 
