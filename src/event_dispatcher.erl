@@ -41,7 +41,7 @@ subscribe(Service, Callback) when is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {subscribe, Service, Callback}, infinity).
 
 notify(Msg) ->
-	gen:server_call(?GLOBAL_NAME, Msg, infinity).
+	gen_server:call(?GLOBAL_NAME, Msg, infinity).
 
 
 %% ====================================================================
