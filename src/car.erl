@@ -29,7 +29,7 @@ start_link(Config) when is_list(Config) ->
 	gen_server:start_link(?CAR_NAME(CarId), ?MODULE, Config, []).
 
 move(_Time, CarId) ->
-	gen_server:call(?CAR_NAME(CarId), {move}, infinity).
+	gen_server:call(?CAR_NAME(CarId), move, infinity).
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:call(?CAR_NAME(CarId), PitStop, infinity).
@@ -75,7 +75,7 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({move}, _From, State) ->
+handle_call(move, _From, State) ->
 	CState = if
 				 State#pilot.run_preelab ->
 					 track:preelaborate(State),
@@ -83,9 +83,11 @@ handle_call({move}, _From, State) ->
 				 true ->
 					 State
 			 end,
-	PitStop = CState#pilot.next_pitstop =< CState#pilot.lap,
-
-	Sim = fun(Elem) when is_integer(Elem)->
+	PitStop = CState#pilot.next_pitstop /= -1 andalso
+							   CState#pilot.next_pitstop =< CState#pilot.lap,
+	
+	% simulation phase
+	Sim = fun(Elem) when is_integer(Elem) ->
 				  {Elem, track:simulate(CState, Elem, PitStop)}
 		  end,
 	EnterLane = CState#pilot.lane,
@@ -103,11 +105,11 @@ handle_call({move}, _From, State) ->
 		   end,
 	Crash = lists:all(Pred, SimRes),
 	Num = fun
-				({_, Elem}) when is_number(Elem) ->
-					 true;
-				(_) ->
-					 false
-			 end,
+			 ({_, Elem}) when is_number(Elem) ->
+				  true;
+			 (_) ->
+				  false
+		  end,
 	FRes = lists:filter(Num, SimRes),
 	PrePits = track:is_pre_pitlane(CState#pilot.segment),
 	if
@@ -118,25 +120,24 @@ handle_call({move}, _From, State) ->
 		Crash ->
 			ExitLane = EnterLane;
 		PrePits andalso PitStop ->
-			{ExitLane, _} = lists:max(FRes); 
+			{ExitLane, _} = lists:max(FRes);
 		true ->
-			Fun = fun
-					 ({_, A}, {_, B}) when is_number(A),
-										   is_number(B) ->
+			Fun = fun({_, A}, {_, B}) ->
 						  A < B
 				  end,
 			[{ExitLane, _} | _] = lists:sort(Fun, FRes)
 	end,
 	
+	% actually move the car
 	{NextTime, NewState} = track:move(CState, ExitLane, PitStop),
+	
 	if
 		is_number(NextTime) ->
-			Reply = {requeue, NextTime, #callback{mod = ?MODULE,
-												  func = move,
+			Reply = {requeue, NextTime, #callback{mod = ?MODULE, func = move,
 												  args = [CState#pilot.id]}},
 			{reply, Reply, NewState};
 		true ->
-			%% TODO race_eneded or crash devo fermare il processo car
+			%% TODO race_ended or crash devo fermare il processo car
 			{stop, normal, done, NewState}
 	end;
 
