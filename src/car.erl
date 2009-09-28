@@ -76,12 +76,19 @@ init(Config) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({move}, _From, State) ->
-	PitStop = State#pilot.next_pitstop =< State#pilot.lap,
+	CState = if
+				 State#pilot.run_preelab ->
+					 track:preelaborate(State),
+					 State#pilot{run_preelab = false};
+				 true ->
+					 State
+			 end,
+	PitStop = CState#pilot.next_pitstop =< CState#pilot.lap,
 
 	Sim = fun(Elem) when is_integer(Elem)->
-				  {Elem, track:simulate(State, Elem, PitStop)}
+				  {Elem, track:simulate(CState, Elem, PitStop)}
 		  end,
-	EnterLane = State#pilot.lane,
+	EnterLane = CState#pilot.lane,
 	SimRes = lists:map(Sim, [EnterLane -1,
 							 EnterLane,
 							 EnterLane + 1]),
@@ -102,7 +109,7 @@ handle_call({move}, _From, State) ->
 					 false
 			 end,
 	FRes = lists:filter(Num, SimRes),
-	PrePits = track:is_pre_pitlane(State#pilot.segment),
+	PrePits = track:is_pre_pitlane(CState#pilot.segment),
 	if
 		Pits /= false ->
 			{ExitLane, _} = Pits;
@@ -121,12 +128,12 @@ handle_call({move}, _From, State) ->
 			[{ExitLane, _} | _] = lists:sort(Fun, FRes)
 	end,
 	
-	{NextTime, NewState} = track:move(State, ExitLane, PitStop),
+	{NextTime, NewState} = track:move(CState, ExitLane, PitStop),
 	if
 		is_number(NextTime) ->
 			Reply = {requeue, NextTime, #callback{mod = ?MODULE,
 												  func = move,
-												  args = [State#pilot.id]}},
+												  args = [CState#pilot.id]}},
 			{reply, Reply, NewState};
 		true ->
 			%% TODO race_eneded or crash devo fermare il processo car
