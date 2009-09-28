@@ -3,7 +3,8 @@
 %% Exported Functions
 -export([simulate/3,
 		 move/3,
-		 preelaborate/1]).
+		 preelaborate/1,
+		 is_pre_pitlane/1]).
 
 %%
 %% Include files
@@ -494,3 +495,8 @@ tyres_cons(intermediate, Rain) ->
 
 tyres_cons(wet, Rain) ->
 	-0.0005 * Rain + 0.008.
+
+%% Checks if next segment is of type pre_pitlane
+is_pre_pitlane(Id) when is_integer(Id) ->
+	Sgm = utils:mnesia_read(track, next_segment(Id)),
+	Sgm#segment.type == pre_pitlane.

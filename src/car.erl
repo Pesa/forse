@@ -77,8 +77,7 @@ init(Config) ->
 %% --------------------------------------------------------------------
 handle_call({move}, _From, State) ->
 	PitStop = State#pilot.next_pitstop =< State#pilot.lap,
-	% TODO
-	
+
 	Sim = fun(Elem) when is_integer(Elem)->
 				  {Elem, track:simulate(State, Elem, PitStop)}
 		  end,
@@ -86,9 +85,6 @@ handle_call({move}, _From, State) ->
 	SimRes = lists:map(Sim, [EnterLane -1,
 							 EnterLane,
 							 EnterLane + 1]),
-
-	%% TODO considerare il caso in cui si debba andare ai box
-	%% e lo spostamento verso il max da fare...
 	
 	Pits = lists:keyfind(pits, 2, SimRes),
 	End = lists:keyfind(race_ended, 2, SimRes),
@@ -99,7 +95,14 @@ handle_call({move}, _From, State) ->
 				   false
 		   end,
 	Crash = lists:all(Pred, SimRes),
-	
+	Num = fun
+				({_, Elem}) when is_number(Elem) ->
+					 true;
+				(_) ->
+					 false
+			 end,
+	FRes = lists:filter(Num, SimRes),
+	PrePits = track:is_pre_pitlane(State#pilot.segment),
 	if
 		Pits /= false ->
 			{ExitLane, _} = Pits;
@@ -107,27 +110,28 @@ handle_call({move}, _From, State) ->
 			{ExitLane, _} = End;
 		Crash ->
 			ExitLane = EnterLane;
+		PrePits andalso PitStop ->
+			{ExitLane, _} = lists:max(FRes); 
 		true ->
 			Fun = fun
 					 ({_, A}, {_, B}) when is_number(A),
 										   is_number(B) ->
-						  A < B;
-					 (_, {_, B}) when not is_number(B) ->
-						  true;
-					 (_, _) ->
-						  false
+						  A < B
 				  end,
-			[{ExitLane, _} | _] = lists:sort(Fun, SimRes)
+			[{ExitLane, _} | _] = lists:sort(Fun, FRes)
 	end,
 	
 	{NextTime, NewState} = track:move(State, ExitLane, PitStop),
-	%%TODO continuo da qui....
-	
-	
-	Reply = {requeue, NextTime, #callback{mod = ?MODULE,
-										  func = move,
-										  args = [State#pilot.id]}},
-	{reply, Reply, State};
+	if
+		is_number(NextTime) ->
+			Reply = {requeue, NextTime, #callback{mod = ?MODULE,
+												  func = move,
+												  args = [State#pilot.id]}},
+			{reply, Reply, NewState};
+		true ->
+			%% TODO race_eneded or crash devo fermare il processo car
+			{stop, normal, done, NewState}
+	end;
 
 handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->
 	Lap = State#pilot.lap,
