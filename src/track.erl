@@ -233,7 +233,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 							end,
 					lists:foreach(Write, FinalBoundsPre)
 			end,
-	mnesia:transaction(Trans).
+	mnesia:sync_transaction(Trans).
 
 
 %%
@@ -446,7 +446,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 					mnesia:write(track, OldSUpdate, write),
 					mnesia:write(track, NewSUpdate, write)
 			end,
-	mnesia:transaction(Trans),
+	mnesia:sync_transaction(Trans),
 	
 	%% Send surpass notification to event_dispatcher
 	SendMessage = fun(Elem) when is_record(Elem, car_position) ->
@@ -465,7 +465,7 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 	Trans = fun() ->
 					mnesia:write(track, SUpdate, write)
 			end,
-	mnesia:transaction(Trans).
+	mnesia:sync_transaction(Trans).
 
 %% Returns car status after driving Sgm
 update_car_status(Status, Sgm) when is_record(Status, car_status),
