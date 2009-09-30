@@ -102,6 +102,8 @@
 
 -import(error_logger, [format/2]).
 
+-define(state_table(ProcName), utils:build_id_atom("ft_state_", ProcName)).
+
 
 %%%=========================================================================
 %%%  API
@@ -229,10 +231,12 @@ init_it(Starter, self, Name, Mod, Args, Options) ->
 init_it(Starter, Parent, Name0, Mod, Args, Options) ->
 	Name = name(Name0),
 	Debug = debug_options(Name, Options),
-	% TODO: check in mnesia whether this is a failover spawning:
-	%		if so, restore the saved state and call the init()
-	%		callback passing 'failover' as argument.
-	case catch Mod:init(Args) of
+	Type = case utils:table_exists(?state_table(Name)) of
+			   true -> {failover, read_state(Name)};
+			   false -> normal
+		   end,
+	case catch Mod:init(Type, Args) of
+		% TODO: save the (new) state
 		{ok, State} ->
 			proc_lib:init_ack(Starter, {ok, self()}), 	    
 			loop(Parent, Name, State, Mod, infinity, Debug);
@@ -656,24 +660,32 @@ print_event(Dev, Event, Name) ->
 %%% Terminate the server.
 %%% ---------------------------------------------------
 terminate(Reason, Name, Msg, Mod, State, Debug) ->
+	% TODO: togliere il callback terminate?
 	case catch Mod:terminate(Reason, State) of
-		% TODO: cleanup/remove our mnesia table if Reason is normal or shutdown
 		{'EXIT', R} ->
 			error_info(R, Name, Msg, State, Debug),
 			exit(R);
 		_ ->
 			case Reason of
 				normal ->
-					exit(normal);
+					exit_cleanup(Name, normal);
 				shutdown ->
-					exit(shutdown);
-				{shutdown,_} = Shutdown ->
+					exit_cleanup(Name, shutdown);
+				{shutdown, takeover} = Shutdown ->
+					% TODO: come si fa a ottenere questa Reason?
+					%		exit(Pid, {shutdown, takeover})
 					exit(Shutdown);
+				{shutdown, _} = Shutdown ->
+					exit_cleanup(Name, Shutdown);
 				_ ->
 					error_info(Reason, Name, Msg, State, Debug),
 					exit(Reason)
 			end
 	end.
+
+exit_cleanup(Name, Reason) ->
+	mnesia:delete_table(?state_table(Name)),
+	exit(Reason).
 
 error_info(_Reason, application_controller, _Msg, _State, _Debug) ->
 	%% OTP-5811 Don't send an error report if it's the system process
@@ -704,6 +716,24 @@ error_info(Reason, Name, Msg, State, Debug) ->
 		   "** Reason for termination == ~n** ~p~n",
 		   [Name, Msg, State, Reason1]),
 	sys:print_log(Debug),
+	ok.
+
+
+%%% ---------------------------------------------------
+%%% State handling functions.
+%%% ---------------------------------------------------
+
+read_state(ProcName) ->
+	Tab = ?state_table(ProcName),
+	{state, State} = utils:mnesia_read(Tab, state),
+	State.
+
+write_state(ProcName, State) ->
+	Tab = ?state_table(ProcName),
+	T = fun() ->
+				mnesia:write(Tab, {state, State}, sticky_write)
+		end,
+	{atomic, ok} = mnesia:sync_transaction(T),
 	ok.
 
 
@@ -746,9 +776,11 @@ dbg_opts(Name, Opts) ->
 			Dbg
 	end.
 
-%%-----------------------------------------------------------------
-%% Status information
-%%-----------------------------------------------------------------
+
+%%% ---------------------------------------------------
+%%% Status information
+%%% ---------------------------------------------------
+
 format_status(Opt, StatusData) ->
 	[PDict, SysState, Parent, Debug, [Name, State, Mod, _Time]] = StatusData,
 	NameTag = if is_pid(Name) ->
