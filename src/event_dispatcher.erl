@@ -159,8 +159,8 @@ notify_update(UpdateMsg, Callbacks) ->
 do_notify(Msg, Callbacks) when is_list(Callbacks) ->
 	Fun = fun(#callback{mod = M, func = F, args = A} = CB, Acc) ->
 				  case catch apply(M, F, A ++ [Msg]) of
-					  ok -> [CB | Acc];
-					  _ -> Acc
+					  {'EXIT', _} -> Acc;
+					  _ -> [CB | Acc]
 				  end
 		  end,
 	lists:reverse(lists:foldl(Fun, [], Callbacks)).
