@@ -1,8 +1,8 @@
 -include("config.hrl").
 
-%%% =======================
-%%%  Common utility macros
-%%% =======================
+%%% =====================================
+%%%  Common utility and debugging macros
+%%% =====================================
 
 -define(GLOBAL_NAME, {global, ?MODULE}).
 -define(LOCAL_NAME, {local, ?MODULE}).
@@ -16,9 +16,9 @@
 -define(DBG(Msg), true).
 -endif.
 
-%%% ========================
-%%%  Global messages format
-%%% ========================
+%%% ==========================================
+%%%  Global messages and notifications format
+%%% ==========================================
 
 %% ------------------------------------------------------------
 %% callback
@@ -31,8 +31,10 @@
 %% ------------------------------------------------------------
 %% car_status
 %% fuel: amount of fuel left
-%% tyres_consumption: how much the tyres have been worn out (float from 0 to 100)
-%% tyres_type: type of car's tyres ('slick' | 'intermediate' | 'wet')
+%% tyres_consumption: how much the tyres have been worn out
+%%					  (float from 0 to 100)
+%% tyres_type: type of car's tyres
+%%			   ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
 -record(car_status, {fuel = ?TANK_DIM,
 					 tyres_consumption = 0,
@@ -41,7 +43,8 @@
 %% ------------------------------------------------------------
 %% pitstop_ops
 %% fuel: amount of fuel added
-%% tyres: type of tyres installed ('slick' | 'intermediate' | 'wet')
+%% tyres: type of tyres installed
+%%		  ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
 -record(pitstop_ops, {fuel, tyres}).
 
@@ -74,7 +77,8 @@
 %% car: ID of the car this notification refers to
 %% ops: operations executed on the car
 %% ------------------------------------------------------------
--record(pitstop_notif, {car, ops = #pitstop_ops{}}).
+-record(pitstop_notif, {car,
+						ops = #pitstop_ops{}}).
 
 %% ------------------------------------------------------------
 %% surpass_notif
@@ -90,8 +94,16 @@
 -record(retire_notif, {car}).
 
 %% ------------------------------------------------------------
-%% weather_notif (TODO)
-%% new_weather: how the weather changed
-%% sector: number of the sector in which the weather changed
+%% weather_notif
+%% changes: list of weather_change records containing
+%%			information about weather changes
 %% ------------------------------------------------------------
--record(weather_notif, {new_weather, sector}).
+-record(weather_notif, {changes = []}).
+
+%% ------------------------------------------------------------
+%% weather_change
+%% segment: ID of the segment in which the weather changed
+%% old_weather: how the weather was like before this change
+%% new_weather: how the weather is like after this change
+%% ------------------------------------------------------------
+-record(weather_change, {segment, old_weather, new_weather}).
