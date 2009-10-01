@@ -73,8 +73,13 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
-	%TODO elaborare i dati ricevuti
-	{noreply, State}.
+	ChangeList = Msg#weather_notif.changes,
+	Fun = fun(#weather_change{old_weather = W1, new_weather = W2}, Sum) ->
+				  Sum + W2 - W1
+		  end,
+	Delta = lists:foldl(Fun, 0, ChangeList),
+	NewObs = event_dispatcher:notify_update(Delta, State#state.observers),
+	{noreply, State#state{observers = NewObs}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
