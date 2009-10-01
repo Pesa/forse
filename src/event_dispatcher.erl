@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0, 
+-export([start_link/0,
 		 subscribe/2,
 		 notify/1]).
 
