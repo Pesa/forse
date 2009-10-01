@@ -187,17 +187,19 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	Mass = Car#car_type.weight + Pilot#pilot.weight
 			+ CarStatus#car_status.fuel * ?FUEL_SPECIFIC_GRAVITY,
 	FDec = Car#car_type.brake,
+	SgmNum = utils:get_setting(sgm_number),
 	
 	Bounds = preelab_bent_and_pit(Pilot),
 	{MinBoundIndex, MinSpeed} = min_bound(Bounds),
 	BoundsPre = preelab_sgm(Bounds, #speed_bound.bound, FDec,
-							prev_segment(MinBoundIndex), MinBoundIndex,
-							MinSpeed, CarStatus, Mass),
+							prev_segment(MinBoundIndex, SgmNum),
+							MinBoundIndex, MinSpeed, CarStatus,
+							Mass, SgmNum),
 	{MinPitBoundIndex, MinPitSpeed} = min_pit_bound(Bounds),
 	FinalBoundsPre = preelab_sgm(BoundsPre, #speed_bound.pit_bound, FDec,
-								 prev_segment(MinPitBoundIndex),
+								 prev_segment(MinPitBoundIndex, SgmNum),
 								 MinPitBoundIndex, MinPitSpeed,
-								 CarStatus, Mass),
+								 CarStatus, Mass, SgmNum),
 	
 	% drop existing pre-elab table and create a new one
 	% FIXME: why not just updating the existing table?
@@ -223,9 +225,10 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 %% Sgm: id of the segment that is being computed
 %% LastSgm: id of min speed bound segment
 %% VNext: speed bound of the next segment
-preelab_sgm(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass) ->
+%% SgmNum: total number of segments in the track
+preelab_sgm(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass, SgmNum) ->
 	[];
-preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass) ->
+preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, SgmNum) ->
 	S = utils:mnesia_read(track, Sgm),
 	Length = S#segment.length,
 	Incl = physics:deg_to_rad(S#segment.inclination),
@@ -235,8 +238,8 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass) ->
 		false ->
 			NewBound = setelement(AttIndex, #speed_bound{sgm_id = Sgm}, Calc),
 			Rec = preelab_sgm(BoundList, AttIndex, FDec,
-							  prev_segment(Sgm), LastSgm, Calc,
-							  CarStatus, Mass),
+							  prev_segment(Sgm, SgmNum), LastSgm,
+							  Calc, CarStatus, Mass, SgmNum),
 			[NewBound | Rec];
 		OldBound ->
 			NewBoundList = lists:keydelete(Sgm, #speed_bound.sgm_id, BoundList),
@@ -248,9 +251,9 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass) ->
 							   OldBound
 					   end,
 			Rec = preelab_sgm(NewBoundList, AttIndex, FDec,
-							  prev_segment(Sgm), LastSgm,
+							  prev_segment(Sgm, SgmNum), LastSgm,
 							  element(AttIndex, NewBound),
-							  CarStatus, Mass),
+							  CarStatus, Mass, SgmNum),
 			[NewBound | Rec]
 	end.
 
@@ -426,14 +429,14 @@ tyres_cons(intermediate, Rain) ->
 tyres_cons(wet, Rain) ->
 	-0.0005 * Rain + 0.008.
 
-%% Given a segment's id it calculates next segment's id
+%% --------------------------------------------------
+
 next_segment(Id) ->
 	(Id + 1) rem utils:get_setting(sgm_number).
 
-%% Given a segment's id it calculates previous segment's id
-prev_segment(0) ->
-	utils:get_setting(sgm_number) - 1;
-prev_segment(Id) ->
+prev_segment(0, N) ->
+	N - 1;
+prev_segment(Id, _N) ->
 	Id - 1.
 
 is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
@@ -454,8 +457,6 @@ is_pit_area_lane(#segment{type = pre_pitstop} = Sgm, Lane) ->
 is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
 	false.
 
-%% Returns true if segment's type is
-%% pitlane, pitstop or pre_pitstop
 is_pit_area(#segment{type = pitlane}) ->
 	true;
 is_pit_area(#segment{type = pitstop}) ->
