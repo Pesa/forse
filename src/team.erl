@@ -21,7 +21,7 @@
 -record(car_stats, {car_id,
 					pitstop_count,
 					last_ls = []
-					}).
+				   }).
 %% type: slick | intermediate | wet
 %% min: minimum value of rain index
 %% max: maximum value of rain index
@@ -97,46 +97,6 @@ init(Config) ->
 %% --------------------------------------------------------------------
 handle_call({weather_update, Delta}, _From, State) ->
 	RainSum = State#state.rain_sum + Delta,
-%% 
-%% 	BestTyres = best_tyres(RainSum/utils:get_setting(sgm_number), State#state.tyres_int),
-%% 
-%% 	%% Check if some cars have the wrong type of tyres
-%% 	Fun = fun(Elem) when is_record(Elem, car_stats) ->
-%% 				  %% Find the most recent car_status record for this car
-%% 				  %% and returns {Id, TyresType}
-%% 				   SortFun = fun(A, B) when is_record(A, lap_stats),
-%% 											is_record(B, lap_stats) ->
-%% 									 if
-%% 										 A#lap_stats.lap > B#lap_stats.lap;
-%% 										 A#lap_stats.lap == B#lap_stats.lap
-%% 										   andalso A#lap_stats.intermediate > B#lap_stats.intermediate ->
-%% 											 false;
-%% 										 true ->
-%% 											 true
-%% 									 end
-%% 							 end,
-%% 				   SList = lists:sort(SortFun, Elem#car_stats.last_ls),
-%% 				   MostRecent = lists:last(SList),
-%% 				   Lap = MostRecent#lap_stats.lap,
-%% 				   TyresType = (MostRecent#lap_stats.car_status)#car_status.tyres_type,
-%% 				   {Elem, Lap, TyresType}
-%% 		  end,
-%% 	Res = lists:map(Fun, State#state.cars_stats),
-%% 	SendIfFun = fun({CarStats, Lap, Tyres}) ->
-%% 					  if
-%% 						  %% If tyres have to be changed and no pitstop is scheduled for the
-%% 						  %% current lap
-%% 						  Tyres /= BestTyres ->
-%% 							  Id = CarStats#car_stats.car_id,
-%% 							  PitCount = CarStats#car_stats.pitstop_count,
-%% 							  car:set_next_pitstop(Id, 
-%% 												   #next_pitstop{lap = Lap, 
-%% 																 stops_count = PitCount});
-%% 						  true ->
-%% 							  ok
-%% 					  end
-%% 				end,
-%% 	lists:foreach(SendIfFun, Res),
 	{reply, ok, State#state{rain_sum = RainSum}};
 
 handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono_notif) ->
@@ -232,7 +192,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 best_tyres(Rain, [H | T]) when is_number(Rain),
-								is_record(H, tyres_interval) ->
+							   is_record(H, tyres_interval) ->
 	case Rain >= H#tyres_interval.min andalso Rain < H#tyres_interval.max of
 		true -> H#tyres_interval.type;
 		false -> best_tyres(Rain, T)
