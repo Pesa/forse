@@ -40,16 +40,13 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			{crash, Pilot};
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
-			% TODO: effettua la chiamata a team:antani(car_id, car_status, lap)
-			Ops = team:pitstop_operations(Pilot#pilot.team,
-										  Pilot#pilot.id,
-										  Pilot#pilot.car_status, 
-										  Pilot#pilot.lap),
-			PitOpsTime = pits_operation_time(Ops),
+			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id,
+										  CarStatus, Pilot#pilot.lap),
+			PitstopTime = pitstop_time(Ops),
 			
 			NewCarPos = CarPos#car_position{speed = 0,
 											enter_t = CarPos#car_position.exit_t,
-											exit_t = CarPos#car_position.exit_t + PitOpsTime,
+											exit_t = CarPos#car_position.exit_t + PitstopTime,
 											enter_lane = EnterLane,
 											exit_lane = ExitLane},
 			
@@ -414,7 +411,7 @@ update_car_status(Status, Sgm) when is_record(Status, car_status),
 					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
 
 %% Returns the time needed to perform Ops during a pitstop
-pits_operation_time(#pitstop_ops{fuel = F, tyres = T}) ->
+pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 	FuelTime = F * ?TIME_PER_L + 2000,
 	if
 		T == null;
