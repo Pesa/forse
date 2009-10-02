@@ -65,8 +65,8 @@ handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
 	{noreply, State#state{observers = NewObs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
+	NewObs = event_dispatcher:notify_update({chrono, Msg}, State#state.observers),
+	{noreply, State#state{observers = NewObs}};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	%TODO elaborare i dati ricevuti
@@ -78,7 +78,7 @@ handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 				  Sum + W2 - W1
 		  end,
 	Delta = lists:foldl(Fun, 0, ChangeList),
-	NewObs = event_dispatcher:notify_update(Delta, State#state.observers),
+	NewObs = event_dispatcher:notify_update({weather, Delta}, State#state.observers),
 	{noreply, State#state{observers = NewObs}}.
 
 %% --------------------------------------------------------------------

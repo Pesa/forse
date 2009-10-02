@@ -4,8 +4,8 @@
 
 %% External exports
 -export([start_link/1,
-		 weather_update/1,
-		 chrono_update/1]).
+		 update/2,
+		 pitstop_operations/4]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -55,11 +55,15 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
-weather_update(Delta) when is_integer(Delta) ->
-	gen_server:call(?GLOBAL_NAME, {weather_update, Delta}, infinity).
+update(TeamId, {weather, Delta}) when is_integer(Delta) ->
+	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta}, infinity);
 
-chrono_update(Notif) when is_record(Notif, chrono_notif) ->
-	gen_server:call(?GLOBAL_NAME, {chrono_update, Notif}, infinity).
+update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
+	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}, infinity).
+
+pitstop_operations(TeamId, CarId, CarStatus, Lap) when is_record(CarStatus, car_status) ->
+	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap}, infinity).
+	
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -75,6 +79,10 @@ chrono_update(Notif) when is_record(Notif, chrono_notif) ->
 init(Config) ->
 	CarType = lists:foldl(
 				fun({id, Id}, CT) ->
+						event_dispatcher:subscribe(team,
+												   #callback{mod = team,
+															 func = update,
+															 args = [Id]}),
 						CT#car_type{id = Id};
 				   ({team_name, Name}, CT) ->
 						CT#car_type{team_name = Name};
@@ -174,8 +182,26 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 	end,
 	{reply, ok, NewState};
 
-handle_call(_Request, _From, State) ->
-	{reply, ok, State}.
+handle_call({pitstop, CarId, CarStatus, Lap}, _From, State) ->
+	%%FIXME: mettere sgm_number in State e togliere le chiamate a utils
+	AvgRain = State#state.rain_sum/utils:get_setting(sgm_number),
+	BestTyres = best_tyres(AvgRain, State#state.tyres_int),
+	
+	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
+	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
+	LapsLeft = utils:get_setting(total_laps) - Lap,
+	Fuel = CarStatus#car_status.fuel,
+	NeededFuel = LapsLeft * FuelC + State#state.fuel_limit,
+	AddF = case NeededFuel > ?TANK_DIM of
+			   true ->
+				   ?TANK_DIM - Fuel;
+			   false ->
+				   NeededFuel - Fuel
+		   end,
+	Reply = #pitstop_ops{tyres = BestTyres, fuel = AddF},
+	Del = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
+	NewCS = CarStats#car_stats{pitstop_count = CarStats#car_stats.pitstop_count + 1},
+	{reply, Reply, State#state{cars_stats = [NewCS | Del]}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -243,11 +269,13 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 %% If no prevision can be done returns undef
 calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
 	Fun = fun({Left, Ratio}) ->
-				  case is_number(Left) of
-					  false -> 
+				  if 
+					  not is_number(Left) -> 
 						  undef;
+					  Left > 0 ->
+						  trunc(Left / Ratio);
 					  true ->
-						  trunc(Left / Ratio)
+						  0
 				  end
 		  end,
 	TempT = case is_number(TS) of
@@ -263,4 +291,3 @@ calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state
 					FS
 			end,
 	lists:min(lists:map(Fun, [{TempT, TCRatio}, {TempF, FCRatio}])).
-					  

@@ -41,7 +41,10 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
 			% TODO: effettua la chiamata a team:antani(car_id, car_status, lap)
-			Ops = #pitstop_ops{},
+			Ops = team:pitstop_operations(Pilot#pilot.team,
+										  Pilot#pilot.id,
+										  Pilot#pilot.car_status, 
+										  Pilot#pilot.lap),
 			PitOpsTime = pits_operation_time(Ops),
 			
 			NewCarPos = CarPos#car_position{speed = 0,
