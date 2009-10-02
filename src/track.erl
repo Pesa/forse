@@ -226,7 +226,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 %% LastSgm: id of min speed bound segment
 %% VNext: speed bound of the next segment
 %% SgmNum: total number of segments in the track
-preelab_sgm(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass, SgmNum) ->
+preelab_sgm(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass, _SgmNum) ->
 	[];
 preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, SgmNum) ->
 	S = utils:mnesia_read(track, Sgm),
