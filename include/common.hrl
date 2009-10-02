@@ -37,7 +37,7 @@
 %%			   ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
 -record(car_status, {fuel = ?TANK_DIM,
-					 tyres_consumption = 0,
+					 tyres_consumption = 0.0,
 					 tyres_type = slick}).
 
 %% ------------------------------------------------------------
