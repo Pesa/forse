@@ -4,8 +4,8 @@
 
 %% External exports
 -export([start_link/1,
-		 update/2,
-		 pitstop_operations/4]).
+		 pitstop_operations/4,
+		 update/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -19,26 +19,27 @@
 
 -define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
-%% last_ls: list of chrono_notif containing at most one record for each intermediate
-%% avg_consumption: {TyresC , FuelC}
+%% last_ls: list of chrono_notif containing at most
+%%			one record for each intermediate
+%% avg_consumption: {TyresC, FuelC}
 -record(car_stats, {car_id,
 					pitstop_count,
 					avg_consumption = {undef, undef},
-					last_ls = []
-				   }).
+					last_ls = []}).
+
 %% type: slick | intermediate | wet
 %% min: minimum value of rain index
 %% max: maximum value of rain index
--record(tyres_interval, {type,
-						 min,
-						 max}).
+-record(tyres_interval, {type, min, max}).
 
-%% fuel_limit: if a car's fuel is lesser than the limit then this car shuold stop to pits
-%% tyres_limit: if a car's tyres_consumption is greater than the limit then this car shuold stop to pits
+%% fuel_limit: if a car's fuel is lesser than the limit
+%%			   then this car should stop at the pits
+%% tyres_limit: if a car's tyres_consumption is greater than
+%%				the limit then this car should stop at the pits
 %% rain_sum: sum of rain field of all the segments
-%% tyres_int: list of tyres_intervals, represent the intervals in which each different type of 
-%% tyres performs better
-%% cars_stats: list of car_stats
+%% tyres_int: list of tyres_interval records, represents the intervals
+%%			  within which each different type of tyres performs better
+%% cars_stats: list of car_stats records
 -record(state, {fuel_limit,
 				tyres_limit,
 				rain_sum,
@@ -46,6 +47,7 @@
 							 #tyres_interval{type = intermediate, min = 3.0, max = 6.5},
 							 #tyres_interval{type = wet, min = 6.5, max = 10.0}],
 				cars_stats = []}).
+
 
 %% ====================================================================
 %% External functions
@@ -55,15 +57,16 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
+pitstop_operations(TeamId, CarId, CarStatus, Lap) when is_record(CarStatus, car_status) ->
+	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap}, infinity).
+
 update(TeamId, {weather, Delta}) when is_integer(Delta) ->
 	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta}, infinity);
 
 update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
 	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}, infinity).
 
-pitstop_operations(TeamId, CarId, CarStatus, Lap) when is_record(CarStatus, car_status) ->
-	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap}, infinity).
-	
+
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -79,10 +82,8 @@ pitstop_operations(TeamId, CarId, CarStatus, Lap) when is_record(CarStatus, car_
 init(Config) ->
 	CarType = lists:foldl(
 				fun({id, Id}, CT) ->
-						event_dispatcher:subscribe(team,
-												   #callback{mod = team,
-															 func = update,
-															 args = [Id]}),
+						CB = #callback{mod = ?MODULE, func = update, args = [Id]},
+						event_dispatcher:subscribe(team, CB),
 						CT#car_type{id = Id};
 				   ({team_name, Name}, CT) ->
 						CT#car_type{team_name = Name};
@@ -114,11 +115,11 @@ handle_call({weather_update, Delta}, _From, State) ->
 	RainSum = State#state.rain_sum + Delta,
 	{reply, ok, State#state{rain_sum = RainSum}};
 
-handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono_notif) ->
+handle_call({chrono_update, Chrono}, _From, State) ->
 	
 	%% Phase 1: Update the status
 	
-	%% Update with the new values and calculates consumption per lap if possible
+	% update with the new values and calculates consumption per lap if possible
 	CarStats = lists:keyfind(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
 	NCStats = case CarStats of
 				  false ->
@@ -126,9 +127,9 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 								 pitstop_count = 0,
 								 last_ls = [Chrono],
 								 avg_consumption = {undef, undef}};
-				  CarStats -> 
+				  CarStats ->
 					  LastLS = CarStats#car_stats.last_ls,
-					  Res = case lists:keyfind(Chrono#chrono_notif.intermediate, 
+					  Res = case lists:keyfind(Chrono#chrono_notif.intermediate,
 											   #chrono_notif.intermediate,
 											   LastLS) of
 								false ->
@@ -137,10 +138,10 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 									NS = Chrono#chrono_notif.status,
 									OS = OldNotif#chrono_notif.status,
 									Laps = Chrono#chrono_notif.lap - OldNotif#chrono_notif.lap,
-									%% TyresC and FuelC can be undef if a pitstop occurred
+									% TyresC and FuelC can be undef if a pitstop occurred
 									C = delta_consumption(OS, NS, Laps),
 									
-									Temp = lists:keydelete(Chrono#chrono_notif.intermediate, 
+									Temp = lists:keydelete(Chrono#chrono_notif.intermediate,
 														   #chrono_notif.intermediate,
 														   LastLS),
 									{[Chrono | Temp], C}
@@ -154,25 +155,25 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 	
 	%% Phase 2: Calculate next pitstop
 	
-	%% Checks if it has an appropriate tyres type
+	% check if it has an appropriate tyres type
 	AvgRain = State#state.rain_sum/utils:get_setting(sgm_number),
 	BestTyres = best_tyres(AvgRain, State#state.tyres_int),
 	CS = Chrono#chrono_notif.status,
 	if
 		CS#car_status.tyres_type /= BestTyres ->
-			%% Schedule a pitstop for the current lap
+			% schedule a pitstop for the current lap
 			car:set_next_pitstop(Chrono#chrono_notif.car,
 								 #next_pitstop{lap = Chrono#chrono_notif.lap,
 											   stops_count = NCStats#car_stats.pitstop_count});
 		true ->
-			%% When will the car need the next pitstop?
+			% when will the car need the next pitstop?
 			{TCRatio, FCRatio} = NCStats#car_stats.avg_consumption,
 			TS = CS#car_status.tyres_consumption,
 			FS = CS#car_status.fuel,
 			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio, NewState),
 			case is_number(Next) of
 				false ->
-					%% Not enough information
+					% not enough information
 					ok;
 				true ->
 					car:set_next_pitstop(Chrono#chrono_notif.car,
@@ -183,10 +184,9 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 	{reply, ok, NewState};
 
 handle_call({pitstop, CarId, CarStatus, Lap}, _From, State) ->
-	%%FIXME: mettere sgm_number in State e togliere le chiamate a utils
+	%% FIXME: mettere sgm_number in State e togliere le chiamate a utils
 	AvgRain = State#state.rain_sum/utils:get_setting(sgm_number),
 	BestTyres = best_tyres(AvgRain, State#state.tyres_int),
-	
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
 	LapsLeft = utils:get_setting(total_laps) - Lap,
@@ -201,7 +201,11 @@ handle_call({pitstop, CarId, CarStatus, Lap}, _From, State) ->
 	Reply = #pitstop_ops{tyres = BestTyres, fuel = AddF},
 	Del = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
 	NewCS = CarStats#car_stats{pitstop_count = CarStats#car_stats.pitstop_count + 1},
-	{reply, Reply, State#state{cars_stats = [NewCS | Del]}}.
+	{reply, Reply, State#state{cars_stats = [NewCS | Del]}};
+
+handle_call(Msg, From, State) ->
+	?WARN({"unhandled call", Msg, "from", From}),
+	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
@@ -250,9 +254,9 @@ best_tyres(Rain, [H | T]) when is_number(Rain),
 		true -> H#tyres_interval.type;
 		false -> best_tyres(Rain, T)
 	end;
-
 best_tyres(_, []) ->
 	null.
+
 %% Returns {TyreC, FuelC}
 delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 									 is_record(NS, car_status) ->
@@ -269,8 +273,8 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 %% If no prevision can be done returns undef
 calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
 	Fun = fun({Left, Ratio}) ->
-				  if 
-					  not is_number(Left) -> 
+				  if
+					  not is_number(Left) ->
 						  undef;
 					  Left > 0 ->
 						  trunc(Left / Ratio);
@@ -279,11 +283,11 @@ calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state
 				  end
 		  end,
 	TempT = case is_number(TS) of
-			   true ->
-				   State#state.tyres_limit - TS;
-			   false ->
-				   TS
-		   end,
+				true ->
+					State#state.tyres_limit - TS;
+				false ->
+					TS
+			end,
 	TempF = case is_number(FS) of
 				true ->
 					FS - State#state.fuel_limit;
