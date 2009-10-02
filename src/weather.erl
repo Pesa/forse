@@ -4,8 +4,8 @@
 
 %% External exports
 -export([start_link/0,
-		 apply_change/3,
-		 schedule_change/3]).
+		 apply_change/2,
+		 schedule_change/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -27,11 +27,11 @@
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
-apply_change(_Time, NewWeather, Where) ->
-	gen_server:call(?GLOBAL_NAME, {apply_change, NewWeather, Where}, infinity).
+apply_change(_Time, NewWeather) ->
+	gen_server:call(?GLOBAL_NAME, {apply_change, NewWeather}, infinity).
 
-schedule_change(NewWeather, Where, When) ->
-	gen_server:call(?GLOBAL_NAME, {schedule_change, NewWeather, Where, When}).
+schedule_change(When, NewWeather) when is_list(NewWeather) ->
+	gen_server:call(?GLOBAL_NAME, {schedule_change, When, NewWeather}).
 
 
 %% ====================================================================
@@ -60,26 +60,44 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({apply_change, NewWeather, Where}, _From, State) ->
+handle_call({apply_change, PerSectorWeather}, _From, State) ->
+	ChSect = fun({SectId, NewWeather}, Acc) ->
+					 ChSgm = fun(SgmId) ->
+									 % update the weather in one segment
+									 [Segment] = mnesia:wread(track, SgmId),
+									 mnesia:write(track, Segment#segment{rain = NewWeather}, write),
+									 #weather_change{segment = SgmId,
+													 old_weather = Segment#segment.rain,
+													 new_weather = NewWeather}
+							 end,
+					 % get the IDs of the segments belonging to this sector
+					 Sector = utils:build_id_atom("sector_", SectId),
+					 case mnesia:read(setting, Sector) of
+						 [R] ->
+							 {From, To} = R#setting.value,
+							 % for each segment invoke ChSgm to change its weather
+							 SectChanges = lists:map(ChSgm, lists:seq(From, To)),
+							 Acc ++ SectChanges;
+						 _ -> mnesia:abort("invalid sector " ++ integer_to_list(SectId))
+					 end
+			 end,
+	Invalidate = fun(Pilot, _) ->
+						 mnesia:write(Pilot#pilot{run_preelab = true})
+				 end,
 	T = fun() ->
-				case mnesia:wread(track, Where) of
-					[Segment] -> mnesia:write(track, Segment#segment{rain = NewWeather}, write);
-					_ -> mnesia:abort("invalid segment " ++ integer_to_list(Where))
-				end,
-				F = fun(Pilot, _) ->
-							mnesia:write(Pilot#pilot{run_preelab = true})
-					end,
-				mnesia:foldl(F, 0, pilot, write)
+				% invalidate the pre-elaboration for every pilot
+				mnesia:foldl(Invalidate, 0, pilot, write),
+				% apply the weather changes for each sector
+				lists:foldl(ChSect, [], PerSectorWeather)
 		end,
 	case mnesia:sync_transaction(T) of
-		{atomic, _} -> event_dispatcher:notify(#weather_notif{new_weather = NewWeather,
-															  sector = Where});
+		{atomic, Changes} -> event_dispatcher:notify(#weather_notif{changes = Changes});
 		{aborted, Reason} -> ?ERR({"failed to change weather", Reason})
 	end,
 	{reply, done, State};
 
-handle_call({schedule_change, NewWeather, Where, When}, _From, State) ->
-	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather, Where]},
+handle_call({schedule_change, When, NewWeather}, _From, State) ->
+	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
 	Reply = scheduler:queue_work(When, Callback),
 	{reply, Reply, State};
 
