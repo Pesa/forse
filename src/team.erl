@@ -161,7 +161,7 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 			{TCRatio, FCRatio} = NCStats#car_stats.avg_consumption,
 			TS = CS#car_status.tyres_consumption,
 			FS = CS#car_status.fuel,
-			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio),
+			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio, NewState),
 			case is_number(Next) of
 				false ->
 					%% Not enough information
@@ -241,7 +241,7 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 	{Fun(TyresC), Fun(FuelC)}.
 
 %% If no prevision can be done returns undef
-calculate_laps_left(TS, FS, TCRatio, FCRatio) ->
+calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
 	Fun = fun({Left, Ratio}) ->
 				  case is_number(Left) of
 					  false -> 
@@ -250,5 +250,17 @@ calculate_laps_left(TS, FS, TCRatio, FCRatio) ->
 						  trunc(Left / Ratio)
 				  end
 		  end,
-	lists:min(lists:map(Fun, [{100.0 - TS, TCRatio}, {FS, FCRatio}])).
+	TempT = case is_number(TS) of
+			   true ->
+				   State#state.tyres_limit - TS;
+			   false ->
+				   TS
+		   end,
+	TempF = case is_number(FS) of
+				true ->
+					FS - State#state.fuel_limit;
+				false ->
+					FS
+			end,
+	lists:min(lists:map(Fun, [{TempT, TCRatio}, {TempF, FCRatio}])).
 					  
