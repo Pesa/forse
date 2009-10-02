@@ -3,7 +3,9 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/1]).
+-export([start_link/1,
+		 weather_update/1,
+		 chrono_update/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -18,8 +20,10 @@
 -define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
 %% last_ls: list of chrono_notif containing at most one record for each intermediate
+%% avg_consumption: {TyresC , FuelC}
 -record(car_stats, {car_id,
 					pitstop_count,
+					avg_consumption = {undef, undef},
 					last_ls = []
 				   }).
 %% type: slick | intermediate | wet
@@ -53,6 +57,9 @@ start_link(Config) when is_list(Config) ->
 
 weather_update(Delta) when is_integer(Delta) ->
 	gen_server:call(?GLOBAL_NAME, {weather_update, Delta}, infinity).
+
+chrono_update(Notif) when is_record(Notif, chrono_notif) ->
+	gen_server:call(?GLOBAL_NAME, {chrono_update, Notif}, infinity).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -100,38 +107,44 @@ handle_call({weather_update, Delta}, _From, State) ->
 	{reply, ok, State#state{rain_sum = RainSum}};
 
 handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono_notif) ->
+	
+	%% Phase 1: Update the status
+	
 	%% Update with the new values and calculates consumption per lap if possible
 	CarStats = lists:keyfind(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
-	Res = case CarStats of
-			  false ->
-				  {#car_stats{car_id = Chrono#chrono_notif.car,
-							  pitstop_count = 0,
-							  last_ls = [Chrono]},
-				   {undef, undef}};
-			  CarStats -> 
-				  LastLS = CarStats#car_stats.last_ls,
-				  {NewLLS, Cons} = case lists:keyfind(Chrono#chrono_notif.intermediate, 
-													  #chrono_notif.intermediate,
-													  LastLS) of
-									   false ->
-										   {[Chrono, LastLS], {undef, undef}};
-									   OldNotif ->
-										   %% Qui posso calcolare i consumi per giro etc... TODO
-										   NS = Chrono#chrono_notif.status,
-										   OS = OldNotif#chrono_notif.status,
-										   %% TyresC and FuelC can be undef if a pitstop occurred
-										   C = delta_consumption(OS, NS),
-										   
-										   Temp = lists:keydelete(Chrono#chrono_notif.intermediate, 
-																  #chrono_notif.intermediate,
-																  LastLS),
-										   {[Chrono | Temp], C}
-								   end,
-				  {CarStats#car_stats{last_ls = NewLLS}, Cons}
-		  end,
-	{NewCarStats, {TC, FC}} = Res,
+	NCStats = case CarStats of
+				  false ->
+					  #car_stats{car_id = Chrono#chrono_notif.car,
+								 pitstop_count = 0,
+								 last_ls = [Chrono],
+								 avg_consumption = {undef, undef}};
+				  CarStats -> 
+					  LastLS = CarStats#car_stats.last_ls,
+					  Res = case lists:keyfind(Chrono#chrono_notif.intermediate, 
+											   #chrono_notif.intermediate,
+											   LastLS) of
+								false ->
+									{[Chrono, LastLS], {undef, undef}};
+								OldNotif ->
+									NS = Chrono#chrono_notif.status,
+									OS = OldNotif#chrono_notif.status,
+									Laps = Chrono#chrono_notif.lap - OldNotif#chrono_notif.lap,
+									%% TyresC and FuelC can be undef if a pitstop occurred
+									C = delta_consumption(OS, NS, Laps),
+									
+									Temp = lists:keydelete(Chrono#chrono_notif.intermediate, 
+														   #chrono_notif.intermediate,
+														   LastLS),
+									{[Chrono | Temp], C}
+							end,
+					  {NewLLS, Cons} = Res,
+					  CarStats#car_stats{last_ls = NewLLS, avg_consumption = Cons}
+			  end,
+	
 	DelCS = lists:delete(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
-	NewState = State#state{cars_stats = [NewCarStats | DelCS]},
+	NewState = State#state{cars_stats = [NCStats | DelCS]},
+	
+	%% Phase 2: Calculate next pitstop
 	
 	%% Checks if it has an appropriate tyres type
 	AvgRain = State#state.rain_sum/utils:get_setting(sgm_number),
@@ -139,11 +152,25 @@ handle_call({chrono_update, Chrono}, _From, State) when is_record(Chrono, chrono
 	CS = Chrono#chrono_notif.status,
 	if
 		CS#car_status.tyres_type /= BestTyres ->
-			%% TODO vai ai box subito
-			ok;
+			%% Schedule a pitstop for the current lap
+			car:set_next_pitstop(Chrono#chrono_notif.car,
+								 #next_pitstop{lap = Chrono#chrono_notif.lap,
+											   stops_count = NCStats#car_stats.pitstop_count});
 		true ->
-			%%TODO calcola per quanti giri bastano gomme e carb e invia
-			ok
+			%% When will the car need the next pitstop?
+			{TCRatio, FCRatio} = NCStats#car_stats.avg_consumption,
+			TS = CS#car_status.tyres_consumption,
+			FS = CS#car_status.fuel,
+			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio),
+			case is_number(Next) of
+				false ->
+					%% Not enough information
+					ok;
+				true ->
+					car:set_next_pitstop(Chrono#chrono_notif.car,
+										 #next_pitstop{lap = Chrono#chrono_notif.lap + Next,
+													   stops_count = NCStats#car_stats.pitstop_count})
+			end
 	end,
 	{reply, ok, NewState};
 
@@ -200,11 +227,11 @@ best_tyres(Rain, [H | T]) when is_number(Rain),
 
 best_tyres(_, []) ->
 	null.
-
-delta_consumption(OS, NS) when is_record(OS, car_status),
-							   is_record(NS, car_status) ->
-	TyresC = NS#car_status.tyres_consumption - OS#car_status.tyres_consumption,
-	FuelC = OS#car_status.fuel - NS#car_status.fuel,
+%% Returns {TyreC, FuelC}
+delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
+									 is_record(NS, car_status) ->
+	TyresC = (NS#car_status.tyres_consumption - OS#car_status.tyres_consumption) / Laps,
+	FuelC = (OS#car_status.fuel - NS#car_status.fuel) / Laps,
 	Fun = fun(X) ->
 				  if
 					  X > 0 -> X;
@@ -212,3 +239,16 @@ delta_consumption(OS, NS) when is_record(OS, car_status),
 				  end
 		  end,
 	{Fun(TyresC), Fun(FuelC)}.
+
+%% If no prevision can be done returns undef
+calculate_laps_left(TS, FS, TCRatio, FCRatio) ->
+	Fun = fun({Left, Ratio}) ->
+				  case is_number(Left) of
+					  false -> 
+						  undef;
+					  true ->
+						  trunc(Left / Ratio)
+				  end
+		  end,
+	lists:min(lists:map(Fun, [{100.0 - TS, TCRatio}, {FS, FCRatio}])).
+					  
