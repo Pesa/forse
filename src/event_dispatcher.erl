@@ -23,9 +23,9 @@
 
 -define(PITSTOP_OBS, [debug_log_backend, race_info_backend]).
 -define(CHRONO_OBS, [debug_log_backend, team_backend, race_info_backend]).
--define(SURPASS_OBS, [debug_log_backend, team_backend, race_info_backend]).
--define(RETIRE_OBS, [debug_log_backend, race_info_backend]).
--define(WEATHER_OBS, [debug_log_backend, weather_backend, team_backend, race_info_backend]).
+-define(SURPASS_OBS, [debug_log_backend, race_info_backend]).
+-define(RETIRE_OBS, [debug_log_backend, team_backend, race_info_backend]).
+-define(WEATHER_OBS, [debug_log_backend, team_backend, race_info_backend, weather_backend]).
 
 -record(state, {}).
 
