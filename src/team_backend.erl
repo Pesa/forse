@@ -17,12 +17,14 @@
 
 -record(state, {observers = []}).
 
+
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
+
 
 %% ====================================================================
 %% Server functions
@@ -37,8 +39,7 @@ start_link() ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	%TODO read observers list from mnesia in case of crash
-    {ok, #state{}}.
+	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -68,16 +69,15 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	NewObs = event_dispatcher:notify_update({chrono, Msg}, State#state.observers),
 	{noreply, State#state{observers = NewObs}};
 
-handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
+handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
-	ChangeList = Msg#weather_notif.changes,
-	Fun = fun(#weather_change{old_weather = W1, new_weather = W2}, Sum) ->
-				  Sum + W2 - W1
-		  end,
-	Delta = lists:foldl(Fun, 0, ChangeList),
+	F = fun(#weather_change{old_weather = W1, new_weather = W2}, Sum) ->
+				Sum + W2 - W1
+		end,
+	Delta = lists:foldl(F, 0, Msg#weather_notif.changes),
 	NewObs = event_dispatcher:notify_update({weather, Delta}, State#state.observers),
 	{noreply, State#state{observers = NewObs}}.
 
@@ -89,7 +89,7 @@ handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_info(_Info, State) ->
-    {noreply, State}.
+	{noreply, State}.
 
 %% --------------------------------------------------------------------
 %% Function: terminate/2
@@ -97,15 +97,16 @@ handle_info(_Info, State) ->
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
 terminate(_Reason, _State) ->
-    ok.
+	ok.
 
 %% --------------------------------------------------------------------
-%% Func: code_change/3
+%% Function: code_change/3
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+	{ok, State}.
+
 
 %% --------------------------------------------------------------------
 %% Internal functions
