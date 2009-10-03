@@ -150,7 +150,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 					  CarStats#car_stats{last_ls = NewLLS, avg_consumption = Cons}
 			  end,
 	
-	DelCS = lists:delete(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
+	DelCS = lists:keydelete(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
 	NewState = State#state{cars_stats = [NCStats | DelCS]},
 	
 	%% Phase 2: Calculate next pitstop

@@ -78,7 +78,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 											enter_lane = EnterLane,
 											exit_lane = ExitLane},
 			
-			MaxSpeed = lists:max([Pilot#pilot.max_speed, NewCarPos#car_position.speed]),
+			MaxSpeed = erlang:max(Pilot#pilot.max_speed, NewCarPos#car_position.speed),
 			% update car_position in track table
 			move_car(SOld, S, NewCarPos),
 			NewCarStatus = update_car_status(Pilot#pilot.car_status, S),
@@ -144,10 +144,10 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 		CS#car_status.fuel =< 0.0 ->
 			{crash, 0};
 		true ->
-			case access:allow_move(Pilot, S, EnterLane, ExitLane, Pit) of
+			case access:check_move(Pilot, S, EnterLane, ExitLane, Pit) of
 				crash -> {crash, 0};
 				pits -> {pits, 0};
-				true ->
+				go ->
 					EnterTime = CarPos#car_position.exit_t,
 					Space = S#segment.length,
 					EnterSpeed = CarPos#car_position.speed,
@@ -167,7 +167,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 							 false when Pit -> Bound#speed_bound.pit_bound;
 							 false -> Bound#speed_bound.bound
 						 end,
-					MaxExitSpeed = lists:min([SB, physics:engine_max_speed(Car#car_type.power)]),
+					MaxExitSpeed = erlang:min(SB, physics:engine_max_speed(Car#car_type.power)),
 					
 					Amin = physics:acceleration(FDec, Mass, Inc, CS, S#segment.rain),
 					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
@@ -175,7 +175,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 					physics:simulate(S#segment.id, EnterLane, ExitLane, EnterTime, 1,
 									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 			end
-		end.
+	end.
 
 
 %% Calculates the maximum speed that Pilot's car

@@ -1,7 +1,7 @@
 -module(access).
 
 %% Exported functions
--export([allow_move/5]).
+-export([check_move/5]).
 
 %% Include files
 -include("db_schema.hrl").
@@ -12,8 +12,8 @@
 %%
 
 % Checks if Pilot can move from EnterLane to ExitLane in Sgm.
-% Returns: 'run' | 'pits' | 'crash'
-allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
+% Returns: 'go' | 'pits' | 'crash'
+check_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 													  is_record(Sgm, segment) ->
 	MaxL = Sgm#segment.max_lane,
 	MinL = Sgm#segment.min_lane,
@@ -39,7 +39,7 @@ allow_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 				ExitLane == MaxL andalso not OwnPits;
 				ExitLane == MaxL - 1 andalso OwnPits -> crash;
 				ExitLane == MaxL andalso OwnPits -> pits;
-				true -> run
+				true -> go
 			end;
-		true -> run
+		true -> go
 	end.

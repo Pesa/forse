@@ -64,7 +64,7 @@ handle_call({apply_change, PerSectorWeather}, _From, State) ->
 	ChSect = fun({SectId, NewWeather}, Acc) ->
 					 ChSgm = fun(SgmId) ->
 									 % update the weather in one segment
-									 [Segment] = mnesia:wread(track, SgmId),
+									 [Segment] = mnesia:wread({track, SgmId}),
 									 mnesia:write(track, Segment#segment{rain = NewWeather}, write),
 									 #weather_change{segment = SgmId,
 													 old_weather = Segment#segment.rain,
