@@ -40,8 +40,8 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			{crash, Pilot};
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
-			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id,
-										  CarStatus, Pilot#pilot.lap),
+			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
+										  Pilot#pilot.lap, Pilot#pilot.pitstop_count),
 			PitstopTime = pitstop_time(Ops),
 			
 			NewCarPos = CarPos#car_position{speed = 0,

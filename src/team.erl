@@ -4,7 +4,7 @@
 
 %% External exports
 -export([start_link/1,
-		 pitstop_operations/4,
+		 pitstop_operations/5,
 		 update/2]).
 
 %% gen_server callbacks
@@ -57,8 +57,8 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
-pitstop_operations(TeamId, CarId, CarStatus, Lap) when is_record(CarStatus, car_status) ->
-	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap}, infinity).
+pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount) when is_record(CarStatus, car_status) ->
+	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
 update(TeamId, {weather, Delta}) when is_integer(Delta) ->
 	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta}, infinity);
@@ -183,9 +183,8 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 	end,
 	{reply, ok, NewState};
 
-handle_call({pitstop, CarId, CarStatus, Lap}, _From, State) ->
-	%% FIXME: mettere sgm_number in State e togliere le chiamate a utils
-	AvgRain = State#state.rain_sum/utils:get_setting(sgm_number),
+handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
+	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
 	BestTyres = best_tyres(AvgRain, State#state.tyres_int),
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
@@ -198,10 +197,10 @@ handle_call({pitstop, CarId, CarStatus, Lap}, _From, State) ->
 			   false ->
 				   NeededFuel - Fuel
 		   end,
+	Rest = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
+	NewCS = CarStats#car_stats{pitstop_count = CarPSCount},
 	Reply = #pitstop_ops{tyres = BestTyres, fuel = AddF},
-	Del = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
-	NewCS = CarStats#car_stats{pitstop_count = CarStats#car_stats.pitstop_count + 1},
-	{reply, Reply, State#state{cars_stats = [NewCS | Del]}};
+	{reply, Reply, State#state{cars_stats = [NewCS | Rest]}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
