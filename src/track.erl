@@ -196,10 +196,10 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 							MinBoundIndex, MinSpeed, CarStatus,
 							Mass, SgmNum),
 	{MinPitBoundIndex, MinPitSpeed} = min_pit_bound(Bounds),
-	FinalBoundsPre = preelab_sgm(BoundsPre, #speed_bound.pit_bound, FDec,
-								 prev_segment(MinPitBoundIndex, SgmNum),
-								 MinPitBoundIndex, MinPitSpeed,
-								 CarStatus, Mass, SgmNum),
+	FinalBounds = preelab_sgm(BoundsPre, #speed_bound.pit_bound, FDec,
+							  prev_segment(MinPitBoundIndex, SgmNum),
+							  MinPitBoundIndex, MinPitSpeed,
+							  CarStatus, Mass, SgmNum),
 	
 	TabName = preelab_tab_name(Pilot#pilot.id),
 	case utils:table_exists(TabName) of
@@ -209,10 +209,9 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 			ok
 	end,
 	T = fun() ->
-				Write = fun(Elem) ->
-								mnesia:write(TabName, Elem, write)
-						end,
-				lists:foreach(Write, FinalBoundsPre)
+				lists:foreach(fun(Elem) ->
+									  mnesia:write(TabName, Elem, write)
+							  end, FinalBounds)
 		end,
 	{atomic, _} = mnesia:sync_transaction(T).
 
