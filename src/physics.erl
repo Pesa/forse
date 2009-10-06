@@ -94,6 +94,8 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 
 %% Returns null or a car_position record.
 %% Index starts from 1
+% FIXME: non deve considerare se stessa
+% (altrimenti una simulate dopo un crash non funziona)
 get_car_ahead(Sgm, Lane, Index) ->
 	Q = Sgm#segment.queued_cars,
 	Filter = fun(Pos) ->

@@ -137,7 +137,6 @@ handle_call(move, _From, State) ->
 												  args = [CState#pilot.id]}},
 			{reply, Reply, NewState};
 		true ->
-			%% TODO race_ended or crash devo fermare il processo car
 			{stop, normal, done, NewState}
 	end;
 

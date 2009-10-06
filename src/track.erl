@@ -19,24 +19,25 @@
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
 
+% FIXME: spostare car_pos in Pilot?
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
-	CarPos = find_pilot(Pilot#pilot.id, SOld#segment.queued_cars),
+	% FIXME: check if keyfind returns false
+	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
 	
 	{Time, Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
 	case Time of
 		race_ended ->
-			% remove car from the track returning an inconsistent Pilot status
 			remove_car(SOld, Pilot#pilot.id),
-			% FIXME: serve Pilot?
+			% FIXME: togliere Pilot
 			{race_ended, Pilot};
 		crash ->
-			remove_car(SOld, Pilot#pilot.id),
 			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id}),
-			% FIXME: serve Pilot?
+			remove_car(SOld, Pilot#pilot.id),
+			% FIXME: togliere Pilot
 			{crash, Pilot};
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
@@ -126,8 +127,9 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
-	CarPos = find_pilot(Pilot#pilot.id, SOld#segment.queued_cars),
-	EnterLane = CarPos#car_position.exit_lane,
+	% FIXME: check if keyfind returns false
+	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
+	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
 	{Time, _Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
 	Time.
@@ -303,14 +305,6 @@ create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
 preelab_tab_name(Pilot) ->
 	utils:build_id_atom("pilot_", Pilot).
 
-%% Extract car_position with car_id == Pilot from the queue
-find_pilot(Pilot, [#car_position{car_id = Pilot} = Pos | _]) ->
-	Pos;
-find_pilot(Pilot, [_ | Tail]) ->
-	find_pilot(Pilot, Tail);
-find_pilot(_, []) ->
-	null.
-
 %% Returns the id of the segment which has the minimum bound or 0
 min_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.bound),
@@ -353,6 +347,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 								 #car_position.car_id,
 								 OldS#segment.queued_cars),
 	OldSUpdate = OldS#segment{queued_cars = OldQUpdate},
+	% FIXME: keydelete su NewQ per togliere CS.car_id
 	NewQ = NewS#segment.queued_cars,
 	
 	% check if CS surpassed some cars in NewQ
