@@ -16,7 +16,7 @@
 %% ====================================================================
 
 simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
-		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
+		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) when is_record(Sgm, segment) ->
 	G = if
 			EnterLane == ExitLane -> 0;
 			true -> ?LANE_CHANGE_TIME
@@ -95,8 +95,7 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% Returns null or a car_position record.
 %% Index starts from 1
 get_car_ahead(Sgm, Lane, Index) ->
-	R = utils:mnesia_read(track, Sgm),
-	Q = R#segment.queued_cars,
+	Q = Sgm#segment.queued_cars,
 	Filter = fun(Pos) ->
 					 case Pos of
 						 #car_position{exit_lane = Lane} -> true;

@@ -23,7 +23,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
 	CarPos = find_pilot(Pilot#pilot.id, SOld#segment.queued_cars),
-	EnterLane = CarPos#car_position.exit_lane,
+	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
 	
 	{Time, Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
@@ -172,7 +172,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 					Amin = physics:acceleration(FDec, Mass, Inc, CS, S#segment.rain),
 					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
 					
-					physics:simulate(S#segment.id, EnterLane, ExitLane, EnterTime, 1,
+					physics:simulate(S, EnterLane, ExitLane, EnterTime, 1,
 									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 			end
 	end.
@@ -201,8 +201,6 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 								 MinPitBoundIndex, MinPitSpeed,
 								 CarStatus, Mass, SgmNum),
 	
-	% drop existing pre-elab table and create a new one
-	% FIXME: why not just updating the existing table?
 	TabName = preelab_tab_name(Pilot#pilot.id),
 	case utils:table_exists(TabName) of
 		false ->
@@ -216,7 +214,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 						end,
 				lists:foreach(Write, FinalBoundsPre)
 		end,
-	mnesia:sync_transaction(T).
+	{atomic, _} = mnesia:sync_transaction(T).
 
 %% Recursively calculates speed bound for AttIndex
 %% BoundList:
@@ -377,7 +375,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 				mnesia:write(track, OldSUpdate, write),
 				mnesia:write(track, NewSUpdate, write)
 		end,
-	mnesia:sync_transaction(T),
+	{atomic, _} = mnesia:sync_transaction(T),
 	
 	% send surpass notification to event_dispatcher
 	SendNotif = fun(Elem) ->
@@ -396,7 +394,7 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 	T = fun() ->
 				mnesia:write(track, SUpdate, write)
 		end,
-	mnesia:sync_transaction(T).
+	{atomic, _} = mnesia:sync_transaction(T).
 
 %% Returns car status after driving Sgm
 update_car_status(Status, Sgm) when is_record(Status, car_status),
