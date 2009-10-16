@@ -1,8 +1,9 @@
 -module(track).
 
 %% Exported Functions
--export([simulate/3,
+-export([init/1,
 		 move/3,
+		 simulate/3,
 		 preelaborate/1,
 		 is_pre_pitlane/1]).
 
@@ -12,6 +13,14 @@
 %% --------------------------------------------------------------------
 %% API Functions
 %% --------------------------------------------------------------------
+
+%% Initializes the track table in mnesia.
+%% FileName: name of the file containing the track configuration
+init(FileName) ->
+	{ok, TrackConfig} = file:consult(FileName),
+	% TODO
+	ok.
+
 
 %% Moves the car to the next segment returning
 %% {crash, _} | {NextTime, PilotState} | {race_ended, _}

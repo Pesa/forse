@@ -32,6 +32,7 @@ start_link() ->
 %%          {error, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	% FIXME: the file name shouldn't be hardcoded
 	{ok, TeamsConfig} = file:consult("../examples/teams.conf"),
 	% TODO: implement the complete startup sequence
 	% gen_leaders?
@@ -41,7 +42,7 @@ init([]) ->
 	% dispatcher_sup OK
 	% weather TODO (missing initial config)
 	% team_sup OK
-	% build track table TODO
+	% build track table OK
 	Scheduler = [{scheduler,
 				  {scheduler, start_link, []},
 				  permanent, 5000, worker,
@@ -62,6 +63,8 @@ init([]) ->
 							Id + 1}
 				   end,
 	{Teams, _} = lists:mapfoldl(ToChildSpecs, 1, TeamsConfig),
+	% FIXME: the file name shouldn't be hardcoded
+	track:init("../examples/track.conf"),
 	{ok, {{one_for_one, 20, 30},
 		  Scheduler ++ Dispatcher
 			  ++ Weather ++ Teams}}.
