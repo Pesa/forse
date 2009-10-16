@@ -728,13 +728,13 @@ read_state(ProcName) ->
 	{state, State} = utils:mnesia_read(Tab, state),
 	State.
 
-write_state(ProcName, State) ->
-	Tab = ?state_table(ProcName),
-	T = fun() ->
-				mnesia:write(Tab, {state, State}, sticky_write)
-		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
-	ok.
+%write_state(ProcName, State) ->
+%	Tab = ?state_table(ProcName),
+%	T = fun() ->
+%				mnesia:write(Tab, {state, State}, sticky_write)
+%		end,
+%	{atomic, ok} = mnesia:sync_transaction(T),
+%	ok.
 
 
 %%% ---------------------------------------------------
