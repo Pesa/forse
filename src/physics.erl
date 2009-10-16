@@ -76,6 +76,9 @@ deg_to_rad(A) ->
 %% speed of Speed and an ending speed of MaxSpeed. Amin is the
 %% max deceleration of brakes (always negative) while Amax is
 %% the maximum acceleration engine can supply.
+calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
+	{0, Speed};
+
 calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,

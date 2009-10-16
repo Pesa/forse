@@ -36,10 +36,10 @@
 				 type,
 				 min_lane,
 				 max_lane,
-				 length,
-				 inclination,
-				 rain,
-				 curvature,
+				 length = 0,
+				 inclination = 0,
+				 rain = 0,
+				 curvature = 0,
 				 queued_cars = []}).
 
 %% --------------------------------------------------
