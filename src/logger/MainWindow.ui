@@ -63,8 +63,8 @@
   </widget>
   <action name="actionConnect">
    <property name="icon">
-    <iconset>
-     <normaloff>../../../../../../usr/share/icons/oxygen/32x32/devices/network-wired.png</normaloff>../../../../../../usr/share/icons/oxygen/32x32/devices/network-wired.png</iconset>
+    <iconset resource="../../forse.qrc">
+     <normaloff>:/icons/connect.png</normaloff>:/icons/connect.png</iconset>
    </property>
    <property name="text">
     <string>Connect</string>
@@ -75,8 +75,8 @@
   </action>
   <action name="actionClear">
    <property name="icon">
-    <iconset>
-     <normaloff>../../../../../../usr/share/icons/oxygen/32x32/actions/edit-clear.png</normaloff>../../../../../../usr/share/icons/oxygen/32x32/actions/edit-clear.png</iconset>
+    <iconset resource="../../forse.qrc">
+     <normaloff>:/icons/clear.png</normaloff>:/icons/clear.png</iconset>
    </property>
    <property name="text">
     <string>Clear</string>
@@ -86,7 +86,9 @@
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../forse.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>actionClear</sender>
