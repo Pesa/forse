@@ -14,8 +14,8 @@
    <string>Debug Log</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>../../../../../../usr/share/icons/oxygen/16x16/apps/terminal.png</normaloff>../../../../../../usr/share/icons/oxygen/16x16/apps/terminal.png</iconset>
+   <iconset resource="../../forse.qrc">
+    <normaloff>:/icons/debug-log.png</normaloff>:/icons/debug-log.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -31,7 +31,7 @@
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>Tool Bar</string>
    </property>
    <property name="movable">
     <bool>false</bool>

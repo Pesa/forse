@@ -10,6 +10,7 @@ doc/*.out
 doc/*.pdf
 doc/*.toc
 ebin/*.beam
+forse_rc.py
 src/*/Ui_*.py
 *~
 *.pyc
