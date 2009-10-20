@@ -19,6 +19,7 @@
 init(FileName) ->
 	{ok, TrackConfig} = file:consult(FileName),
 	% TODO
+	SgmList = build_track(TrackConfig),
 	ok.
 
 
@@ -273,20 +274,24 @@ bent_and_pit(_Pilot, -1) ->
 	[];
 bent_and_pit(Pilot, Sgm) ->
 	S = utils:mnesia_read(track, Sgm),
-	case S#segment.type of
-		pitstop ->
+	BentBound = case S#segment.curvature /= 0 of
+					true ->
+						physics:bent_max_speed(Pilot, S);
+					false ->
+						undefined
+				end,
+	T = S#segment.type,
+	if 
+		T == pitstop;
+		T == pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
-							 pit_bound = ?PIT_SPEED_LIM},
+							 pit_bound = lists:min([?PIT_SPEED_LIM, BentBound]),
+							 bound = BentBound},
 			[R | bent_and_pit(Pilot, Sgm - 1)];
-		pitlane ->
+		true ->
 			R = #speed_bound{sgm_id = Sgm,
-							 pit_bound = ?PIT_SPEED_LIM},
-			[R | bent_and_pit(Pilot, Sgm - 1)];
-		bent ->
-			Bound = physics:bent_max_speed(Pilot, Sgm),
-			R = #speed_bound{sgm_id = Sgm,
-							 bound = Bound,
-							 pit_bound = Bound},
+							 bound = BentBound,
+							 pit_bound = BentBound},
 			[R | bent_and_pit(Pilot, Sgm - 1)]
 	end.
 
@@ -403,9 +408,9 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 update_car_status(Status, Sgm) when is_record(Status, car_status),
 									is_record(Sgm, segment) ->
 	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
-	BentCoeff = case Sgm#segment.type of
-					bent -> 1.5;
-					_ -> 1
+	BentCoeff = case Sgm#segment.curvature /= 0 of
+					true -> 1.5;
+					false -> 1
 				end,
 	TCons = BentCoeff * tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
 	Status#car_status{fuel = Status#car_status.fuel - FCons,
@@ -466,3 +471,71 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
+
+
+
+build_track(List) when is_list(List) ->
+	Ph1 = build_track_rec(List, 0),
+	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
+	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
+	utils:set_setting(sgm_number, length(Ph2)),
+	
+	%%TODO
+	ok.
+
+build_track_rec([H | T], Index) ->
+	{SgmList, NewIndex} = build_sector(H, Index),
+	lists:append(SgmList, build_track_rec(T, NewIndex));
+
+build_track_rec([], _) ->
+	[].
+
+
+build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, Index) ->
+	Temp = #segment{type = normal,
+					min_lane = MinLane,
+					max_lane = MaxLane,
+					length = ?SEGMENT_LENGTH,
+					inclination = Incl,
+					curvature = 0,
+					rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Index,
+	{sector_to_segments(Temp, Index, Last), Last};
+
+build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, Index) ->
+	Temp = #segment{type = normal,
+					min_lane = MinLane,
+					max_lane = MaxLane,
+					length = ?SEGMENT_LENGTH,
+					inclination = Incl,
+					curvature = CurveRadius,
+					rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Index,
+	{sector_to_segments(Temp, Index, Last), Last};
+
+build_sector({finish_line}, Index) ->
+	Sgm = #segment{id = Index,
+				   type = finish_line,
+				   %% FIXME mancano le lane
+				   min_lane = asd,
+				   max_lane = asd,
+				   length = 0},
+	{[Sgm], Index + 1};
+
+build_sector({intermediate}, Index) ->
+	Sgm = #segment{id = Index,
+				   type = intermediate,
+				   %% FIXME mancano le lane
+				   min_lane = asd,
+				   max_lane = asd,
+				   length = 0},
+	{[Sgm], Index + 1};
+
+build_sector({pitlane_entrance}, Index) ->
+	{[{pitlane_entrance, Index}], Index}.
+
+sector_to_segments(Template, Start, Stop) when Start < Stop -> 
+	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
+
+sector_to_segments(_Template, Start, Start) ->
+	[].

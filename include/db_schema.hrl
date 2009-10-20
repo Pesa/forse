@@ -22,7 +22,7 @@
 %% --------------------------------------------------
 %% id: unique numerical identifier
 %% type: segment's type, can be one of the following atoms:
-%%			straight | bent | pre_pitlane | post_pitlane |
+%%			normal | pre_pitlane | post_pitlane |
 %%			pitlane | pitstop | intermediate | finish_line
 %% min_lane: minimum lane index
 %% max_lane: maximum lane index

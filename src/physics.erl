@@ -41,9 +41,9 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 	end.
 
 %% Sgm: segment's id
-%% Sgm MUST be of type bent
-bent_max_speed(Pilot, Sgm) when is_record(Pilot, pilot) ->
-	S = utils:mnesia_read(track, Sgm),
+%% Sgm MUST have curvature /= 0
+bent_max_speed(Pilot, S) when is_record(Pilot, pilot),
+							  is_record(S, segment) ->
 	R = S#segment.curvature,
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
 	K = friction(Pilot#pilot.car_status, S#segment.rain),

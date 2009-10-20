@@ -25,6 +25,12 @@ get_setting(Key) ->
 	H = utils:mnesia_read(setting, Key),
 	H#setting.value.
 
+set_setting(Key, Value) ->
+	F = fun() ->
+				mnesia:write(setting, {Key, Value}, write)
+		end,
+	mnesia:transaction(F).
+
 % Wraps a mnesia:read/2 in a transaction context.
 % If the transaction fails, an exception is raised.
 mnesia_read(Tab, Key) ->
