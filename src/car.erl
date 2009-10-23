@@ -129,15 +129,15 @@ handle_call(move, _From, State) ->
 	end,
 	
 	% actually move the car
-	{NextTime, NewState} = track:move(CState, ExitLane, PitStop),
+	Res = track:move(CState, ExitLane, PitStop),
 	
-	if
-		is_number(NextTime) ->
+	case Res of
+		{NextTime, NewState} ->
 			Reply = {requeue, NextTime, #callback{mod = ?MODULE, func = move,
 												  args = [CState#pilot.id]}},
 			{reply, Reply, NewState};
-		true ->
-			{stop, normal, done, NewState}
+		_ ->
+			{stop, normal, done, CState}
 	end;
 
 handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->

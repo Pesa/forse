@@ -19,7 +19,8 @@
 init(FileName) ->
 	{ok, TrackConfig} = file:consult(FileName),
 	% TODO
-	SgmList = build_track(TrackConfig),
+	TeamNumber = 42,
+	SgmList = build_track(TrackConfig, TeamNumber),
 	ok.
 
 
@@ -42,13 +43,11 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	case Time of
 		race_ended ->
 			remove_car(SOld, Pilot#pilot.id),
-			% FIXME: togliere Pilot
-			{race_ended, Pilot};
+			race_ended;
 		crash ->
 			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id}),
 			remove_car(SOld, Pilot#pilot.id),
-			% FIXME: togliere Pilot
-			{crash, Pilot};
+			crash;
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
 			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
@@ -474,14 +473,13 @@ is_pit_area(Sgm) when is_record(Sgm, segment) ->
 
 
 
-build_track(List) when is_list(List) ->
+build_track(List, TeamNumber) when is_list(List) ->
 	Ph1 = build_track_rec(List, 0),
 	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
 	utils:set_setting(sgm_number, length(Ph2)),
-	
-	%%TODO
-	ok.
+	Ph3 = build_pit_area(Ph2, Pit, TeamNumber),
+	set_chrono_lanes(Ph3).
 
 build_track_rec([H | T], Index) ->
 	{SgmList, NewIndex} = build_sector(H, Index),
@@ -516,18 +514,12 @@ build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, Index) ->
 build_sector({finish_line}, Index) ->
 	Sgm = #segment{id = Index,
 				   type = finish_line,
-				   %% FIXME mancano le lane
-				   min_lane = asd,
-				   max_lane = asd,
 				   length = 0},
 	{[Sgm], Index + 1};
 
 build_sector({intermediate}, Index) ->
 	Sgm = #segment{id = Index,
 				   type = intermediate,
-				   %% FIXME mancano le lane
-				   min_lane = asd,
-				   max_lane = asd,
 				   length = 0},
 	{[Sgm], Index + 1};
 
@@ -539,3 +531,75 @@ sector_to_segments(Template, Start, Stop) when Start < Stop ->
 
 sector_to_segments(_Template, Start, Start) ->
 	[].
+
+build_pit_area(List, Index, Teams) when is_list(List) ->
+	PrePit = 40,
+	Pit = 10,
+	PostPit = 40,
+	{T1, N1} = set_sgm_type(pre_pitlane, Index, PrePit, List),
+	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
+	{T3, N3} = build_pitstop(N2, Teams, T2),
+	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
+	{T5, _N5} = set_sgm_type(post_pitlane, N4, PostPit, T4),
+	T5.
+
+set_sgm_type(_Type, Start, 0, Sgms) ->
+	{Sgms, Start};
+
+set_sgm_type(Type, Start, Num, Sgms) ->
+	S = lists:keyfind(Start, #segment.id, Sgms),
+	#segment{type = T} = S,
+	Next = next_segment(Start),
+	%% If not exhaustive means track is too short
+	if
+		T == intermediate;
+		T == finish_line ->
+			set_sgm_type(Type, Next, Num, Sgms);
+		T == normal ->
+			Temp = lists:keydelete(Start, #segment.id, Sgms),
+			NewSgm = S#segment{type = Type,
+							   max_lane = max_lane(Type, S)},
+			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp])
+	end.
+
+max_lane(Type, #segment{max_lane = L})->
+	if
+		Type == pre_pitlane;
+		Type == post_pitlane;
+		Type == pitlane ->
+			L + 1;
+		Type == pitstop ->
+			L + 2;
+		true ->
+			L
+	end.
+
+build_pitstop(Start, 0, Sgms) when is_list(Sgms) ->
+	{Sgms, Start};
+
+build_pitstop(Start, Num, Sgms) when is_list(Sgms) ->
+	{L1, N1} = set_sgm_type(pitstop, Start, 1, Sgms),
+	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
+	build_pitstop(N2, Num - 1, L2).
+
+set_chrono_lanes(List) when is_list(List)->
+	Pred = fun(S) ->
+				  T = S#segment.type,
+				  T == intermediate orelse T == finish_line
+		  end,
+	Chrono = lists:filter(Pred, List),
+	set_chrono_lanes_rec(Chrono, List).
+
+set_chrono_lanes_rec([], List) ->
+	List;
+
+set_chrono_lanes_rec([H | T], List) ->
+	Id = H#segment.id,
+	Pre = lists:keyfind(prev_segment(Id, utils:get_setting(sgm_number)), #segment.id, List),
+	Post = lists:keyfind(next_segment(Id), #segment.id, List),
+	Temp = lists:keydelete(Id, #segment.id, List),
+	MaxLane = erlang:max(Pre#segment.max_lane, Post#segment.max_lane),
+	MinLane = erlang:min(Pre#segment.min_lane, Post#segment.min_lane),
+	Sgm = H#segment{min_lane = MinLane,
+					max_lane = MaxLane},
+	set_chrono_lanes_rec(T, [Sgm | Temp]).

@@ -22,10 +22,13 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 	PL = Type == pitlane andalso EnterLane == MaxL,
 	PrePL = Type == pre_pitlane andalso EnterLane == MaxL,
 	PostPL = Type == post_pitlane andalso EnterLane == MaxL,
+	Time = Type == intermediate orelse Type == finish_line,
+	
 	if
 		ExitLane < MinL;
 		ExitLane > MaxL;
 		abs(ExitLane - EnterLane) > 1;
+		Time andalso ExitLane /= EnterLane;
 		PL andalso ExitLane /= EnterLane;
 		Type == pre_pitlane andalso ExitLane == MaxL andalso not Pit;
 		Type == pitlane andalso EnterLane /= MaxL andalso ExitLane == MaxL;
