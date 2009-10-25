@@ -1,7 +1,7 @@
 -module(track).
 
 %% Exported Functions
--export([init/1,
+-export([init/2,
 		 move/3,
 		 simulate/3,
 		 preelaborate/1,
@@ -16,11 +16,16 @@
 
 %% Initializes the track table in mnesia.
 %% FileName: name of the file containing the track configuration
-init(FileName) ->
+%% TeamsNum: number of teams
+init(FileName, TeamsNum) ->
 	{ok, TrackConfig} = file:consult(FileName),
-	% TODO
-	TeamNumber = 42,
-	SgmList = build_track(TrackConfig, TeamNumber),
+	Ph1 = build_track(TrackConfig, 0),
+	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
+	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
+	utils:set_setting(sgm_number, length(Ph2)),
+	Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
+	SgmList = set_chrono_lanes(Ph3),
+	% TODO: mnesia write
 	ok.
 
 
@@ -471,23 +476,11 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
 
-
-
-build_track(List, TeamNumber) when is_list(List) ->
-	Ph1 = build_track_rec(List, 0),
-	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
-	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
-	utils:set_setting(sgm_number, length(Ph2)),
-	Ph3 = build_pit_area(Ph2, Pit, TeamNumber),
-	set_chrono_lanes(Ph3).
-
-build_track_rec([H | T], Index) ->
+build_track([H | T], Index) ->
 	{SgmList, NewIndex} = build_sector(H, Index),
-	lists:append(SgmList, build_track_rec(T, NewIndex));
-
-build_track_rec([], _) ->
+	SgmList ++ build_track(T, NewIndex);
+build_track([], _Index) ->
 	[].
-
 
 build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, Index) ->
 	Temp = #segment{type = normal,
@@ -526,13 +519,12 @@ build_sector({intermediate}, Index) ->
 build_sector({pitlane_entrance}, Index) ->
 	{[{pitlane_entrance, Index}], Index}.
 
-sector_to_segments(Template, Start, Stop) when Start < Stop -> 
+sector_to_segments(Template, Start, Stop) when Start < Stop ->
 	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
-
 sector_to_segments(_Template, Start, Start) ->
 	[].
 
-build_pit_area(List, Index, Teams) when is_list(List) ->
+build_pit_area(List, Index, Teams) ->
 	PrePit = 40,
 	Pit = 10,
 	PostPit = 40,
@@ -545,12 +537,10 @@ build_pit_area(List, Index, Teams) when is_list(List) ->
 
 set_sgm_type(_Type, Start, 0, Sgms) ->
 	{Sgms, Start};
-
 set_sgm_type(Type, Start, Num, Sgms) ->
 	S = lists:keyfind(Start, #segment.id, Sgms),
 	#segment{type = T} = S,
 	Next = next_segment(Start),
-	%% If not exhaustive means track is too short
 	if
 		T == intermediate;
 		T == finish_line ->
@@ -559,10 +549,13 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 			Temp = lists:keydelete(Start, #segment.id, Sgms),
 			NewSgm = S#segment{type = Type,
 							   max_lane = max_lane(Type, S)},
-			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp])
+			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
+		true ->
+			% TODO: track is too short, throw an exception
+			throw(track_too_short)
 	end.
 
-max_lane(Type, #segment{max_lane = L})->
+max_lane(Type, #segment{max_lane = L}) ->
 	if
 		Type == pre_pitlane;
 		Type == post_pitlane;
@@ -574,15 +567,14 @@ max_lane(Type, #segment{max_lane = L})->
 			L
 	end.
 
-build_pitstop(Start, 0, Sgms) when is_list(Sgms) ->
-	{Sgms, Start};
-
-build_pitstop(Start, Num, Sgms) when is_list(Sgms) ->
-	{L1, N1} = set_sgm_type(pitstop, Start, 1, Sgms),
+build_pitstop(Start, 0, SgmList) ->
+	{SgmList, Start};
+build_pitstop(Start, Num, SgmList) ->
+	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
 	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
 	build_pitstop(N2, Num - 1, L2).
 
-set_chrono_lanes(List) when is_list(List)->
+set_chrono_lanes(List) ->
 	Pred = fun(S) ->
 				  T = S#segment.type,
 				  T == intermediate orelse T == finish_line
@@ -592,7 +584,6 @@ set_chrono_lanes(List) when is_list(List)->
 
 set_chrono_lanes_rec([], List) ->
 	List;
-
 set_chrono_lanes_rec([H | T], List) ->
 	Id = H#segment.id,
 	Pre = lists:keyfind(prev_segment(Id, utils:get_setting(sgm_number)), #segment.id, List),
