@@ -1,11 +1,11 @@
--module(forse).
+-module(dispatcher_app).
 
 -behaviour(application).
 
 -export([start/2, stop/1]).
 
 start(_Type, _StartArgs) ->
-	forse_sup:start_link().
+	dispatcher_sup:start_link().
 
 stop(_State) ->
 	ok.

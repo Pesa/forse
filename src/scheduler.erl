@@ -149,8 +149,8 @@ handle_info({timeout, _Timer, wakeup}, State) ->
 	NewState = State#state{timing_info = reset_timing(Timing)},
 	{noreply, process_next(NewState)};
 
-handle_info(Msg, State) ->
-	?WARN({"unhandled info", Msg}),
+handle_info(Info, State) ->
+	?WARN({"unhandled info", Info}),
 	{noreply, State}.
 
 %% --------------------------------------------------------------------
