@@ -15,8 +15,9 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table in mnesia
-init(TrackConfig, TeamsNum) ->
-	Ph1 = build_track(TrackConfig, 0),
+init(TrackConfig, TeamsNum) when is_list(TrackConfig), is_integer(TeamsNum) ->
+	{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
+	Ph1 = lists:flatten(Ph0),
 	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
 	utils:set_setting(sgm_number, length(Ph2)),
@@ -32,9 +33,124 @@ init(TrackConfig, TeamsNum) ->
 		end,
 	mnesia:sync_transaction(T).
 
+build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
+	Temp = #segment{type = normal,
+					min_lane = MinLane,
+					max_lane = MaxLane,
+					length = ?SEGMENT_LENGTH,
+					inclination = Incl,
+					curvature = 0,
+					rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
+	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
+
+build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
+	Temp = #segment{type = normal,
+					min_lane = MinLane,
+					max_lane = MaxLane,
+					length = ?SEGMENT_LENGTH,
+					inclination = Incl,
+					curvature = CurveRadius,
+					rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
+	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
+
+build_sector({finish_line}, {Sect, Sgm}) ->
+	S = #segment{id = Sgm,
+				   type = finish_line,
+				   length = 0},
+	{[S], {Sect, Sgm + 1}};
+
+build_sector({intermediate}, {Sect, Sgm}) ->
+	S = #segment{id = Sgm,
+				   type = intermediate,
+				   length = 0},
+	{[S], {Sect, Sgm + 1}};
+
+build_sector({pitlane_entrance}, {Sect, Sgm}) ->
+	{[{pitlane_entrance, Sgm}], {Sect, Sgm}}.
+
+sector_to_segments(Template, Start, Stop) when Start < Stop ->
+	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
+sector_to_segments(_Template, Start, Start) ->
+	[].
+
+build_pit_area(List, Index, Teams) ->
+	PrePit = 40,
+	Pit = 10,
+	PostPit = 40,
+	{T1, N1} = set_sgm_type(pre_pitlane, Index, PrePit, List),
+	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
+	{T3, N3} = build_pitstop(N2, Teams, T2),
+	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
+	{T5, _N5} = set_sgm_type(post_pitlane, N4, PostPit, T4),
+	T5.
+
+set_sgm_type(_Type, Start, 0, Sgms) ->
+	{Sgms, Start};
+set_sgm_type(Type, Start, Num, Sgms) ->
+	S = lists:keyfind(Start, #segment.id, Sgms),
+	#segment{type = T} = S,
+	Next = next_segment(Start),
+	if
+		T == intermediate;
+		T == finish_line ->
+			set_sgm_type(Type, Next, Num, Sgms);
+		T == normal ->
+			Temp = lists:keydelete(Start, #segment.id, Sgms),
+			NewSgm = S#segment{type = Type,
+							   max_lane = max_lane(Type, S)},
+			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
+		true ->
+			% TODO: track is too short, throw an exception
+			throw(track_too_short)
+	end.
+
+max_lane(Type, #segment{max_lane = L}) ->
+	if
+		Type == pre_pitlane;
+		Type == post_pitlane;
+		Type == pitlane ->
+			L + 1;
+		Type == pitstop ->
+			L + 2;
+		true ->
+			L
+	end.
+
+build_pitstop(Start, 0, SgmList) ->
+	{SgmList, Start};
+build_pitstop(Start, Num, SgmList) ->
+	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
+	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
+	build_pitstop(N2, Num - 1, L2).
+
+set_chrono_lanes(List) ->
+	Pred = fun(S) ->
+				  T = S#segment.type,
+				  T == intermediate orelse T == finish_line
+		  end,
+	Chrono = lists:filter(Pred, List),
+	set_chrono_lanes_rec(Chrono, List).
+
+set_chrono_lanes_rec([], List) ->
+	List;
+set_chrono_lanes_rec([H | T], List) ->
+	Id = H#segment.id,
+	Pre = lists:keyfind(prev_segment(Id, utils:get_setting(sgm_number)), #segment.id, List),
+	Post = lists:keyfind(next_segment(Id), #segment.id, List),
+	Temp = lists:keydelete(Id, #segment.id, List),
+	MaxLane = erlang:max(Pre#segment.max_lane, Post#segment.max_lane),
+	MinLane = erlang:min(Pre#segment.min_lane, Post#segment.min_lane),
+	Sgm = H#segment{min_lane = MinLane,
+					max_lane = MaxLane},
+	set_chrono_lanes_rec(T, [Sgm | Temp]).
+
 
 %% Moves the car to the next segment returning
-%% {crash, _} | {NextTime, PilotState} | {race_ended, _}
+%% crash | {NextTime, PilotState} | race_ended
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
@@ -479,122 +595,3 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
-
-build_track([H | T], Index) ->
-	{SgmList, NewIndex} = build_sector(H, Index),
-	SgmList ++ build_track(T, NewIndex);
-build_track([], _Index) ->
-	[].
-
-build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, Index) ->
-	Temp = #segment{type = normal,
-					min_lane = MinLane,
-					max_lane = MaxLane,
-					length = ?SEGMENT_LENGTH,
-					inclination = Incl,
-					curvature = 0,
-					rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Index,
-	{sector_to_segments(Temp, Index, Last), Last};
-
-build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, Index) ->
-	Temp = #segment{type = normal,
-					min_lane = MinLane,
-					max_lane = MaxLane,
-					length = ?SEGMENT_LENGTH,
-					inclination = Incl,
-					curvature = CurveRadius,
-					rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Index,
-	{sector_to_segments(Temp, Index, Last), Last};
-
-build_sector({finish_line}, Index) ->
-	Sgm = #segment{id = Index,
-				   type = finish_line,
-				   length = 0},
-	{[Sgm], Index + 1};
-
-build_sector({intermediate}, Index) ->
-	Sgm = #segment{id = Index,
-				   type = intermediate,
-				   length = 0},
-	{[Sgm], Index + 1};
-
-build_sector({pitlane_entrance}, Index) ->
-	{[{pitlane_entrance, Index}], Index}.
-
-sector_to_segments(Template, Start, Stop) when Start < Stop ->
-	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
-sector_to_segments(_Template, Start, Start) ->
-	[].
-
-build_pit_area(List, Index, Teams) ->
-	PrePit = 40,
-	Pit = 10,
-	PostPit = 40,
-	{T1, N1} = set_sgm_type(pre_pitlane, Index, PrePit, List),
-	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
-	{T3, N3} = build_pitstop(N2, Teams, T2),
-	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
-	{T5, _N5} = set_sgm_type(post_pitlane, N4, PostPit, T4),
-	T5.
-
-set_sgm_type(_Type, Start, 0, Sgms) ->
-	{Sgms, Start};
-set_sgm_type(Type, Start, Num, Sgms) ->
-	S = lists:keyfind(Start, #segment.id, Sgms),
-	#segment{type = T} = S,
-	Next = next_segment(Start),
-	if
-		T == intermediate;
-		T == finish_line ->
-			set_sgm_type(Type, Next, Num, Sgms);
-		T == normal ->
-			Temp = lists:keydelete(Start, #segment.id, Sgms),
-			NewSgm = S#segment{type = Type,
-							   max_lane = max_lane(Type, S)},
-			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
-		true ->
-			% TODO: track is too short, throw an exception
-			throw(track_too_short)
-	end.
-
-max_lane(Type, #segment{max_lane = L}) ->
-	if
-		Type == pre_pitlane;
-		Type == post_pitlane;
-		Type == pitlane ->
-			L + 1;
-		Type == pitstop ->
-			L + 2;
-		true ->
-			L
-	end.
-
-build_pitstop(Start, 0, SgmList) ->
-	{SgmList, Start};
-build_pitstop(Start, Num, SgmList) ->
-	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
-	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
-	build_pitstop(N2, Num - 1, L2).
-
-set_chrono_lanes(List) ->
-	Pred = fun(S) ->
-				  T = S#segment.type,
-				  T == intermediate orelse T == finish_line
-		  end,
-	Chrono = lists:filter(Pred, List),
-	set_chrono_lanes_rec(Chrono, List).
-
-set_chrono_lanes_rec([], List) ->
-	List;
-set_chrono_lanes_rec([H | T], List) ->
-	Id = H#segment.id,
-	Pre = lists:keyfind(prev_segment(Id, utils:get_setting(sgm_number)), #segment.id, List),
-	Post = lists:keyfind(next_segment(Id), #segment.id, List),
-	Temp = lists:keydelete(Id, #segment.id, List),
-	MaxLane = erlang:max(Pre#segment.max_lane, Post#segment.max_lane),
-	MinLane = erlang:min(Pre#segment.min_lane, Post#segment.min_lane),
-	Sgm = H#segment{min_lane = MinLane,
-					max_lane = MaxLane},
-	set_chrono_lanes_rec(T, [Sgm | Temp]).
