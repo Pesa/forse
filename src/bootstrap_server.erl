@@ -21,6 +21,8 @@
 -record(state, {bootstrapped = false,
 				nodes = [],
 				dist_config = [],
+				num_cars,
+				num_teams,
 				teams_config,
 				track_config,
 				weather_config}).
@@ -91,7 +93,7 @@ handle_call({add_node, _SupportedApps}, _From, State) ->
 
 handle_call({bootstrap, Laps, Speedup}, _From, State) when State#state.teams_config /= undefined ->
 	% TODO
-	track:init(State#state.track_config, length(State#state.teams_config)),
+	track:init(State#state.track_config, State#state.num_teams),
 	{stop, normal, ok, State#state{bootstrapped = true}};
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 	{reply, {error, not_configured}, State};
@@ -100,10 +102,21 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 	case file:consult(TeamsFile) of
 		{ok, Teams} ->
 			case file:consult(TrackFile) of
-				{ok, Track} ->
+				{ok, [Track | _]} ->
 					case file:consult(WeatherFile) of
-						{ok, Weather} ->
-							{reply, ok, State#state{teams_config = Teams,
+						{ok, [Weather | _]} ->
+							% count the number of cars declared in the config file
+							Count = fun(Team, Acc) ->
+											case lists:keyfind(cars, 1, Team) of
+												{cars, Cars} when is_list(Cars) ->
+													Acc + length(Cars);
+												_ ->
+													Acc
+											end
+									end,
+							{reply, ok, State#state{num_cars = lists:foldl(Count, 0, Teams),
+													num_teams = length(Teams),
+													teams_config = Teams,
 													track_config = Track,
 													weather_config = Weather}};
 						{error, Reason} ->
