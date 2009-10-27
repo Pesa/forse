@@ -22,6 +22,7 @@
 				nodes = [],
 				dist_config = [],
 				teams_config,
+				track_config,
 				weather_config}).
 
 
@@ -90,6 +91,7 @@ handle_call({add_node, _SupportedApps}, _From, State) ->
 
 handle_call({bootstrap, Laps, Speedup}, _From, State) when State#state.teams_config /= undefined ->
 	% TODO
+	track:init(State#state.track_config, length(State#state.teams_config)),
 	{stop, normal, ok, State#state{bootstrapped = true}};
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 	{reply, {error, not_configured}, State};
@@ -97,18 +99,20 @@ handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State) ->
 	case file:consult(TeamsFile) of
 		{ok, Teams} ->
-			case file:consult(WeatherFile) of
-				{ok, Weather} ->
-					case track:init(TrackFile, length(Teams)) of
-						ok ->
+			case file:consult(TrackFile) of
+				{ok, Track} ->
+					case file:consult(WeatherFile) of
+						{ok, Weather} ->
 							{reply, ok, State#state{teams_config = Teams,
+													track_config = Track,
 													weather_config = Weather}};
-						Error ->
-							{reply, {track_error, Error}, State}
+						{error, Reason} ->
+							Error = file:format_error(Reason),
+							{reply, {weather_error, Error}, State}
 					end;
 				{error, Reason} ->
 					Error = file:format_error(Reason),
-					{reply, {weather_error, Error}, State}
+					{reply, {track_error, Error}, State}
 			end;
 		{error, Reason} ->
 			Error = file:format_error(Reason),

@@ -14,19 +14,23 @@
 %% API Functions
 %% --------------------------------------------------------------------
 
-%% Initializes the track table in mnesia.
-%% FileName: name of the file containing the track configuration
-%% TeamsNum: number of teams
-init(FileName, TeamsNum) ->
-	{ok, TrackConfig} = file:consult(FileName),
+%% Initializes the track table in mnesia
+init(TrackConfig, TeamsNum) ->
 	Ph1 = build_track(TrackConfig, 0),
 	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
 	utils:set_setting(sgm_number, length(Ph2)),
 	Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
 	SgmList = set_chrono_lanes(Ph3),
-	% TODO: mnesia write
-	ok.
+	TabDef = [{attributes, record_info(fields, segment)},
+			  {record_name, segment}],
+	{atomic, ok} = mnesia:create_table(track, TabDef),
+	T = fun() ->
+				lists:foreach(fun(Sgm) ->
+									  mnesia:write(track, Sgm, sticky_write)
+							  end, SgmList)
+		end,
+	mnesia:sync_transaction(T).
 
 
 %% Moves the car to the next segment returning
@@ -316,7 +320,7 @@ create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
 	TabName = preelab_tab_name(Pilot#pilot.id),
 	TabDef = [{attributes, record_info(fields, speed_bound)},
 			  {record_name, speed_bound}],
-	mnesia:create_table(TabName, TabDef).
+	{atomic, ok} = mnesia:create_table(TabName, TabDef).
 
 %% Returns the name of the preelaboration table
 %% associated with Pilot
