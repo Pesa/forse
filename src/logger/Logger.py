@@ -11,11 +11,14 @@ class NotificationHandler(object):
 		self._process = process
 		self._viewer = viewer
 
+	def printable(self, text):
+		return ''.join([ chr(x) for x in text ]).replace("~n", "\n").replace("~t", "\t")
+
 	def remote_handle(self, type, msg):
 		if type.text == "init":
-			self._viewer.setPlainText(''.join([ chr(x) for x in msg ]))
+			self._viewer.setPlainText(self.printable(msg))
 		elif type.text == "update":
-			self._viewer.appendPlainText(''.join([ chr(x) for x in msg ]))
+			self._viewer.appendPlainText(self.printable(msg))
 
 
 class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
