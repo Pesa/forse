@@ -1,7 +1,7 @@
 -module(track).
 
 %% Exported Functions
--export([init/2,
+-export([init/3,
 		 move/3,
 		 simulate/3,
 		 preelaborate/1,
@@ -15,14 +15,16 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table in mnesia
-init(TrackConfig, TeamsNum) when is_list(TrackConfig), is_integer(TeamsNum) ->
+init(TrackConfig, TeamsNum, IdList) when is_list(TrackConfig), is_integer(TeamsNum),
+										 is_list(IdList) ->
 	{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
 	Ph1 = lists:flatten(Ph0),
 	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
 	utils:set_setting(sgm_number, length(Ph2)),
 	Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
-	SgmList = set_chrono_lanes(Ph3),
+	Ph4 = set_chrono_lanes(Ph3),
+	SgmList = fill_starting_grid(IdList, Ph4),
 	TabDef = [{attributes, record_info(fields, segment)},
 			  {record_name, segment}],
 	{atomic, ok} = mnesia:create_table(track, TabDef),
@@ -32,6 +34,53 @@ init(TrackConfig, TeamsNum) when is_list(TrackConfig), is_integer(TeamsNum) ->
 							  end, SgmList)
 		end,
 	mnesia:sync_transaction(T).
+
+fill_starting_grid(IdList, SgmList) when is_list(IdList),
+										 is_list(SgmList) ->
+	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
+	SgmNumber = erlang:length(SgmList),
+	set_car_rec(lists:sort(IdList), SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
+
+%% LanePos: 1 | 2
+set_car_rec([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
+	Sgm = lists:keyfind(Index, #segment.id, SgmList),
+	Type = Sgm#segment.type,
+	NextLP = case LanePos of
+				 1 -> 2;
+				 2 -> 1
+			 end,
+	if
+		Type == intermediate;
+		Type == finish_lane ->
+			set_car_rec(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
+		true ->
+			X = if
+					Type == normal ->
+						0;
+					Type == pitstop ->
+						2;
+					true ->
+						1
+				end,
+			NewSgm = set_car_supp(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X,
+								  Sgm, LanePos),
+			Temp = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
+			set_car_rec(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
+	end;
+
+set_car_rec([], SgmList, _Index, _LanePos, _SNum) ->
+	SgmList.
+
+set_car_supp(CarId, MinLane, MaxLane, Sgm, LanePos) ->
+	Lanes = MaxLane - MinLane,
+	%% FIXME se Lines < 3 deve lanciare un'eccezione
+	L = MinLane + LanePos * (Lanes div 3), 
+	CP = #car_position{car_id = CarId,
+					   enter_lane = L,
+					   exit_lane = L},
+	Sgm#segment{queued_cars = [CP]}.
+
+
 
 build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 	Temp = #segment{type = normal,

@@ -13,9 +13,9 @@
 %% lane: exit lane
 %% --------------------------------------------------
 -record(car_position,{car_id,
-					  enter_t,
-					  exit_t,
-					  speed,
+					  enter_t = 0,
+					  exit_t = 0,
+					  speed = 0,
 					  enter_lane,
 					  exit_lane}).
 
