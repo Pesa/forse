@@ -61,6 +61,8 @@ init(Config) ->
 					  P#pilot{team = Team};
 				 (_, P) -> P
 			  end, #pilot{}, Config),
+	% FIXME: remove the following line when switching to ft_gen_server
+	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(State) end),
 	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
 									  args = [State#pilot.id]}),
 	{ok, State}.
@@ -189,7 +191,7 @@ terminate(_Reason, _State) ->
 	ok.
 
 %% --------------------------------------------------------------------
-%% Func: code_change/3
+%% Function: code_change/3
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState}
 %% --------------------------------------------------------------------
@@ -198,5 +200,5 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 %% --------------------------------------------------------------------
-%%% Internal functions
+%% Internal functions
 %% --------------------------------------------------------------------
