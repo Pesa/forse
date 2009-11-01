@@ -126,37 +126,27 @@ handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 	end;
 
 handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State) ->
-	case file:consult(TeamsFile) of
-		{ok, Teams} ->
-			case file:consult(TrackFile) of
-				{ok, [Track | _]} ->
-					case file:consult(WeatherFile) of
-						{ok, [Weather | _]} ->
-							% count the number of cars declared in the config file
-							Count = fun(Team, Acc) ->
-											case lists:keyfind(cars, 1, Team) of
-												{cars, Cars} when is_list(Cars) ->
-													Acc + length(Cars);
-												_ ->
-													Acc
-											end
-									end,
-							{reply, ok, State#state{num_cars = lists:foldl(Count, 0, Teams),
-													num_teams = length(Teams),
-													teams_config = Teams,
-													track_config = Track,
-													weather_config = Weather}};
-						{error, Reason} ->
-							Error = file:format_error(Reason),
-							{reply, {weather_error, Error}, State}
-					end;
-				{error, Reason} ->
-					Error = file:format_error(Reason),
-					{reply, {track_error, Error}, State}
-			end;
-		{error, Reason} ->
-			Error = file:format_error(Reason),
-			{reply, {race_error, Error}, State}
+	try
+		{ok, Teams} = file:consult(TeamsFile),
+		{ok, [Track]} = file:consult(TrackFile),
+		{ok, [Weather]} = file:consult(WeatherFile),
+		% count the number of cars declared in the config file
+		Count = fun(Team, Acc) ->
+						case lists:keyfind(cars, 1, Team) of
+							{cars, Cars} when is_list(Cars) ->
+								Acc + length(Cars);
+							_ ->
+								Acc
+						end
+				end,
+		{reply, ok, State#state{num_cars = lists:foldl(Count, 0, Teams),
+								num_teams = length(Teams),
+								teams_config = Teams,
+								track_config = Track,
+								weather_config = Weather}}
+	catch
+		error : {badmatch, _} ->
+			{reply, config_error, State}
 	end;
 
 handle_call(Msg, From, State) ->
