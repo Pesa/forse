@@ -18,15 +18,20 @@
 
 -include("common.hrl").
 
--define(GEN_REQS(NCars, NTeams), [{scheduler, 1},
-								  {event_dispatcher, 1},
+-define(BOOTSTRAP_ORDER, [event_dispatcher,
+						  scheduler,
+						  weather,
+						  team,
+						  car]).
+-define(GEN_REQS(NCars, NTeams), [{event_dispatcher, 1},
+								  {scheduler, 1},
 								  {car, NCars},
 								  {team, NTeams},
 								  {weather, 1}]).
 
 -record(state, {bootstrapped = false,
+				candidates = [],
 				nodes = [],
-				dist_config = [],
 				num_cars,
 				num_teams,
 				teams_config,
@@ -79,7 +84,6 @@ init([]) ->
 %% --------------------------------------------------------------------
 handle_call({add_node, SupportedApps}, From, State) when not State#state.bootstrapped ->
 	Node = node(From),
-	NewNodes = State#state.nodes ++ [Node],
 	F = fun({App, N}, Config) when is_integer(N), N > 0 ->
 				NewApp = case lists:keyfind(App, 1, Config) of
 							 {App, List} ->
@@ -91,24 +95,35 @@ handle_call({add_node, SupportedApps}, From, State) when not State#state.bootstr
 		   (_, Config) ->
 				Config
 		end,
-	NewDist = lists:foldl(F, State#state.dist_config, SupportedApps),
+	NewCandidates = lists:foldl(F, State#state.candidates, SupportedApps),
 	case State#state.teams_config of
 		undefined -> ok;
-		_ -> check_reqs(NewDist, ?GEN_REQS(State#state.num_cars,
-										   State#state.num_teams))
+		_ -> check_reqs(NewCandidates, ?GEN_REQS(State#state.num_cars,
+												 State#state.num_teams))
 	end,
-	{reply, ok, State#state{nodes = NewNodes,
-							dist_config = NewDist}};
+	NewNodes = State#state.nodes ++ [Node],
+	{reply, ok, State#state{candidates = NewCandidates,
+							nodes = NewNodes}};
 handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
 	{reply, {error, already_started}, State};
 
-handle_call({bootstrap, _Laps, _Speedup}, _From, State) when State#state.num_cars > 0 ->
-	% TODO
-	track:init(State#state.track_config, State#state.num_teams),
-	{stop, normal, ok, State#state{bootstrapped = true}};
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
-	{reply, {error, not_configured}, State};
+	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
+	case check_reqs(State#state.candidates, Reqs) of
+		true when State#state.num_cars > 0 ->
+			CreateConfig = fun({App, N}) ->
+								   {App, Nodes} = lists:keyfind(App, 1, State#state.candidates),
+								   {App, choose_nodes(Nodes, N, [])}
+						   end,
+			AppsConfig = lists:map(CreateConfig, Reqs),
+			track:init(State#state.track_config, State#state.num_teams),
+			% TODO
+			%lists:foreach(todo, ?BOOTSTRAP_ORDER),
+			{stop, normal, ok, State#state{bootstrapped = true}};
+		_ ->
+			{reply, config_error, State}
+	end;
 
 handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State) ->
 	case file:consult(TeamsFile) of
@@ -191,21 +206,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
-check_reqs(DistConfig, Reqs) ->
-	Count = fun({_, N}, Acc) -> Acc + N end,
-	Pred = fun({App, Min}) ->
-				   case lists:keyfind(App, 1, DistConfig) of
-					   {App, Nodes} ->
-						   NumNodes = lists:foldl(Count, 0, Nodes),
-						   if
-							   NumNodes >= Min -> true;
-							   true -> false
-						   end;
-					   false ->
-						   false
-				   end
-		   end,
-	case lists:all(Pred, Reqs) of
+check_reqs(Candidates, Reqs) ->
+	Sum = fun({_, N}, Acc) -> Acc + N end,
+	Check = fun({App, Min}) ->
+					case lists:keyfind(App, 1, Candidates) of
+						{App, Nodes} ->
+							MaxAvail = lists:foldl(Sum, 0, Nodes),
+							if
+								MaxAvail >= Min -> true;
+								true -> false
+							end;
+						false ->
+							false
+					end
+			end,
+	case lists:all(Check, Reqs) of
 		true ->
 			% TODO: notify the GUI that we can proceed
 			% rpc:cast(node, mod, func, [])
@@ -213,3 +228,10 @@ check_reqs(DistConfig, Reqs) ->
 		false ->
 			ok
 	end.
+
+choose_nodes(_, 0, Config) ->
+	Config;
+choose_nodes([{_Node, 0} | Tail], N, Config) ->
+	choose_nodes(Tail, N, Config);
+choose_nodes([{Node, Avail} | Tail], N, Config) ->
+	choose_nodes(Tail ++ [{Node, Avail - 1}], N - 1, [Node | Config]).
