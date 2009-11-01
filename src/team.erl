@@ -96,10 +96,7 @@ init(Config) ->
 						CT#car_type{weight = Weight};
 				   (_, CT) -> CT
 				end, #car_type{}, Config),
-	T = fun() ->
-				mnesia:write(CarType)
-		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
+	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(CarType) end),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
