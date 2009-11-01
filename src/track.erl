@@ -15,72 +15,34 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table in mnesia
-init(TrackConfig, TeamsNum, IdList) when is_list(TrackConfig), is_integer(TeamsNum),
-										 is_list(IdList) ->
-	{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
-	Ph1 = lists:flatten(Ph0),
-	{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
-	Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
-	utils:set_setting(sgm_number, length(Ph2)),
-	Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
-	Ph4 = set_chrono_lanes(Ph3),
-	SgmList = fill_starting_grid(IdList, Ph4),
-	TabDef = [{attributes, record_info(fields, segment)},
-			  {record_name, segment}],
-	{atomic, ok} = mnesia:create_table(track, TabDef),
-	T = fun() ->
-				lists:foreach(fun(Sgm) ->
-									  mnesia:write(track, Sgm, sticky_write)
-							  end, SgmList)
-		end,
-	mnesia:sync_transaction(T).
-
-fill_starting_grid(IdList, SgmList) when is_list(IdList),
-										 is_list(SgmList) ->
-	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
-	SgmNumber = erlang:length(SgmList),
-	set_car_rec(lists:sort(IdList), SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
-
-%% LanePos: 1 | 2
-set_car_rec([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
-	Sgm = lists:keyfind(Index, #segment.id, SgmList),
-	Type = Sgm#segment.type,
-	NextLP = case LanePos of
-				 1 -> 2;
-				 2 -> 1
-			 end,
-	if
-		Type == intermediate;
-		Type == finish_lane ->
-			set_car_rec(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
-		true ->
-			X = if
-					Type == normal ->
-						0;
-					Type == pitstop ->
-						2;
-					true ->
-						1
-				end,
-			NewSgm = set_car_supp(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X,
-								  Sgm, LanePos),
-			Temp = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
-			set_car_rec(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
-	end;
-
-set_car_rec([], SgmList, _Index, _LanePos, _SNum) ->
-	SgmList.
-
-set_car_supp(CarId, MinLane, MaxLane, Sgm, LanePos) ->
-	Lanes = MaxLane - MinLane,
-	%% FIXME se Lines < 3 deve lanciare un'eccezione
-	L = MinLane + LanePos * (Lanes div 3), 
-	CP = #car_position{car_id = CarId,
-					   enter_lane = L,
-					   exit_lane = L},
-	Sgm#segment{queued_cars = [CP]}.
-
-
+init(TrackConfig, TeamsNum, CarsList)
+  when is_list(TrackConfig), is_integer(TeamsNum), is_list(CarsList) ->
+	try
+		{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
+		Ph1 = lists:flatten(Ph0),
+		{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
+		Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
+		utils:set_setting(sgm_number, length(Ph2)),
+		Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
+		Ph4 = set_chrono_lanes(Ph3),
+		SgmList = fill_starting_grid(lists:sort(CarsList), Ph4),
+		TabDef = [{record_name, segment},
+				  {attributes, record_info(fields, segment)}],
+		{atomic, ok} = mnesia:create_table(track, TabDef),
+		T = fun() ->
+					lists:foreach(fun(Sgm) ->
+										  mnesia:write(track, Sgm, sticky_write)
+								  end, SgmList)
+			end,
+		{atomic, ok} = mnesia:sync_transaction(T),
+		ok
+	catch
+		% TODO
+		throw : E ->
+			{error, E};
+		error : {badmatch, _} ->
+			{error, something_went_wrong}
+	end.
 
 build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 	Temp = #segment{type = normal,
@@ -153,7 +115,7 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 							   max_lane = max_lane(Type, S)},
 			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
 		true ->
-			% TODO: track is too short, throw an exception
+			% FIXME: track is too short, throw an exception
 			throw(track_too_short)
 	end.
 
@@ -196,6 +158,48 @@ set_chrono_lanes_rec([H | T], List) ->
 	Sgm = H#segment{min_lane = MinLane,
 					max_lane = MaxLane},
 	set_chrono_lanes_rec(T, [Sgm | Temp]).
+
+fill_starting_grid(CarsList, SgmList) ->
+	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
+	SgmNumber = length(SgmList),
+	put_cars(CarsList, SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
+
+%% LanePos: 1 | 2
+put_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
+	Sgm = lists:keyfind(Index, #segment.id, SgmList),
+	Type = Sgm#segment.type,
+	NextLP = case LanePos of
+				 1 -> 2;
+				 2 -> 1
+			 end,
+	if
+		Type == intermediate;
+		Type == finish_lane ->
+			put_cars(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
+		true ->
+			X = if
+					Type == normal ->
+						0;
+					Type == pitstop ->
+						2;
+					true ->
+						1
+				end,
+			NewSgm = put_one_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X, Sgm, LanePos),
+			Temp = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
+			put_cars(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
+	end;
+put_cars([], SgmList, _Index, _LanePos, _SNum) ->
+	SgmList.
+
+put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
+	Lanes = MaxLane - MinLane,
+	% FIXME: se Lines < 3 deve lanciare un'eccezione
+	L = MinLane + LanePos * (Lanes div 3),
+	CP = #car_position{car_id = CarId,
+					   enter_lane = L,
+					   exit_lane = L},
+	Sgm#segment{queued_cars = [CP]}.
 
 
 %% Moves the car to the next segment returning
@@ -454,7 +458,7 @@ bent_and_pit(Pilot, Sgm) ->
 						undefined
 				end,
 	T = S#segment.type,
-	if 
+	if
 		T == pitstop;
 		T == pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
@@ -483,8 +487,8 @@ is_pre_pitlane(Id) when is_integer(Id) ->
 %% Creates an empty pilot pre-elaboration tab
 create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
 	TabName = preelab_tab_name(Pilot#pilot.id),
-	TabDef = [{attributes, record_info(fields, speed_bound)},
-			  {record_name, speed_bound}],
+	TabDef = [{record_name, speed_bound},
+			  {attributes, record_info(fields, speed_bound)}],
 	{atomic, ok} = mnesia:create_table(TabName, TabDef).
 
 %% Returns the name of the preelaboration table
