@@ -4,9 +4,9 @@
 
 %% External exports
 -export([start_link/1,
+		 force_pitstop/2,
 		 pitstop_operations/5,
-		 update/2,
-		 force_pitstop/2]).
+		 update/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -59,6 +59,9 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
+force_pitstop(TeamId, CarId) ->
+	gen_server:call(?TEAM_NAME(TeamId), {force_pitstop, CarId}, infinity).
+
 pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount) when is_record(CarStatus, car_status) ->
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
@@ -68,8 +71,7 @@ update(TeamId, {weather, Delta}) when is_integer(Delta) ->
 update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
 	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}, infinity).
 
-force_pitstop(TeamId, CarId) ->
-	gen_server:call(?TEAM_NAME(TeamId), {force_pitstop, CarId}, infinity).
+
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -114,13 +116,10 @@ init(Config) ->
 handle_call({force_pitstop, CarId}, _From, State) ->
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	PC = case CarStats of
-			 false ->
-				 0;
-			 _ ->
-				 CarStats#car_stats.pitstop_count
+			 false -> 0;
+			 _ -> CarStats#car_stats.pitstop_count
 		 end,
-	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, 
-											  stops_count = PC}),
+	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, stops_count = PC}),
 	{reply, ok, State};
 
 handle_call({weather_update, Delta}, _From, State) ->
