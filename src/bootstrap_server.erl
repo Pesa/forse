@@ -16,7 +16,7 @@
 		 terminate/2,
 		 code_change/3]).
 
--include("common.hrl").
+-include("db_schema.hrl").
 
 -define(BOOTSTRAP_ORDER, [event_dispatcher,
 						  scheduler,
@@ -28,6 +28,9 @@
 								  {car, NCars},
 								  {team, NTeams},
 								  {weather, 1}]).
+-define(TAB_DEF(Record, Nodes), [{attributes, record_info(fields, Record)},
+								 {ram_copies, Nodes},
+								 {record_name, Record}]).
 
 -record(state, {bootstrapped = false,
 				candidates = [],
@@ -108,18 +111,54 @@ handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
 	{reply, {error, already_started}, State};
 
-handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
+handle_call({bootstrap, _Laps, _Speedup}, _From, #state{nodes = Nodes} = State) ->
 	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
 	case check_reqs(State#state.candidates, Reqs) of
 		true when State#state.num_cars > 0 ->
+			Master = hd(Nodes),
+			ExtractCars = fun(Team, {T, C} = Acc) ->
+								  case lists:keytake(cars, 1, Team) of
+									  {value, {cars, CarsList}, NewTeam} ->
+										  {T ++ [NewTeam], C ++ CarsList};
+									  false ->
+										  % teams without cars are completely ignored
+										  Acc
+								  end
+						  end,
+			{Teams, Cars} = lists:foldl(ExtractCars, {[], []}, State#state.teams_config),
+			
+			% mnesia database initialization
+			rpc:multicall(Nodes, mnesia, start, []),
+			rpc:multicall(Nodes, mnesia, change_config, [extra_db_nodes, Nodes]),
+			rpc:call(Master, mnesia, create_table, [setting, ?TAB_DEF(setting, Nodes)]),
+			rpc:call(Master, mnesia, create_table, [track, ?TAB_DEF(segment, Nodes)]),
+			rpc:call(Master, mnesia, create_table, [car_type, ?TAB_DEF(car_type, Nodes)]),
+			rpc:call(Master, mnesia, create_table, [pilot, ?TAB_DEF(pilot, Nodes)]),
+			ExtractIDs = fun(Car) ->
+								 case lists:keyfind(id, 1, Car) of
+									 {id, Id} ->
+										 rpc:call(Master, mnesia, create_table,
+												  [?PREELAB_TABLE(Id), ?TAB_DEF(speed_bound, Nodes)]),
+										 Id;
+									 false ->
+										 % the IDs of cars are mandatory
+										 throw(car_id_not_found)
+								 end
+						 end,
+			CarsIDs = lists:map(ExtractIDs, Cars),
+			
+			% track initialization
+			track:init(State#state.track_config, State#state.num_teams, CarsIDs),
+			
+			% applications initialization
 			CreateConfig = fun({App, N}) ->
-								   {App, Nodes} = lists:keyfind(App, 1, State#state.candidates),
-								   {App, choose_nodes(Nodes, N, [])}
+								   {App, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
+								   {App, choose_nodes(AppNodes, N, [])}
 						   end,
 			AppsConfig = lists:map(CreateConfig, Reqs),
-			track:init(State#state.track_config, State#state.num_teams),
 			% TODO
 			%lists:foreach(todo, ?BOOTSTRAP_ORDER),
+			
 			{stop, normal, ok, State#state{bootstrapped = true}};
 		_ ->
 			{reply, config_error, State}
