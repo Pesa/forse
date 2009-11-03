@@ -6,5 +6,4 @@
 - dare priorita' ai TODO/FIXME nel codice
 - prevedere il ritiro manuale dell'auto
 - come ci accorgiamo che finisce la gara?
-- ingresso manuale ai box
 - aggiungere {ram_copies, [Nodes]} nelle varie mnesia:create_table

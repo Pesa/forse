@@ -5,7 +5,8 @@
 %% External exports
 -export([start_link/1,
 		 pitstop_operations/5,
-		 update/2]).
+		 update/2,
+		 force_pitstop/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -67,7 +68,8 @@ update(TeamId, {weather, Delta}) when is_integer(Delta) ->
 update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
 	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}, infinity).
 
-
+force_pitstop(TeamId, CarId) ->
+	gen_server:call(?TEAM_NAME(TeamId), {force_pitstop, CarId}, infinity).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -109,6 +111,12 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({force_pitstop, CarId}, _From, State) ->
+	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
+	PC = CarStats#car_stats.pitstop_count,
+	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, 
+											  stops_count = PC});
+
 handle_call({weather_update, Delta}, _From, State) ->
 	RainSum = State#state.rain_sum + Delta,
 	{reply, ok, State#state{rain_sum = RainSum}};
