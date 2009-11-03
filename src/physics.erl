@@ -30,10 +30,10 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 		null ->
 			add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax));
 		_ when EnterLane == K#car_position.enter_lane ->
-			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
+			MaxSpeed = erlang:min(K#car_position.speed, MaxExitSpeed),
 			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ when EnterTime + G > K#car_position.enter_t + GK ->
-			MaxSpeed = lists:min([K#car_position.speed, MaxExitSpeed]),
+			MaxSpeed = erlang:min(K#car_position.speed, MaxExitSpeed),
 			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
 		_ ->
 			simulate(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,

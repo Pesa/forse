@@ -462,7 +462,7 @@ bent_and_pit(Pilot, Sgm) ->
 		T == pitstop;
 		T == pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
-							 pit_bound = lists:min([?PIT_SPEED_LIM, BentBound]),
+							 pit_bound = erlang:min(?PIT_SPEED_LIM, BentBound),
 							 bound = BentBound},
 			[R | bent_and_pit(Pilot, Sgm - 1)];
 		true ->

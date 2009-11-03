@@ -3,7 +3,6 @@
 - GUI race_info
 - GUI team
 - GUI debug_log, togliere parti hard-coded
-- track, controllare lists:min/max
 - TODO nel codice, dare priorità
 - prevedere il ritiro manuale dell'auto
 - come ci accorgiamo che finisce la gara?
