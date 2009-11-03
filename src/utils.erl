@@ -13,7 +13,7 @@
 %%%  Common utility functions
 %%% ==========================
 
-%% Returns an atom created by appending Suffix to Prefix.
+%% Returns an atom which is the result of appending Suffix to Prefix.
 build_id_atom(Prefix, Suffix) when is_list(Prefix), is_atom(Suffix) ->
 	list_to_atom(Prefix ++ atom_to_list(Suffix));
 build_id_atom(Prefix, Suffix) when is_list(Prefix), is_integer(Suffix) ->

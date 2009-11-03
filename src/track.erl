@@ -26,9 +26,6 @@ init(TrackConfig, TeamsNum, CarsList)
 		Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
 		Ph4 = set_chrono_lanes(Ph3),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph4),
-		TabDef = [{record_name, segment},
-				  {attributes, record_info(fields, segment)}],
-		{atomic, ok} = mnesia:create_table(track, TabDef),
 		T = fun() ->
 					lists:foreach(fun(Sgm) ->
 										  mnesia:write(track, Sgm, sticky_write)
@@ -347,7 +344,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 					Mass = Car#car_type.weight + Pilot#pilot.weight
 							+ CS#car_status.fuel * ?FUEL_SPECIFIC_GRAVITY,
 					Inc = physics:deg_to_rad(S#segment.inclination),
-					Bound = utils:mnesia_read(preelab_tab_name(Pilot#pilot.id), S#segment.id),
+					Bound = utils:mnesia_read(?PREELAB_TABLE(Pilot#pilot.id), S#segment.id),
 					
 					% if in pit area use lane bound otherwise choose using Pit value
 					PL = is_pit_area_lane(S, ExitLane),
@@ -391,13 +388,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 							  MinPitBoundIndex, MinPitSpeed,
 							  CarStatus, Mass, SgmNum),
 	
-	TabName = preelab_tab_name(Pilot#pilot.id),
-	case utils:table_exists(TabName) of
-		false ->
-			create_pilot_tab(Pilot);
-		true ->
-			ok
-	end,
+	TabName = ?PREELAB_TABLE(Pilot#pilot.id),
 	T = fun() ->
 				lists:foreach(fun(Elem) ->
 									  mnesia:write(TabName, Elem, write)
@@ -484,18 +475,6 @@ is_pre_pitlane(Id) when is_integer(Id) ->
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
-
-%% Creates an empty pilot pre-elaboration tab
-create_pilot_tab(Pilot) when is_record(Pilot, pilot) ->
-	TabName = preelab_tab_name(Pilot#pilot.id),
-	TabDef = [{record_name, speed_bound},
-			  {attributes, record_info(fields, speed_bound)}],
-	{atomic, ok} = mnesia:create_table(TabName, TabDef).
-
-%% Returns the name of the preelaboration table
-%% associated with Pilot
-preelab_tab_name(Pilot) ->
-	utils:build_id_atom("pilot_", Pilot).
 
 %% Returns the id of the segment which has the minimum bound or 0
 min_bound(List) ->

@@ -2,6 +2,9 @@
 %%%  Configuration parameters
 %%% ==========================
 
+% Name of the pre-elaboration table associated with pilot Id.
+-define(PREELAB_TABLE(Id), utils:build_id_atom("preelab_", Id)).
+
 % Length of a segment in meters.
 -define(SEGMENT_LENGTH, 5).
 
