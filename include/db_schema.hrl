@@ -69,7 +69,8 @@
 			   max_speed = 0,
 			   next_pitstop = -1,
 			   pitstop_count = 0,
-			   run_preelab = true}).
+			   run_preelab = true,
+			   retire = false}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier

@@ -4,6 +4,5 @@
 - GUI team
 - GUI debug_log, togliere parti hard-coded
 - dare priorita' ai TODO/FIXME nel codice
-- prevedere il ritiro manuale dell'auto
 - come ci accorgiamo che finisce la gara?
 - aggiungere {ram_copies, [Nodes]} nelle varie mnesia:create_table

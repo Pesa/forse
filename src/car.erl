@@ -5,7 +5,8 @@
 %% External exports
 -export([start_link/1,
 		 move/2,
-		 set_next_pitstop/2]).
+		 set_next_pitstop/2,
+		 retire/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -33,6 +34,9 @@ move(_Time, CarId) ->
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:call(?CAR_NAME(CarId), PitStop, infinity).
+
+retire(CarId) ->
+	gen_server:call(?CAR_NAME(CarId), retire, infinity).
 
 
 %% ====================================================================
@@ -77,6 +81,9 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call(retire, _From, State) ->
+	{reply, ok, State#pilot{retire = true}};
+
 handle_call(move, _From, State) ->
 	CState = if
 				 State#pilot.run_preelab ->

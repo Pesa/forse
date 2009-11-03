@@ -113,9 +113,15 @@ init(Config) ->
 %% --------------------------------------------------------------------
 handle_call({force_pitstop, CarId}, _From, State) ->
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
-	PC = CarStats#car_stats.pitstop_count,
+	PC = case CarStats of
+			 false ->
+				 0;
+			 _ ->
+				 CarStats#car_stats.pitstop_count
+		 end,
 	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, 
-											  stops_count = PC});
+											  stops_count = PC}),
+	{reply, ok, State};
 
 handle_call({weather_update, Delta}, _From, State) ->
 	RainSum = State#state.rain_sum + Delta,

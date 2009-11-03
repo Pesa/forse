@@ -330,7 +330,8 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 		Pilot#pilot.lap > TotalLaps ->
 			{race_ended, 0};
 		CS#car_status.tyres_consumption >= 100.0;
-		CS#car_status.fuel =< 0.0 ->
+		CS#car_status.fuel =< 0.0;
+		Pilot#pilot.retire ->
 			{crash, 0};
 		true ->
 			case access:check_move(Pilot, S, EnterLane, ExitLane, Pit) of
