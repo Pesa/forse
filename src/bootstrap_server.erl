@@ -253,9 +253,9 @@ check_reqs(Candidates, Reqs) ->
 		true ->
 			% TODO: notify the GUI that we can proceed
 			% rpc:cast(node, mod, func, [])
-			todo;
+			true;
 		false ->
-			ok
+			false
 	end.
 
 choose_nodes(_, 0, Config) ->
