@@ -50,7 +50,7 @@ start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
 add_node(SupportedApps) when is_list(SupportedApps) ->
-	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}).
+	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
 bootstrap(Laps, Speedup) when is_integer(Laps), is_integer(Speedup) ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
@@ -85,8 +85,8 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({add_node, SupportedApps}, From, State) when not State#state.bootstrapped ->
-	Node = node(From),
+handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) when not State#state.bootstrapped ->
+	Node = node(Pid),
 	F = fun({App, N}, Config) when is_integer(N), N > 0 ->
 				NewApp = case lists:keyfind(App, 1, Config) of
 							 {App, List} ->
@@ -94,7 +94,7 @@ handle_call({add_node, SupportedApps}, From, State) when not State#state.bootstr
 							 false ->
 								 {App, [{Node, N}]}
 						 end,
-				lists:keyreplace(App, 1, Config, NewApp);
+				lists:keystore(App, 1, Config, NewApp);
 		   (_, Config) ->
 				Config
 		end,
@@ -148,7 +148,8 @@ handle_call({bootstrap, _Laps, _Speedup}, _From, #state{nodes = Nodes} = State) 
 			CarsIDs = lists:map(ExtractIDs, Cars),
 			
 			% track initialization
-			track:init(State#state.track_config, State#state.num_teams, CarsIDs),
+			% FIXME: remove rpc call once track becomes a gen_server
+			rpc:call(Master, track, init, [State#state.track_config, State#state.num_teams, CarsIDs]),
 			
 			% applications initialization
 			CreateConfig = fun({App, N}) ->
