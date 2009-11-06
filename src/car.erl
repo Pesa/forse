@@ -101,33 +101,26 @@ handle_call(move, _From, State) ->
 							   State2#pilot.next_pitstop =< State2#pilot.lap,
 	
 	% simulation phase
-	Sim = fun(Elem) when is_integer(Elem) ->
-				  {Elem, track:simulate(State2, Elem, PitStop)}
+	Sim = fun(Lane) ->
+				  {Lane, track:simulate(State2, Lane, PitStop)}
 		  end,
 	%% FIXME alla prima esecuzione il campo lane non è inizializzato
 	%% quindi o si chiede a track qui oppure si fa in modo che lo stato 
 	%% di pilot sia aggiornato, per ora chiedo a track...
 	EnterLane = State2#pilot.lane,
-	SimRes = lists:map(Sim, [EnterLane -1,
+	SimRes = lists:map(Sim, [EnterLane - 1,
 							 EnterLane,
 							 EnterLane + 1]),
 	
 	Pits = lists:keyfind(pits, 2, SimRes),
 	End = lists:keyfind(race_ended, 2, SimRes),
-	Pred = fun
-			  ({_, crash}) ->
+	Pred = fun({_, crash}) ->
 				   true;
 			  (_) ->
 				   false
 		   end,
 	Crash = lists:all(Pred, SimRes),
-	Num = fun
-			 ({_, Elem}) when is_number(Elem) ->
-				  true;
-			 (_) ->
-				  false
-		  end,
-	FRes = lists:filter(Num, SimRes),
+	Res = [ X || X <- SimRes, is_number(element(2, X)) ],
 	PrePits = track:is_pre_pitlane(State2#pilot.segment),
 	if
 		Pits /= false ->
@@ -137,18 +130,13 @@ handle_call(move, _From, State) ->
 		Crash ->
 			ExitLane = EnterLane;
 		PrePits andalso PitStop ->
-			{ExitLane, _} = lists:max(FRes);
+			{ExitLane, _} = lists:max(Res);
 		true ->
-			Fun = fun({_, A}, {_, B}) ->
-						  A < B
-				  end,
-			[{ExitLane, _} | _] = lists:sort(Fun, FRes)
+			[{ExitLane, _} | _] = lists:keysort(2, Res)
 	end,
 	
 	% actually move the car
-	Res = track:move(State2, ExitLane, PitStop),
-	
-	case Res of
+	case track:move(State2, ExitLane, PitStop) of
 		{NextTime, NewState} ->
 			Reply = {requeue, NextTime, #callback{mod = ?MODULE, func = move,
 												  args = [State2#pilot.id]}},
