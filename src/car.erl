@@ -84,9 +84,9 @@ init(Config) ->
 handle_call(move, _From, State) ->
 	State1 = case State#pilot.lane of
 				 undefined ->
-					 Lane = track:find_car_lane(State#pilot.segment, 
-												State#pilot.id),
-					 State#pilot{lane = Lane};
+					 {SgmId, Lane} = track:where_am_i(State#pilot.id),
+					 State#pilot{lane = Lane,
+								 segment = SgmId};
 				 _ ->
 					 State
 			 end,
@@ -104,9 +104,7 @@ handle_call(move, _From, State) ->
 	Sim = fun(Lane) ->
 				  {Lane, track:simulate(State2, Lane, PitStop)}
 		  end,
-	%% FIXME alla prima esecuzione il campo lane non è inizializzato
-	%% quindi o si chiede a track qui oppure si fa in modo che lo stato 
-	%% di pilot sia aggiornato, per ora chiedo a track...
+
 	EnterLane = State2#pilot.lane,
 	SimRes = lists:map(Sim, [EnterLane - 1,
 							 EnterLane,

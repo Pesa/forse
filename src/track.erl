@@ -6,7 +6,7 @@
 		 simulate/3,
 		 preelaborate/1,
 		 is_pre_pitlane/1,
-		 find_car_lane/2]).
+		 where_am_i/1]).
 
 -include("db_schema.hrl").
 
@@ -642,9 +642,21 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
 
-%% FIXME per ora questa funzione serve solo durante la prima move
-%% di ogni car, workaround...
-find_car_lane(SgmId, CarId) ->
-	Sgm = utils:mnesia_read(track, SgmId),
-	CP = lists:keyfind(CarId, #car_position.car_id, Sgm#segment.queued_cars),
-	CP#car_position.exit_lane.
+%% Used by the first invocation of car:move for each car in a race
+where_am_i(CarId) ->
+	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
+	Guard = {'/=', '$2', []},
+	Result = {'$1', '$2'},
+	F = fun() -> mnesia:select(track,[{MatchHead, [Guard], [Result]}]) end,
+	{atomic, R} = mnesia:sync_transaction(F),
+	Fun = fun({Id, CPs}, AccIn) ->
+				  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
+				  case CP of
+					  false ->
+						  AccIn;
+					  _ ->
+						  [{Id, CP#car_position.exit_lane} | AccIn]
+				  end
+		  end,
+	[Res] = lists:foldl(Fun, [], R),
+	Res.
