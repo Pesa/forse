@@ -15,7 +15,7 @@
 -record(car_position,{car_id,
 					  enter_t = 0,
 					  exit_t = 0,
-					  speed = 0,
+					  speed = 0.0,
 					  enter_lane,
 					  exit_lane}).
 
@@ -66,7 +66,7 @@
 			   lap = 0,
 			   segment = 0,
 			   lane,
-			   max_speed = 0,
+			   max_speed = 0.0,
 			   next_pitstop = -1,
 			   pitstop_count = 0,
 			   retire = false,
@@ -75,8 +75,8 @@
 %% --------------------------------------------------
 %% id: unique numerical identifier
 %% team_name: name of the team to which the car belongs
-%% brake: determines max deceleration, must be negative [F = m*a]
-%% power: determines max speed and max acceleration [F = m*a]
+%% brake: determines max deceleration, must be negative
+%% power: determines max speed and max acceleration
 %% weight: car's weight (excluding fuel)
 %% pitstop_sgm: id of the segment containing the team's pits
 %% --------------------------------------------------
@@ -88,10 +88,10 @@
 				  pitstop_sgm}).
 
 %% --------------------------------------------------
-%% smg_id: segment id
+%% smg_id: id of the segment
 %% bound: maximum speed calculated at pre-elaboration time
-%% pit_bound: maximum speed calculated at pre-elaboration time
-%% if car have to enter pitstop
+%% pit_bound: same as bound, but it's applied only when
+%%			  driving through the pitlane
 %% --------------------------------------------------
 -record(speed_bound,{sgm_id,
 					 bound,
