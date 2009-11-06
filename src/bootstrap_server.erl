@@ -111,7 +111,7 @@ handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
 	{reply, {error, already_started}, State};
 
-handle_call({bootstrap, _Laps, _Speedup}, _From, #state{nodes = Nodes} = State) ->
+handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
 	case check_reqs(State#state.candidates, Reqs) of
 		true when State#state.num_cars > 0 ->
@@ -147,9 +147,10 @@ handle_call({bootstrap, _Laps, _Speedup}, _From, #state{nodes = Nodes} = State) 
 						 end,
 			CarsIDs = lists:map(ExtractIDs, Cars),
 			
-			% track initialization
-			% FIXME: remove rpc call once track becomes a gen_server
+			% track & settings initialization
+			% FIXME: change this when track becomes a gen_server
 			rpc:call(Master, track, init, [State#state.track_config, State#state.num_teams, CarsIDs]),
+			rpc:call(Master, utils, set_setting, [total_laps, Laps]),
 			
 			% applications initialization
 			CreateConfig = fun({App, N}) ->
