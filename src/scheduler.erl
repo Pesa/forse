@@ -219,7 +219,7 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 % Starts a new timer to expire at Expiry.
 new_timer(Now, Expiry, Speedup) ->
 	?DBG({"starting timer at", Now, "expiring at", Expiry}),
-	SleepAmount = (Expiry - Now) div Speedup,
+	SleepAmount = (Expiry - Now) / Speedup,
 	#timing{timer = start_timer(SleepAmount),
 			start = Now,
 			expiry = Expiry}.
@@ -232,7 +232,7 @@ recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Spe
 recalculate_timer(#timing{timer = Timer, expiry = Expiry}, [{NextTime, _} | _], Speedup) ->
 	?DBG({"adjusting timer to expire at", NextTime}),
 	RemainingTime = erlang:cancel_timer(Timer),
-	SleepAmount = RemainingTime - ((Expiry - NextTime) div Speedup),
+	SleepAmount = RemainingTime - ((Expiry - NextTime) / Speedup),
 	#timing{timer = start_timer(SleepAmount),
 			start = Expiry - RemainingTime * Speedup,
 			expiry = NextTime}.
