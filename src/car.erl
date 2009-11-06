@@ -85,8 +85,7 @@ handle_call(move, _From, State) ->
 	State1 = case State#pilot.lane of
 				 undefined ->
 					 {SgmId, Lane} = track:where_am_i(State#pilot.id),
-					 State#pilot{lane = Lane,
-								 segment = SgmId};
+					 State#pilot{segment = SgmId, lane = Lane};
 				 _ ->
 					 State
 			 end,
@@ -98,13 +97,12 @@ handle_call(move, _From, State) ->
 					 State1
 			 end,
 	PitStop = State2#pilot.next_pitstop /= -1 andalso
-							   State2#pilot.next_pitstop =< State2#pilot.lap,
+				State2#pilot.next_pitstop =< State2#pilot.lap,
 	
 	% simulation phase
 	Sim = fun(Lane) ->
 				  {Lane, track:simulate(State2, Lane, PitStop)}
 		  end,
-
 	EnterLane = State2#pilot.lane,
 	SimRes = lists:map(Sim, [EnterLane - 1,
 							 EnterLane,

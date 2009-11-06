@@ -53,7 +53,6 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
 	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
-
 build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
@@ -65,19 +64,16 @@ build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
 	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
-
 build_sector({finish_line}, {Sect, Sgm}) ->
 	S = #segment{id = Sgm,
 				   type = finish_line,
 				   length = 0},
 	{[S], {Sect, Sgm + 1}};
-
 build_sector({intermediate}, {Sect, Sgm}) ->
 	S = #segment{id = Sgm,
 				   type = intermediate,
 				   length = 0},
 	{[S], {Sect, Sgm + 1}};
-
 build_sector({pitlane_entrance}, {Sect, Sgm}) ->
 	{[{pitlane_entrance, Sgm}], {Sect, Sgm}}.
 
@@ -205,7 +201,6 @@ put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
-
 % FIXME: spostare car_pos in Pilot?
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
@@ -308,7 +303,6 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 %% Pilot: record of type pilot
 %% ExitLane: guess...
 %% Pit: true if pilot wants to stop at the pits
-
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -319,9 +313,8 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	{Time, _Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
 	Time.
 
-simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot),
-														  is_record(S, segment),
-														  is_record(CarPos, car_position) ->
+simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
+  when is_record(Pilot, pilot), is_record(S, segment), is_record(CarPos, car_position) ->
 	CS = Pilot#pilot.car_status,
 	TotalLaps = utils:get_setting(total_laps),
 	if
@@ -368,7 +361,6 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) when is_record(Pilot, pilot
 
 %% Calculates the maximum speed that Pilot's car
 %% can reach in each segment of the track.
-
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
@@ -479,10 +471,32 @@ bent_and_pit(Pilot, Sgm) ->
 
 
 %% Checks if next segment's type is 'pre_pitlane'
-
 is_pre_pitlane(Id) when is_integer(Id) ->
 	Sgm = utils:mnesia_read(track, next_segment(Id)),
 	Sgm#segment.type == pre_pitlane.
+
+
+%% Used by the first invocation of car:move/2 for each car
+%% in a race to find out their starting segment and lane.
+where_am_i(CarId) ->
+	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
+	Guard = {'/=', '$2', []},
+	Result = {{'$1', '$2'}},
+	T = fun() ->
+				mnesia:select(track, [{MatchHead, [Guard], [Result]}])
+		end,
+	{atomic, R} = mnesia:transaction(T),
+	Fun = fun({Id, CPs}, Acc) ->
+				  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
+				  case CP of
+					  false ->
+						  Acc;
+					  _ ->
+						  [{Id, CP#car_position.exit_lane} | Acc]
+				  end
+		  end,
+	[Res] = lists:foldl(Fun, [], R),
+	Res.
 
 
 %% --------------------------------------------------------------------
@@ -641,22 +655,3 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
-
-%% Used by the first invocation of car:move for each car in a race
-where_am_i(CarId) ->
-	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
-	Guard = {'/=', '$2', []},
-	Result = {'$1', '$2'},
-	F = fun() -> mnesia:select(track,[{MatchHead, [Guard], [Result]}]) end,
-	{atomic, R} = mnesia:sync_transaction(F),
-	Fun = fun({Id, CPs}, AccIn) ->
-				  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
-				  case CP of
-					  false ->
-						  AccIn;
-					  _ ->
-						  [{Id, CP#car_position.exit_lane} | AccIn]
-				  end
-		  end,
-	[Res] = lists:foldl(Fun, [], R),
-	Res.
