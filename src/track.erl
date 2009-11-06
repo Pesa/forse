@@ -15,7 +15,7 @@
 %% API Functions
 %% --------------------------------------------------------------------
 
-%% Initializes the track table in mnesia
+%% Initializes the track table and a few settings.
 init(TrackConfig, TeamsNum, CarsList)
   when is_list(TrackConfig), is_integer(TeamsNum), is_list(CarsList) ->
 	try
@@ -196,10 +196,8 @@ put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 	Sgm#segment{queued_cars = [CP]}.
 
 
-%% Moves the car to the next segment returning
-%% crash | {NextTime, PilotState} | race_ended
-%% Pilot: record of type pilot
-%% ExitLane: guess...
+%% Moves the car to the next segment.
+%% Returns 'crash' | {NextTime, NewPilotState} | 'race_ended'.
 %% Pit: true if pilot wants to stop at the pits
 % FIXME: spostare car_pos in Pilot?
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
@@ -298,10 +296,8 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	end.
 	
 
-%% Calculates the time needed by Car to cover the next segment
-%% or one of the atoms: crash | pits | race_ended
-%% Pilot: record of type pilot
-%% ExitLane: guess...
+%% Returns the time needed by Car to cover the next segment
+%% or one of the atoms: 'crash' | 'pits' | 'race_ended'.
 %% Pit: true if pilot wants to stop at the pits
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
@@ -389,9 +385,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 		end,
 	{atomic, _} = mnesia:sync_transaction(T).
 
-%% Recursively calculates speed bound for AttIndex
-%% BoundList:
-%% AttIndex:
+%% Recursively calculates the speed bounds for AttIndex.
 %% FDec: power of brakes
 %% Sgm: id of the segment that is being computed
 %% LastSgm: id of min speed bound segment
@@ -412,8 +406,8 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 									  prev_segment(Sgm, SgmNum), LastSgm,
 									  Calc, CarStatus, Mass, SgmNum);
 					  false ->
-						  %% Last segment to be inspected so there's no need to
-						  %% do the recursive call
+						  % last segment to be inspected so there's
+						  % no need to do the recursive call
 						  BoundList
 				  end,
 			[NewBound | Rec];
@@ -433,14 +427,14 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 									  element(AttIndex, NewBound),
 									  CarStatus, Mass, SgmNum);
 					  false ->
-						  %% Last segment to be inspected so there's no need to
-						  %% do the recursive call
+						  % last segment to be inspected so there's
+						  % no need to do the recursive call
 						  NewBoundList
 				  end,
 			[NewBound | Rec]
 	end.
 
-%% Returns a list of speed_bound records
+%% Returns a list of speed_bound records.
 preelab_bent_and_pit(Pilot) when is_record(Pilot, pilot) ->
 	bent_and_pit(Pilot, utils:get_setting(sgm_number) - 1).
 
@@ -470,7 +464,7 @@ bent_and_pit(Pilot, Sgm) ->
 	end.
 
 
-%% Checks if next segment's type is 'pre_pitlane'
+%% Returns true if next segment's type is 'pre_pitlane', false otherwise.
 is_pre_pitlane(Id) when is_integer(Id) ->
 	Sgm = utils:mnesia_read(track, next_segment(Id)),
 	Sgm#segment.type == pre_pitlane.
@@ -478,7 +472,7 @@ is_pre_pitlane(Id) when is_integer(Id) ->
 
 %% Used by the first invocation of car:move/2 for each car
 %% in a race to find out their starting segment and lane.
-where_am_i(CarId) ->
+where_am_i(CarId) when is_integer(CarId) ->
 	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
 	Guard = {'/=', '$2', []},
 	Result = {{'$1', '$2'}},
@@ -503,7 +497,7 @@ where_am_i(CarId) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
-%% Returns the id of the segment which has the minimum bound or 0
+%% Returns the id of the segment which has the minimum bound or 0.
 min_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.bound),
 	case R of
@@ -511,7 +505,7 @@ min_bound(List) ->
 		#speed_bound{sgm_id = Id, bound = B} -> {Id, B}
 	end.
 
-%% Returns the id of the segment which has the minimum pit_bound or 0
+%% Returns the id of the segment which has the minimum pit_bound or 0.
 min_pit_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.pit_bound),
 	case R of
@@ -520,7 +514,7 @@ min_pit_bound(List) ->
 	end.
 
 %% Returns speed_bound record that has minimum element in the Index-th
-%% position of the record or error
+%% position of the record or 'error'.
 min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
 	Min = min_bound_rec(Tail, Index),
 	if
@@ -534,9 +528,9 @@ min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
 min_bound_rec([], _Index) ->
 	error.
 
-%% Delete car_status queued in OldS and insert CS in NewS
-%% OldS: Old segment
-%% NewS: New segment
+%% Delete car_status queued in OldS and insert CS in NewS.
+%% OldS: old segment
+%% NewS: new segment
 %% CS: car status
 move_car(OldS, NewS, CS) when is_record(CS, car_position),
 							  is_record(OldS, segment),
@@ -577,7 +571,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 				end,
 	lists:foreach(SendNotif, Surpassed).
 
-%% Removes car_position of index PilotId from segment S
+%% Removes car_position of index PilotId from segment S.
 remove_car(S, PilotId) when is_record(S, segment) ->
 	QueueUpdate = lists:keydelete(PilotId,
 								  #car_position.car_id,
@@ -588,7 +582,7 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 		end,
 	{atomic, _} = mnesia:sync_transaction(T).
 
-%% Returns car status after driving Sgm
+%% Returns car status after driving Sgm.
 update_car_status(Status, Sgm) when is_record(Status, car_status),
 									is_record(Sgm, segment) ->
 	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
@@ -600,7 +594,7 @@ update_car_status(Status, Sgm) when is_record(Status, car_status),
 	Status#car_status{fuel = Status#car_status.fuel - FCons,
 					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
 
-%% Returns the time needed to perform Ops during a pitstop
+%% Returns the time needed to perform the pitstop operations.
 pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 	FuelTime = F * ?TIME_PER_L + 2000,
 	if
@@ -611,15 +605,13 @@ pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 			?TYRES_CHANGE
 	end.
 
-%% Returns percentual consumption of tyres
+%% Returns percentual consumption of tyres.
 tyres_cons(slick, Rain) ->
 	-0.0001 * Rain + 0.004;
 tyres_cons(intermediate, Rain) ->
 	-0.0003 * Rain + 0.006;
 tyres_cons(wet, Rain) ->
 	-0.0005 * Rain + 0.008.
-
-%% --------------------------------------------------
 
 next_segment(Id) ->
 	(Id + 1) rem utils:get_setting(sgm_number).
