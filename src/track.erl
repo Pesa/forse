@@ -404,8 +404,6 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 %% LastSgm: id of min speed bound segment
 %% VNext: speed bound of the next segment
 %% SgmNum: total number of segments in the track
-preelab_sgm(_BoundList, _AttIndex, _FDec, LastSgm, LastSgm, _VNext, _CarStatus, _Mass, _SgmNum) ->
-	[];
 preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, SgmNum) ->
 	S = utils:mnesia_read(track, Sgm),
 	Length = S#segment.length,
@@ -415,9 +413,16 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 	case lists:keyfind(Sgm, #speed_bound.sgm_id, BoundList) of
 		false ->
 			NewBound = setelement(AttIndex, #speed_bound{sgm_id = Sgm}, Calc),
-			Rec = preelab_sgm(BoundList, AttIndex, FDec,
-							  prev_segment(Sgm, SgmNum), LastSgm,
-							  Calc, CarStatus, Mass, SgmNum),
+			Rec = case Sgm /= LastSgm of
+					  true ->
+						  preelab_sgm(BoundList, AttIndex, FDec,
+									  prev_segment(Sgm, SgmNum), LastSgm,
+									  Calc, CarStatus, Mass, SgmNum);
+					  false ->
+						  %% Last segment to be inspected so there's no need to
+						  %% do the recursive call
+						  BoundList
+				  end,
 			[NewBound | Rec];
 		OldBound ->
 			NewBoundList = lists:keydelete(Sgm, #speed_bound.sgm_id, BoundList),
@@ -428,10 +433,17 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 						   true ->
 							   OldBound
 					   end,
-			Rec = preelab_sgm(NewBoundList, AttIndex, FDec,
-							  prev_segment(Sgm, SgmNum), LastSgm,
-							  element(AttIndex, NewBound),
-							  CarStatus, Mass, SgmNum),
+			Rec = case Sgm /= LastSgm of
+					  true ->
+						  preelab_sgm(NewBoundList, AttIndex, FDec,
+									  prev_segment(Sgm, SgmNum), LastSgm,
+									  element(AttIndex, NewBound),
+									  CarStatus, Mass, SgmNum);
+					  false ->
+						  %% Last segment to be inspected so there's no need to
+						  %% do the recursive call
+						  NewBoundList
+				  end,
 			[NewBound | Rec]
 	end.
 
