@@ -3,6 +3,12 @@
 - GUI debug_log: generalizzare le parti hard-coded
 - dare priorita' ai TODO/FIXME nel codice
 - come ci accorgiamo che finisce la gara?
+	Una possibile soluzione sarebbe mantenere un contatore della auto in gara
+	gestito da track che lo inizializza nella init e lo decrementa nella funzione remove_car
+	mandando poi un messaggio al dispatcher che comunica agli iscritti la fine della gara quando il 
+	contatore arriva a 0.
+	In questo modo sarebbe l'ultima auto a informare il sistema.
+	Un problema di questa soluzione è come dirlo a chi non è iscritto al dispatcher...	
 - settare {schema_location, ram} nella config di mnesia
 - physics:engine_max_speed -> convertire in macro e spostare in config.hrl?
 - physics:get_car_ahead -> non deve considerare se stessa
