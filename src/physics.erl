@@ -99,21 +99,22 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 %% Index starts from 1
 % FIXME: non deve considerare se stessa
 % (altrimenti una simulate dopo un crash non funziona)
-get_car_ahead(Sgm, Lane, Index) ->
-	Q = Sgm#segment.queued_cars,
+get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 	Filter = fun(Pos) ->
 					 case Pos of
 						 #car_position{exit_lane = Lane} -> true;
 						 _ -> false
 					 end
 			 end,
-	Sort = fun(Elem1, Elem2) ->
-				   Elem1#car_position.exit_t > Elem2#car_position.exit_t
+	Sort = fun(E1, E2) ->
+				   E1#car_position.exit_t >= E2#car_position.exit_t
 		   end,
 	Slist = lists:sort(Sort, lists:filter(Filter, Q)),
 	if
-		length(Slist) >= Index -> lists:nth(Index, Slist);
-		true -> null
+		length(Slist) >= Index ->
+			lists:nth(Index, Slist);
+		true ->
+			null
 	end.
 
 add_g(_, {crash, Speed}) ->
