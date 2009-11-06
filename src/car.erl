@@ -82,21 +82,32 @@ init(Config) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call(move, _From, State) ->
-	CState = if
-				 State#pilot.run_preelab ->
-					 track:preelaborate(State),
-					 State#pilot{run_preelab = false};
-				 true ->
+	State1 = case State#pilot.lane of
+				 undefined ->
+					 Lane = track:find_car_lane(State#pilot.segment, 
+												State#pilot.id),
+					 State#pilot{lane = Lane};
+				 _ ->
 					 State
 			 end,
-	PitStop = CState#pilot.next_pitstop /= -1 andalso
-							   CState#pilot.next_pitstop =< CState#pilot.lap,
+	State2 = if
+				 State1#pilot.run_preelab ->
+					 track:preelaborate(State1),
+					 State1#pilot{run_preelab = false};
+				 true ->
+					 State1
+			 end,
+	PitStop = State2#pilot.next_pitstop /= -1 andalso
+							   State2#pilot.next_pitstop =< State2#pilot.lap,
 	
 	% simulation phase
 	Sim = fun(Elem) when is_integer(Elem) ->
-				  {Elem, track:simulate(CState, Elem, PitStop)}
+				  {Elem, track:simulate(State2, Elem, PitStop)}
 		  end,
-	EnterLane = CState#pilot.lane,
+	%% FIXME alla prima esecuzione il campo lane non è inizializzato
+	%% quindi o si chiede a track qui oppure si fa in modo che lo stato 
+	%% di pilot sia aggiornato, per ora chiedo a track...
+	EnterLane = State2#pilot.lane,
 	SimRes = lists:map(Sim, [EnterLane -1,
 							 EnterLane,
 							 EnterLane + 1]),
@@ -117,7 +128,7 @@ handle_call(move, _From, State) ->
 				  false
 		  end,
 	FRes = lists:filter(Num, SimRes),
-	PrePits = track:is_pre_pitlane(CState#pilot.segment),
+	PrePits = track:is_pre_pitlane(State2#pilot.segment),
 	if
 		Pits /= false ->
 			{ExitLane, _} = Pits;
@@ -135,15 +146,15 @@ handle_call(move, _From, State) ->
 	end,
 	
 	% actually move the car
-	Res = track:move(CState, ExitLane, PitStop),
+	Res = track:move(State2, ExitLane, PitStop),
 	
 	case Res of
 		{NextTime, NewState} ->
 			Reply = {requeue, NextTime, #callback{mod = ?MODULE, func = move,
-												  args = [CState#pilot.id]}},
+												  args = [State2#pilot.id]}},
 			{reply, Reply, NewState};
 		_ ->
-			{stop, normal, done, CState}
+			{stop, normal, done, State2}
 	end;
 
 handle_call(retire, _From, State) ->

@@ -5,7 +5,8 @@
 		 move/3,
 		 simulate/3,
 		 preelaborate/1,
-		 is_pre_pitlane/1]).
+		 is_pre_pitlane/1,
+		 find_car_lane/2]).
 
 -include("db_schema.hrl").
 
@@ -640,3 +641,10 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
+
+%% FIXME per ora questa funzione serve solo durante la prima move
+%% di ogni car, workaround...
+find_car_lane(SgmId, CarId) ->
+	Sgm = utils:mnesia_read(track, SgmId),
+	CP = lists:keyfind(CarId, #car_position.car_id, Sgm#segment.queued_cars),
+	CP#car_position.exit_lane.
