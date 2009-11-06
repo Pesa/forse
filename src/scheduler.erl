@@ -253,7 +253,7 @@ reset_timing(#timing{timer = Timer, start = Start}) ->
 	#timing{start = Start}.
 
 % Inserts {Time, Callback} in the workqueue.
-insert({Time, Callback}, List) when is_list(List) ->
+insert({Time, Callback}, List) ->
 	[ X || X <- List, element(1, X) =< Time ]
 	++ [{Time, Callback}] ++
 	[ X || X <- List, element(1, X) > Time ].
