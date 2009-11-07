@@ -324,7 +324,7 @@ start_app(weather, {MainNode, Config}, Nodes) ->
 
 do_remote_start(AppSpec, MainNode, Nodes) ->
 	App = element(2, AppSpec),
-	FailoverNodes = list_to_tuple(Nodes -- MainNode),
-	Dist = {App, [MainNode, FailoverNodes]},
+	FailoverNodes = lists:delete(MainNode, Nodes),
+	Dist = {App, [MainNode, list_to_tuple(FailoverNodes)]},
 	rpc:multicall(Nodes, application, load, [AppSpec, Dist]),
 	rpc:multicall(Nodes, application, start, [App]).
