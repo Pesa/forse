@@ -115,17 +115,23 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
 	case check_reqs(State#state.candidates, Reqs) of
 		true when State#state.num_cars > 0 ->
+			% FIXME: how to choose the master node?
 			Master = hd(Nodes),
-			ExtractCars = fun(Team, {T, C} = Acc) ->
+			SplitConfig = fun(Team, {Id, T, C} = Acc) ->
+								  SetTeam = fun(Car) ->
+													[{team, Id} | Car]
+											end,
 								  case lists:keytake(cars, 1, Team) of
 									  {value, {cars, CarsList}, NewTeam} ->
-										  {T ++ [NewTeam], C ++ CarsList};
+										  {Id + 1,
+										   T ++ [[{id, Id} | NewTeam]],
+										   C ++ lists:map(SetTeam, CarsList)};
 									  false ->
 										  % teams without cars are completely ignored
 										  Acc
 								  end
 						  end,
-			{Teams, Cars} = lists:foldl(ExtractCars, {[], []}, State#state.teams_config),
+			{_, Teams, Cars} = lists:foldl(SplitConfig, {1, [], []}, State#state.teams_config),
 			
 			% mnesia database initialization
 			rpc:multicall(Nodes, mnesia, start, []),
@@ -153,13 +159,34 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 			rpc:call(Master, utils, set_setting, [total_laps, Laps]),
 			
 			% applications initialization
-			CreateConfig = fun({App, N}) ->
-								   {App, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
-								   {App, choose_nodes(AppNodes, N, [])}
-						   end,
-			AppsConfig = lists:map(CreateConfig, Reqs),
-			% TODO
-			%lists:foreach(todo, ?BOOTSTRAP_ORDER),
+			ChooseNodes = fun({App, N}) ->
+								  {_, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
+								  {App, choose_nodes(AppNodes, N, [])}
+						  end,
+			NodesConfig = lists:map(ChooseNodes, Reqs),
+			Start = fun(App) ->
+							{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
+							ZippedList = case App of
+											 car ->
+												 lists:zip(AppNodes, Cars);
+											 event_dispatcher ->
+												 AppNodes;
+											 scheduler ->
+												 lists:map(fun(X) ->
+																   {X, Speedup}
+														   end, AppNodes);
+											 team ->
+												 lists:zip(AppNodes, Teams);
+											 weather ->
+												 lists:map(fun(X) ->
+																   {X, State#state.weather_config}
+														   end, AppNodes)
+										 end,
+							lists:foreach(fun(ZippedConfig) ->
+												  start_app(App, ZippedConfig, Nodes)
+										  end, ZippedList)
+					end,
+			lists:foreach(Start, ?BOOTSTRAP_ORDER),
 			
 			{stop, normal, ok, State#state{bootstrapped = true}};
 		_ ->
@@ -266,3 +293,38 @@ choose_nodes([{_Node, 0} | Tail], N, Config) ->
 	choose_nodes(Tail, N, Config);
 choose_nodes([{Node, Avail} | Tail], N, Config) ->
 	choose_nodes(Tail ++ [{Node, Avail - 1}], N - 1, [Node | Config]).
+
+start_app(car, {MainNode, Config}, Nodes) ->
+	{id, Id} = lists:keyfind(id, 1, Config),
+	AppSpec = {application, utils:build_id_atom("car_", Id),
+			   [{applications, [kernel, stdlib, scheduler]},
+				{mod, {car_app, [Config]}}]},
+	do_remote_start(AppSpec, MainNode, Nodes);
+start_app(event_dispatcher, MainNode, Nodes) ->
+	AppSpec = {application, event_dispatcher,
+			   [{applications, [kernel, stdlib]},
+				{mod, {dispatcher_app, []}}]},
+	do_remote_start(AppSpec, MainNode, Nodes);
+start_app(scheduler, {MainNode, Speedup}, Nodes) ->
+	AppSpec = {application, scheduler,
+			   [{applications, [kernel, stdlib]},
+				{mod, {scheduler_app, [Speedup]}}]},
+	do_remote_start(AppSpec, MainNode, Nodes);
+start_app(team, {MainNode, Config}, Nodes) ->
+	{id, Id} = lists:keyfind(id, 1, Config),
+	AppSpec = {application, utils:build_id_atom("team_", Id),
+			   [{applications, [kernel, stdlib, event_dispatcher]},
+				{mod, {team_app, [Config]}}]},
+	do_remote_start(AppSpec, MainNode, Nodes);
+start_app(weather, {MainNode, Config}, Nodes) ->
+	AppSpec = {application, weather,
+			   [{applications, [kernel, stdlib, scheduler]},
+				{mod, {weather_app, [Config]}}]},
+	do_remote_start(AppSpec, MainNode, Nodes).
+
+do_remote_start(AppSpec, MainNode, Nodes) ->
+	App = element(2, AppSpec),
+	FailoverNodes = list_to_tuple(Nodes -- MainNode),
+	Dist = {App, [MainNode, FailoverNodes]},
+	rpc:multicall(Nodes, application, load, [AppSpec, Dist]),
+	rpc:multicall(Nodes, application, start, [App]).
