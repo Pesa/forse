@@ -206,7 +206,8 @@ process_next(State) ->
 give_token(#callback{mod = M, func = F, args = A} = CB) ->
 	?DBG({"sending token to", CB}),
 	case apply(M, F, A) of
-		{requeue, Time, NewCB} when is_record(NewCB, callback) ->
+		{requeue, Time, NewCB} when is_number(Time), Time >= 0,
+									is_record(NewCB, callback) ->
 			queue_work(Time, NewCB);
 		done ->
 			ok;
@@ -237,9 +238,9 @@ recalculate_timer(#timing{timer = Timer, expiry = Expiry}, [{NextTime, _} | _], 
 			start = Expiry - RemainingTime * Speedup,
 			expiry = NextTime}.
 
-% Starts a timer which fires after SleepAmount milliseconds.
-start_timer(SleepAmount) when is_integer(SleepAmount) ->
-	erlang:start_timer(erlang:max(0, SleepAmount), self(), wakeup).
+% Starts a timer which fires after SleepAmount seconds.
+start_timer(SleepAmount) ->
+	erlang:start_timer(erlang:max(0, round(SleepAmount * 1000)), self(), wakeup).
 
 % Cancels any pending timer.
 reset_timing(#timing{timer = Timer, start = Start}) ->
