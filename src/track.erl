@@ -588,7 +588,7 @@ update_car_status(Status, Sgm) when is_record(Status, car_status),
 	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
 	BentCoeff = case Sgm#segment.curvature /= 0 of
 					true -> 1.5;
-					false -> 1
+					false -> 1.0
 				end,
 	TCons = BentCoeff * tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
 	Status#car_status{fuel = Status#car_status.fuel - FCons,
@@ -596,7 +596,7 @@ update_car_status(Status, Sgm) when is_record(Status, car_status),
 
 %% Returns the time needed to perform the pitstop operations.
 pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
-	FuelTime = F * ?TIME_PER_L + 2000,
+	FuelTime = F * ?TIME_PER_L + 2.0,
 	if
 		T == null;
 		FuelTime > ?TYRES_CHANGE ->
