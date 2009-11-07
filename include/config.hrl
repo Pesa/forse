@@ -2,14 +2,14 @@
 %%%  Configuration parameters
 %%% ==========================
 
-% Name of the pre-elaboration table associated with pilot Id.
+%% Name of the pre-elaboration table associated with pilot Id.
 -define(PREELAB_TABLE(Id), utils:build_id_atom("preelab_", Id)).
 
-% Length of a segment in meters.
+%% Length of a segment in meters.
 -define(SEGMENT_LENGTH, 5).
 
-% Time in milliseconds a car needs to move to the adjacent lane.
--define(LANE_CHANGE_TIME, 500).
+%% Time in seconds a car needs to move to the adjacent lane.
+-define(LANE_CHANGE_TIME, 0.5).
 
 % Coefficient of friction of new slick tyres when rain == 0.
 % TODO: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
@@ -19,15 +19,16 @@
 
 -define(G, 9.81).
 
-% TODO: Speed limit in the pitlane.
+%% Speed limit in the pitlane.
 -define(PIT_SPEED_LIM, 42).
 
-% TODO Fix the value
--define(TYRES_CHANGE, 5000).
+%% Time in seconds needed to change tyres
+-define(TYRES_CHANGE, 5.0).
+%% Time needed to put one liter of fuel in a car
+-define(TIME_PER_L, 0.083). % 12 l/s
 
--define(TIME_PER_L, 83). % 12 l/s
+%% Maximum capacity of a car's fuel tank (in liters).
+-define(TANK_DIM, 120.0).
 
-% Maximum capacity of a car's fuel tank (in liters).
--define(TANK_DIM, 120).
-
+%% Base fuel consumption per segment
 -define(L_PER_SGM, 0.0042).
