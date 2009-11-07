@@ -501,6 +501,8 @@ where_am_i(CarId) when is_integer(CarId) ->
 min_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.bound),
 	case R of
+		% FIXME: this should be removed from here and
+		%		 checked when loading the config file
 		error -> {0, track_error}; % no bents or pits in this track!!
 		#speed_bound{sgm_id = Id, bound = B} -> {Id, B}
 	end.
@@ -509,6 +511,8 @@ min_bound(List) ->
 min_pit_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.pit_bound),
 	case R of
+		% FIXME: this should be removed from here and
+		%		 checked when loading the config file
 		error -> {0, track_error}; % no bents or pits in this track!!
 		#speed_bound{sgm_id = Id, pit_bound = B} -> {Id, B}
 	end.
@@ -520,7 +524,8 @@ min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
 	if
 		element(Index, Head) == undefined ->
 			Min;
-		Min == error orelse element(Index, Min) > element(Index, Head) ->
+		Min == error;
+		element(Index, Min) > element(Index, Head) ->
 			Head;
 		true ->
 			Min
