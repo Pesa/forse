@@ -118,7 +118,7 @@ to_string(#retire_notif{car = C}) ->
 	"Car " ++ integer_to_list(C) ++ " retired";
 to_string(#weather_notif{changes = Changes}) ->
 	F = fun(#weather_change{segment = S, new_weather = New}, Acc) ->
-				"~t" ++ integer_to_list(New) ++ " in segment "
-					++ integer_to_list(S) ++ "~n" ++ Acc
+				"\t" ++ integer_to_list(New) ++ " in segment "
+					++ integer_to_list(S) ++ "\n" ++ Acc
 		end,
-	"Weather changed to:~n" ++ lists:foldl(F, "", Changes).
+	"Weather changed to:\n" ++ lists:foldl(F, "", Changes).

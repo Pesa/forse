@@ -12,7 +12,7 @@ class NotificationHandler(object):
 		self._viewer = viewer
 
 	def printable(self, text):
-		return ''.join([ chr(x) for x in text ]).replace("~n", "\n").replace("~t", "\t")
+		return ''.join([ chr(x) for x in text ])
 
 	def remote_handle(self, type, msg):
 		if type.text == "init":
