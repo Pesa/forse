@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0,
+-export([start_link/1,
 		 apply_change/2,
 		 schedule_change/2]).
 
@@ -24,8 +24,8 @@
 %% External functions
 %% ====================================================================
 
-start_link() ->
-	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
+start_link(Config) when is_list(Config) ->
+	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Config, []).
 
 apply_change(_Time, NewWeather) ->
 	gen_server:call(?GLOBAL_NAME, {apply_change, NewWeather}, infinity).
@@ -46,7 +46,7 @@ schedule_change(When, NewWeather) when is_list(NewWeather) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init([]) ->
+init(_Config) ->
 	% TODO: setup the pre-configured weather changes.
 	{ok, #state{}}.
 

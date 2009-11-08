@@ -1,4 +1,4 @@
--module(scheduler_sup).
+-module(car_sup).
 
 -behaviour(supervisor).
 
@@ -28,9 +28,9 @@ start_link(Config) when is_list(Config) ->
 %%          {error, Reason}
 %% --------------------------------------------------------------------
 init(Config) ->
-	{speedup, Speedup} = lists:keyfind(speedup, 1, Config),
-	Scheduler = {scheduler,
-				 {scheduler, start_link, [Speedup]},
-				 permanent, 5000, worker,
-				 [scheduler]},
-	{ok, {{one_for_one, 20, 30}, [Scheduler]}}.
+	{id, Id} = lists:keyfind(id, 1, Config),
+	Car = {utils:build_id_atom("car_", Id),
+		   {car, start_link, [Config]},
+		   transient, 5000, worker,
+		   [car]},
+	{ok, {{one_for_one, 20, 30}, [Car]}}.

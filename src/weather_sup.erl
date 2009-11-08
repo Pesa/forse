@@ -1,4 +1,4 @@
--module(scheduler_sup).
+-module(weather_sup).
 
 -behaviour(supervisor).
 
@@ -28,9 +28,8 @@ start_link(Config) when is_list(Config) ->
 %%          {error, Reason}
 %% --------------------------------------------------------------------
 init(Config) ->
-	{speedup, Speedup} = lists:keyfind(speedup, 1, Config),
-	Scheduler = {scheduler,
-				 {scheduler, start_link, [Speedup]},
-				 permanent, 5000, worker,
-				 [scheduler]},
-	{ok, {{one_for_one, 20, 30}, [Scheduler]}}.
+	Weather = {weather,
+			   {weather, start_link, [Config]},
+			   permanent, 5000, worker,
+			   [weather]},
+	{ok, {{one_for_one, 20, 30}, [Weather]}}.

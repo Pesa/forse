@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0,
+-export([start_link/1,
 		 set_speedup/1,
 		 start_simulation/0,
 		 pause_simulation/0,
@@ -27,7 +27,7 @@
 				 expiry}).
 -record(state, {running = false,
 				token_available = true,
-				speedup = 1,
+				speedup,
 				timing_info = #timing{},
 				workqueue = []}).
 
@@ -36,10 +36,10 @@
 %% External functions
 %% ====================================================================
 
-start_link() ->
-	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
+start_link(Speedup) when is_number(Speedup) ->
+	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Speedup, []).
 
-set_speedup(NewSpeedup) when is_integer(NewSpeedup) ->
+set_speedup(NewSpeedup) when is_number(NewSpeedup) ->
 	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
 
 start_simulation() ->
@@ -64,10 +64,9 @@ queue_work(Time, Callback) when is_record(Callback, callback) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init([]) ->
-	% TODO: initialize speedup from config argument
-	% and restart the timer if it's a failover case.
-	{ok, #state{}}.
+init(Speedup) ->
+	% TODO: restart the timer if it's a failover case
+	{ok, #state{speedup = Speedup}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3

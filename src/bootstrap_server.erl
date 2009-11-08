@@ -52,7 +52,7 @@ start() ->
 add_node(SupportedApps) when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
-bootstrap(Laps, Speedup) when is_integer(Laps), is_integer(Speedup) ->
+bootstrap(Laps, Speedup) when is_integer(Laps), is_number(Speedup) ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
 
 read_config_files(TeamsFile, TrackFile, WeatherFile)
@@ -173,7 +173,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 												 AppNodes;
 											 scheduler ->
 												 lists:map(fun(X) ->
-																   {X, Speedup}
+																   {X, [{speedup, Speedup}]}
 														   end, AppNodes);
 											 team ->
 												 lists:zip(AppNodes, Teams);
@@ -298,28 +298,28 @@ start_app(car, {MainNode, Config}, Nodes) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	AppSpec = {application, utils:build_id_atom("car_", Id),
 			   [{applications, [kernel, stdlib, scheduler]},
-				{mod, {car_app, [Config]}}]},
+				{mod, {car_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
 start_app(event_dispatcher, MainNode, Nodes) ->
 	AppSpec = {application, event_dispatcher,
 			   [{applications, [kernel, stdlib]},
 				{mod, {dispatcher_app, []}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(scheduler, {MainNode, Speedup}, Nodes) ->
+start_app(scheduler, {MainNode, Config}, Nodes) ->
 	AppSpec = {application, scheduler,
 			   [{applications, [kernel, stdlib]},
-				{mod, {scheduler_app, [Speedup]}}]},
+				{mod, {scheduler_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
 start_app(team, {MainNode, Config}, Nodes) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	AppSpec = {application, utils:build_id_atom("team_", Id),
 			   [{applications, [kernel, stdlib, event_dispatcher]},
-				{mod, {team_app, [Config]}}]},
+				{mod, {team_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
 start_app(weather, {MainNode, Config}, Nodes) ->
 	AppSpec = {application, weather,
 			   [{applications, [kernel, stdlib, scheduler]},
-				{mod, {weather_app, [Config]}}]},
+				{mod, {weather_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes).
 
 do_remote_start(AppSpec, MainNode, Nodes) ->
