@@ -10,6 +10,9 @@
 
 -include("db_schema.hrl").
 
+%% Earth's gravity.
+-define(g, 9.80665).
+
 
 %% ====================================================================
 %% External functions
@@ -47,7 +50,7 @@ bent_max_speed(Pilot, S) when is_record(Pilot, pilot),
 	R = S#segment.curvature,
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
 	K = friction(Pilot#pilot.car_status, S#segment.rain),
-	math:sqrt(K * Cos * R * ?G).
+	math:sqrt(K * Cos * R * ?g).
 
 sgm_max_speed(VNext, Amin, S) ->
 	math:sqrt(math:pow(VNext, 2) - 2 * Amin * S).
@@ -62,7 +65,7 @@ engine_max_speed(_F) -> 42.
 %% Inc: inclination in rad
 acceleration(F, M, Inc, CarStatus, Rain) ->
 	K = 1 - (1 - friction_coeff(CarStatus, Rain)) / 2,
-	K * (F / M - math:sin(Inc) * ?G).
+	K * (F / M - math:sin(Inc) * ?g).
 
 deg_to_rad(A) ->
 	math:pi() * A / 180.0.

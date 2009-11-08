@@ -332,7 +332,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 					FAcc = Car#car_type.power,
 					FDec = Car#car_type.brake,
 					Mass = Car#car_type.weight + Pilot#pilot.weight
-							+ CS#car_status.fuel * ?FUEL_SPECIFIC_GRAVITY,
+							+ CS#car_status.fuel * ?FUEL_SPEC_GRAVITY,
 					Inc = physics:deg_to_rad(S#segment.inclination),
 					Bound = utils:mnesia_read(?PREELAB_TABLE(Pilot#pilot.id), S#segment.id),
 					
@@ -361,7 +361,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
 	Mass = Car#car_type.weight + Pilot#pilot.weight
-			+ CarStatus#car_status.fuel * ?FUEL_SPECIFIC_GRAVITY,
+			+ CarStatus#car_status.fuel * ?FUEL_SPEC_GRAVITY,
 	FDec = Car#car_type.brake,
 	SgmNum = utils:get_setting(sgm_number),
 	
@@ -453,7 +453,7 @@ bent_and_pit(Pilot, Sgm) ->
 		T == pitstop;
 		T == pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
-							 pit_bound = erlang:min(?PIT_SPEED_LIM, BentBound),
+							 pit_bound = erlang:min(?PIT_MAX_SPEED, BentBound),
 							 bound = BentBound},
 			[R | bent_and_pit(Pilot, Sgm - 1)];
 		true ->
@@ -587,25 +587,24 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 		end,
 	{atomic, _} = mnesia:sync_transaction(T).
 
-%% Returns car status after driving Sgm.
-update_car_status(Status, Sgm) when is_record(Status, car_status),
-									is_record(Sgm, segment) ->
-	FCons = ?L_PER_SGM + ?L_PER_SGM * math:sin(physics:deg_to_rad(Sgm#segment.inclination)),
-	BentCoeff = case Sgm#segment.curvature /= 0 of
-					true -> 1.5;
-					false -> 1.0
-				end,
-	TCons = BentCoeff * tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
+%% Returns car's status after driving Sgm.
+update_car_status(Status, Sgm) ->
+	FCons = ?FUEL_PER_SGM * (1 + math:sin(physics:deg_to_rad(Sgm#segment.inclination))),
+	Coeff = case Sgm#segment.curvature /= 0 of
+				true -> 1.5;
+				false -> 1.0
+			end,
+	TCons = Coeff * tyres_cons(Status#car_status.tyres_type, Sgm#segment.rain),
 	Status#car_status{fuel = Status#car_status.fuel - FCons,
 					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
 
 %% Returns the time needed to perform the pitstop operations.
 pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
-	FuelTime = F * ?TIME_PER_L + 2.0,
+	RefuelTime = 2.0 + F / ?REFUEL_SPEED,
 	if
 		T == null;
-		FuelTime > ?TYRES_CHANGE ->
-			FuelTime;
+		RefuelTime > ?TYRES_CHANGE ->
+			RefuelTime;
 		true ->
 			?TYRES_CHANGE
 	end.
