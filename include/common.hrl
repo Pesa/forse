@@ -61,8 +61,8 @@
 %% car: ID of the car this notification refers to
 %% lap: number of the current (or just ended) lap
 %% intermediate: number of the intermediate that has just been completed
-%% time: time in millisecs spent by the car to go through the intermediate
-%% max_speed: maximum speed reached by the car in the intermediate
+%% time: time in seconds spent by the car to go through the intermediate
+%% max_speed: maximum speed (in m/s) reached by the car in the intermediate
 %% status: car status at the end of the intermediate
 %% ------------------------------------------------------------
 -record(chrono_notif, {car,

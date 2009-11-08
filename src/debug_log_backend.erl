@@ -108,8 +108,8 @@ code_change(_OldVsn, State, _Extra) ->
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
 	"Car " ++ integer_to_list(C) ++ " has gone through intermediate " ++
 		integer_to_list(Inter) ++ " of lap " ++ integer_to_list(Lap) ++
-		" in " ++ float_to_list(T/1000) ++ " seconds, with a maximum speed of "
-		++ float_to_list(S) ++ " Km/h";
+		" in " ++ float_to_list(T) ++ " seconds, with a maximum speed of "
+		++ float_to_list(S * 3.6) ++ " Km/h";
 to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = _Fuel, tyres = _Tyres}}) ->
 	"Car " ++ integer_to_list(C) ++ " stopped at the pits";
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
