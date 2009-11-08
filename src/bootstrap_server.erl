@@ -117,7 +117,12 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 		true when State#state.num_cars > 0 ->
 			% FIXME: how to choose the master node?
 			Master = hd(Nodes),
+			
+			% setup applications' configurations
+			Dispatcher = [],
+			Scheduler = [{speedup, Speedup}],
 			{Teams, Cars, CarsIDs} = split_config(State#state.teams_config),
+			Weather = State#state.weather_config,
 			
 			% mnesia database initialization
 			rpc:multicall(Nodes, mnesia, start, []),
@@ -143,22 +148,18 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 						  end,
 			NodesConfig = lists:map(ChooseNodes, Reqs),
 			Start = fun(App) ->
+							Configs = case App of
+										  car -> Cars;
+										  event_dispatcher -> [Dispatcher];
+										  scheduler -> [Scheduler];
+										  team -> Teams;
+										  weather -> [Weather]
+									  end,
+							AppSpecs = lists:map(fun(C) ->
+														 app_spec(App, C)
+												 end, Configs),
 							{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
-							ZippedList = case App of
-											 car ->
-												 lists:zip(AppNodes, Cars);
-											 event_dispatcher ->
-												 zip_config(AppNodes, []);
-											 scheduler ->
-												 zip_config(AppNodes, [{speedup, Speedup}]);
-											 team ->
-												 lists:zip(AppNodes, Teams);
-											 weather ->
-												 zip_config(AppNodes, State#state.weather_config)
-										 end,
-							lists:foreach(fun(ZippedConfig) ->
-												  start_app(App, ZippedConfig, Nodes)
-										  end, ZippedList)
+							start_apps(AppSpecs, AppNodes, Nodes)
 					end,
 			lists:foreach(Start, ?BOOTSTRAP_ORDER),
 			
@@ -238,6 +239,29 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
+app_spec(car, Config) ->
+	{id, Id} = lists:keyfind(id, 1, Config),
+	{application, utils:build_id_atom("car_", Id),
+	 [{applications, [kernel, stdlib, scheduler]},
+	  {mod, {car_app, Config}}]};
+app_spec(event_dispatcher, Config) ->
+	{application, event_dispatcher,
+	 [{applications, [kernel, stdlib]},
+	  {mod, {dispatcher_app, Config}}]};
+app_spec(scheduler, Config) ->
+	{application, scheduler,
+	 [{applications, [kernel, stdlib]},
+	  {mod, {scheduler_app, Config}}]};
+app_spec(team, Config) ->
+	{id, Id} = lists:keyfind(id, 1, Config),
+	{application, utils:build_id_atom("team_", Id),
+	 [{applications, [kernel, stdlib, event_dispatcher]},
+	  {mod, {team_app, Config}}]};
+app_spec(weather, Config) ->
+	{application, weather,
+	 [{applications, [kernel, stdlib, scheduler]},
+	  {mod, {weather_app, Config}}]}.
+
 check_reqs(Candidates, Reqs) ->
 	Sum = fun({_, N}, Acc) -> Acc + N end,
 	Check = fun({App, Min}) ->
@@ -292,43 +316,12 @@ split_config(Config) ->
 	{_, T, C} = lists:foldl(Split, {1, [], []}, Config),
 	{T, C, lists:map(ExtractIDs, C)}.
 
-zip_config(List, Config) ->
-	Zip = fun(Elem) ->
-				  {Elem, Config}
-		  end,
-	lists:map(Zip, List).
-
-start_app(car, {MainNode, Config}, Nodes) ->
-	{id, Id} = lists:keyfind(id, 1, Config),
-	AppSpec = {application, utils:build_id_atom("car_", Id),
-			   [{applications, [kernel, stdlib, scheduler]},
-				{mod, {car_app, Config}}]},
-	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(event_dispatcher, {MainNode, Config}, Nodes) ->
-	AppSpec = {application, event_dispatcher,
-			   [{applications, [kernel, stdlib]},
-				{mod, {dispatcher_app, Config}}]},
-	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(scheduler, {MainNode, Config}, Nodes) ->
-	AppSpec = {application, scheduler,
-			   [{applications, [kernel, stdlib]},
-				{mod, {scheduler_app, Config}}]},
-	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(team, {MainNode, Config}, Nodes) ->
-	{id, Id} = lists:keyfind(id, 1, Config),
-	AppSpec = {application, utils:build_id_atom("team_", Id),
-			   [{applications, [kernel, stdlib, event_dispatcher]},
-				{mod, {team_app, Config}}]},
-	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(weather, {MainNode, Config}, Nodes) ->
-	AppSpec = {application, weather,
-			   [{applications, [kernel, stdlib, scheduler]},
-				{mod, {weather_app, Config}}]},
-	do_remote_start(AppSpec, MainNode, Nodes).
-
-do_remote_start(AppSpec, MainNode, Nodes) ->
-	App = element(2, AppSpec),
+start_apps([AppSpec | SpecsTail], [MainNode | NodesTail], Nodes) ->
 	FailoverNodes = lists:delete(MainNode, Nodes),
-	Dist = {App, [MainNode, list_to_tuple(FailoverNodes)]},
-	rpc:multicall(Nodes, application, load, [AppSpec, Dist]),
-	rpc:multicall(Nodes, application, start, [App]).
+	gen_server:multi_call(Nodes, node_manager,
+						  {load_app, AppSpec, MainNode, FailoverNodes}),
+	gen_server:multi_call(Nodes, node_manager,
+						  {start_app, element(2, AppSpec)}),
+	start_apps(SpecsTail, NodesTail, Nodes);
+start_apps([], [], _Nodes) ->
+	ok.

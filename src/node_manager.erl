@@ -60,8 +60,15 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call(todo, _From, State) ->
-	{reply, ok, State};
+handle_call({load_app, AppSpec, MainNode, FailoverNodes}, _From, State) ->
+	App = element(2, AppSpec),
+	Dist = {App, [MainNode, list_to_tuple(FailoverNodes)]},
+	Reply = application:load(AppSpec, Dist),
+	{reply, Reply, State};
+
+handle_call({start_app, App}, _From, State) ->
+	Reply = application:start(App),
+	{reply, Reply, State};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
