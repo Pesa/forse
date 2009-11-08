@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0,
+-export([start/0,
 		 add_node/1,
 		 bootstrap/2,
 		 read_config_files/3]).
@@ -46,8 +46,8 @@
 %% External functions
 %% ====================================================================
 
-start_link() ->
-	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
+start() ->
+	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
 
 add_node(SupportedApps) when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
