@@ -1,4 +1,4 @@
-- finire il bootstrap, GUI compresa
+- fare GUI per il bootstrap_server
 - fare GUI e backends per weather, race_info e teams
 - GUI debug_log: generalizzare le parti hard-coded
 - dare priorita' ai TODO/FIXME nel codice
@@ -8,9 +8,8 @@
 	mandando poi un messaggio al dispatcher che comunica agli iscritti la fine della gara quando il 
 	contatore arriva a 0.
 	In questo modo sarebbe l'ultima auto a informare il sistema.
-	Un problema di questa soluzione è come dirlo a chi non è iscritto al dispatcher...	
+	Un problema di questa soluzione Ã¨ come dirlo a chi non Ã¨ iscritto al dispatcher...
 - settare {schema_location, ram} nella config di mnesia
-- physics:engine_max_speed -> convertire in macro e spostare in config.hrl?
 - physics:get_car_ahead -> non deve considerare se stessa
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
