@@ -59,7 +59,7 @@ sgm_max_speed(VNext, Amin, S) ->
 %% TODO: fix the number
 engine_max_speed(_F) -> 42.
 
-%% Calculates the car's acceleration
+%% Calculates the car's acceleration.
 %% F: force (brake or engine)
 %% M: mass
 %% Inc: inclination in rad
@@ -67,8 +67,8 @@ acceleration(F, M, Inc, CarStatus, Rain) ->
 	K = 1 - (1 - friction_coeff(CarStatus, Rain)) / 2,
 	K * (F / M - math:sin(Inc) * ?g).
 
-deg_to_rad(A) ->
-	math:pi() * A / 180.0.
+deg_to_rad(Angle) when is_number(Angle) ->
+	Angle * math:pi() / 180.0.
 
 
 %% --------------------------------------------------------------------

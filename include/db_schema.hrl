@@ -13,8 +13,8 @@
 %% lane: exit lane
 %% --------------------------------------------------
 -record(car_position,{car_id,
-					  enter_t = 0,
-					  exit_t = 0,
+					  enter_t = 0.0,
+					  exit_t = 0.0,
 					  speed = 0.0,
 					  enter_lane,
 					  exit_lane}).
@@ -37,9 +37,9 @@
 				 min_lane,
 				 max_lane,
 				 length = 0,
-				 inclination = 0,
+				 inclination = 0.0,
 				 rain = 0,
-				 curvature = 0,
+				 curvature = 0.0,
 				 queued_cars = []}).
 
 %% --------------------------------------------------

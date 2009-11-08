@@ -48,7 +48,7 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 					max_lane = MaxLane,
 					length = ?SEGMENT_LENGTH,
 					inclination = Incl,
-					curvature = 0,
+					curvature = 0.0,
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
@@ -66,13 +66,13 @@ build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}
 	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
 build_sector({finish_line}, {Sect, Sgm}) ->
 	S = #segment{id = Sgm,
-				   type = finish_line,
-				   length = 0},
+				 type = finish_line,
+				 length = 0},
 	{[S], {Sect, Sgm + 1}};
 build_sector({intermediate}, {Sect, Sgm}) ->
 	S = #segment{id = Sgm,
-				   type = intermediate,
-				   length = 0},
+				 type = intermediate,
+				 length = 0},
 	{[S], {Sect, Sgm + 1}};
 build_sector({pitlane_entrance}, {Sect, Sgm}) ->
 	{[{pitlane_entrance, Sgm}], {Sect, Sgm}}.
