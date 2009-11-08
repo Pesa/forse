@@ -117,21 +117,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 		true when State#state.num_cars > 0 ->
 			% FIXME: how to choose the master node?
 			Master = hd(Nodes),
-			SplitConfig = fun(Team, {Id, T, C} = Acc) ->
-								  SetTeam = fun(Car) ->
-													[{team, Id} | Car]
-											end,
-								  case lists:keytake(cars, 1, Team) of
-									  {value, {cars, CarsList}, NewTeam} ->
-										  {Id + 1,
-										   T ++ [[{id, Id} | NewTeam]],
-										   C ++ lists:map(SetTeam, CarsList)};
-									  false ->
-										  % teams without cars are completely ignored
-										  Acc
-								  end
-						  end,
-			{_, Teams, Cars} = lists:foldl(SplitConfig, {1, [], []}, State#state.teams_config),
+			{Teams, Cars, CarsIDs} = split_config(State#state.teams_config),
 			
 			% mnesia database initialization
 			rpc:multicall(Nodes, mnesia, start, []),
@@ -140,18 +126,10 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 			rpc:call(Master, mnesia, create_table, [track, ?TAB_DEF(segment, Nodes)]),
 			rpc:call(Master, mnesia, create_table, [car_type, ?TAB_DEF(car_type, Nodes)]),
 			rpc:call(Master, mnesia, create_table, [pilot, ?TAB_DEF(pilot, Nodes)]),
-			ExtractIDs = fun(Car) ->
-								 case lists:keyfind(id, 1, Car) of
-									 {id, Id} ->
-										 rpc:call(Master, mnesia, create_table,
-												  [?PREELAB_TABLE(Id), ?TAB_DEF(speed_bound, Nodes)]),
-										 Id;
-									 false ->
-										 % the IDs of cars are mandatory
-										 throw(car_id_not_found)
-								 end
-						 end,
-			CarsIDs = lists:map(ExtractIDs, Cars),
+			lists:foreach(fun(Id) ->
+								  rpc:call(Master, mnesia, create_table,
+										   [?PREELAB_TABLE(Id), ?TAB_DEF(speed_bound, Nodes)])
+						  end, CarsIDs),
 			
 			% track & settings initialization
 			% FIXME: change this when track becomes a gen_server
@@ -170,17 +148,13 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 											 car ->
 												 lists:zip(AppNodes, Cars);
 											 event_dispatcher ->
-												 AppNodes;
+												 zip_config(AppNodes, []);
 											 scheduler ->
-												 lists:map(fun(X) ->
-																   {X, [{speedup, Speedup}]}
-														   end, AppNodes);
+												 zip_config(AppNodes, [{speedup, Speedup}]);
 											 team ->
 												 lists:zip(AppNodes, Teams);
 											 weather ->
-												 lists:map(fun(X) ->
-																   {X, State#state.weather_config}
-														   end, AppNodes)
+												 zip_config(AppNodes, State#state.weather_config)
 										 end,
 							lists:foreach(fun(ZippedConfig) ->
 												  start_app(App, ZippedConfig, Nodes)
@@ -294,16 +268,46 @@ choose_nodes([{_Node, 0} | Tail], N, Config) ->
 choose_nodes([{Node, Avail} | Tail], N, Config) ->
 	choose_nodes(Tail ++ [{Node, Avail - 1}], N - 1, [Node | Config]).
 
+split_config(Config) ->
+	Split = fun(Team, {Id, T, C} = Acc) ->
+					SetTeam = fun(Car) ->
+									  [{team, Id} | Car]
+							  end,
+					case lists:keytake(cars, 1, Team) of
+						{value, {cars, CarsList}, NewTeam} ->
+							{Id + 1,
+							 T ++ [[{id, Id} | NewTeam]],
+							 C ++ lists:map(SetTeam, CarsList)};
+						false ->
+							% teams without cars are ignored
+							Acc
+					end
+			end,
+	ExtractIDs = fun(Car) ->
+						 case lists:keyfind(id, 1, Car) of
+							 {id, Id} -> Id;
+							 false -> throw(car_id_not_found)
+						 end
+				 end,
+	{_, T, C} = lists:foldl(Split, {1, [], []}, Config),
+	{T, C, lists:map(ExtractIDs, C)}.
+
+zip_config(List, Config) ->
+	Zip = fun(Elem) ->
+				  {Elem, Config}
+		  end,
+	lists:map(Zip, List).
+
 start_app(car, {MainNode, Config}, Nodes) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	AppSpec = {application, utils:build_id_atom("car_", Id),
 			   [{applications, [kernel, stdlib, scheduler]},
 				{mod, {car_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
-start_app(event_dispatcher, MainNode, Nodes) ->
+start_app(event_dispatcher, {MainNode, Config}, Nodes) ->
 	AppSpec = {application, event_dispatcher,
 			   [{applications, [kernel, stdlib]},
-				{mod, {dispatcher_app, []}}]},
+				{mod, {dispatcher_app, Config}}]},
 	do_remote_start(AppSpec, MainNode, Nodes);
 start_app(scheduler, {MainNode, Config}, Nodes) ->
 	AppSpec = {application, scheduler,
