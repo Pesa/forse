@@ -9,7 +9,6 @@
 	contatore arriva a 0.
 	In questo modo sarebbe l'ultima auto a informare il sistema.
 	Un problema di questa soluzione è come dirlo a chi non è iscritto al dispatcher...
-- settare {schema_location, ram} nella config di mnesia
 - physics:get_car_ahead -> non deve considerare se stessa
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
