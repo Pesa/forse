@@ -110,7 +110,7 @@ handle_call(move, _From, State) ->
 	
 	Pits = lists:keyfind(pits, 2, SimRes),
 	End = lists:keyfind(race_ended, 2, SimRes),
-	Pred = fun({_, crash}) ->
+	Pred = fun({_, {fail, _Reason}}) ->
 				   true;
 			  (_) ->
 				   false
