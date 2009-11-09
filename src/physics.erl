@@ -86,7 +86,8 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	{Time, Acc} = if
-					  A < Amin ->
+					  A < Amin;
+					  Amax < 0 -> %% Negative Amax means a car's engine is not powerful enough
 						  {crash, 0};
 					  A > Amax ->
 						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
