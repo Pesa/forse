@@ -46,8 +46,8 @@ schedule_change(When, NewWeather) when is_list(NewWeather) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init(_Config) ->
-	% TODO: setup the pre-configured weather changes.
+init(Config) ->
+	lists:foreach(fun register_weather_change/1, Config),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -78,7 +78,8 @@ handle_call({apply_change, PerSectorWeather}, _From, State) ->
 							 % for each segment invoke ChSgm to change its weather
 							 SectChanges = lists:map(ChSgm, lists:seq(From, To)),
 							 Acc ++ SectChanges;
-						 _ -> mnesia:abort("invalid sector " ++ integer_to_list(SectId))
+						 _ ->
+							 mnesia:abort("invalid sector " ++ integer_to_list(SectId))
 					 end
 			 end,
 	Invalidate = fun(Pilot, _) ->
@@ -91,14 +92,15 @@ handle_call({apply_change, PerSectorWeather}, _From, State) ->
 				lists:foldl(ChSect, [], PerSectorWeather)
 		end,
 	case mnesia:sync_transaction(T) of
-		{atomic, Changes} -> event_dispatcher:notify(#weather_notif{changes = Changes});
-		{aborted, Reason} -> ?ERR({"failed to change weather", Reason})
+		{atomic, Changes} ->
+			event_dispatcher:notify(#weather_notif{changes = Changes});
+		{aborted, Reason} ->
+			?ERR({"failed to change weather", Reason})
 	end,
 	{reply, done, State};
 
 handle_call({schedule_change, When, NewWeather}, _From, State) ->
-	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
-	Reply = scheduler:queue_work(When, Callback),
+	Reply = register_weather_change({When, NewWeather}),
 	{reply, Reply, State};
 
 handle_call(Msg, From, State) ->
@@ -123,8 +125,8 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_info(Msg, State) ->
-	?WARN({"unhandled info", Msg}),
+handle_info(Info, State) ->
+	?WARN({"unhandled info", Info}),
 	{noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -142,3 +144,17 @@ terminate(_Reason, _State) ->
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
+
+
+%% --------------------------------------------------------------------
+%% Internal functions
+%% --------------------------------------------------------------------
+
+register_weather_change({{H, M, S}, NewWeather}) ->
+	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
+	scheduler:queue_work(H * 3600 + M * 60 + S, Callback);
+register_weather_change({Seconds, NewWeather}) when is_integer(Seconds) ->
+	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
+	scheduler:queue_work(Seconds, Callback);
+register_weather_change(_) ->
+	error.
