@@ -86,16 +86,17 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	{Time, Acc} = if
-					  A < Amin;
+					  A < Amin ->
+						  {{fail, crash}, 0};
 					  Amax < 0 -> %% Negative Amax means a car's engine is not powerful enough
-						  {crash, 0};
+						  {{fail, insufficient_power}, 0};
 					  A > Amax ->
 						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
 					  true ->
 						  {T1, A}
 				  end,
 	case Time of
-		crash -> {crash, 0};
+		{fail, _Reason} -> {Time, 0};
 		_ -> {Time, Speed + Acc * Time}
 	end.
 
@@ -121,8 +122,8 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 			null
 	end.
 
-add_g(_, {crash, Speed}) ->
-	{crash, Speed};
+add_g(_, {{fail, _Reason}, _Speed} = T) ->
+	T;
 add_g(G, {T, Speed}) ->
 	{G + T, Speed}.
 

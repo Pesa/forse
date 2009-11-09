@@ -91,7 +91,7 @@
 %% retire_notif
 %% car: ID of the retired car
 %% ------------------------------------------------------------
--record(retire_notif, {car}).
+-record(retire_notif, {car, reason}).
 
 %% ------------------------------------------------------------
 %% weather_notif
