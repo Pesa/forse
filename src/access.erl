@@ -12,7 +12,7 @@
 %%
 
 % Checks if Pilot can move from EnterLane to ExitLane in Sgm.
-% Returns: 'go' | 'pits' | '{fail, Reason}'
+% Returns: 'go' | 'pits' | {fail, Reason}
 check_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 													  is_record(Sgm, segment) ->
 	MaxL = Sgm#segment.max_lane,
@@ -34,13 +34,13 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
 		Type == pitlane andalso EnterLane /= MaxL andalso ExitLane == MaxL;
 		Type == pitstop andalso EnterLane < MaxL - 1 andalso ExitLane >= MaxL - 1;
 		ExitLane < EnterLane andalso (PrePL orelse PostPL orelse PS) ->
-			{fail, access_denied};
+			{fail, 'access denied'};
 		PS ->
 			T = utils:mnesia_read(car_type, Pilot#pilot.team),
 			OwnPits = T#car_type.pitstop_sgm == Sgm#segment.id,
 			if
 				ExitLane == MaxL andalso not OwnPits;
-				ExitLane == MaxL - 1 andalso OwnPits -> {fail, pitstop_policy};
+				ExitLane == MaxL - 1 andalso OwnPits -> {fail, 'pitstop policy'};
 				ExitLane == MaxL andalso OwnPits -> pits;
 				true -> go
 			end;

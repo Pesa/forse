@@ -82,23 +82,24 @@ deg_to_rad(Angle) when is_number(Angle) ->
 %% the maximum acceleration engine can supply.
 calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
 	{0, Speed};
-
 calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	{Time, Acc} = if
 					  A < Amin ->
-						  {{fail, crash}, 0};
-					  Amax < 0 -> %% Negative Amax means a car's engine is not powerful enough
-						  {{fail, insufficient_power}, 0};
+						  {{fail, 'crash'}, 0};
+					  Amax < 0 ->
+						  {{fail, 'insufficient engine power'}, 0};
 					  A > Amax ->
 						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
 					  true ->
 						  {T1, A}
 				  end,
 	case Time of
-		{fail, _Reason} -> {Time, 0};
-		_ -> {Time, Speed + Acc * Time}
+		{fail, _} ->
+			{Time, 0};
+		_ ->
+			{Time, Speed + Acc * Time}
 	end.
 
 %% Returns null or a car_position record.
@@ -123,7 +124,7 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 			null
 	end.
 
-add_g(_, {{fail, _Reason}, _Speed} = T) ->
+add_g(_, {{fail, _}, _Speed} = T) ->
 	T;
 add_g(G, {T, Speed}) ->
 	{G + T, Speed}.

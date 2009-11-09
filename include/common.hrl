@@ -90,6 +90,7 @@
 %% ------------------------------------------------------------
 %% retire_notif
 %% car: ID of the retired car
+%% reason: reason for retirement
 %% ------------------------------------------------------------
 -record(retire_notif, {car, reason}).
 

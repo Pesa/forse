@@ -197,7 +197,7 @@ put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 
 
 %% Moves the car to the next segment.
-%% Returns '{fail, Reason}' | {NextTime, NewPilotState} | 'race_ended'.
+%% Returns {fail, Reason} | {NextTime, NewPilotState} | 'race_ended'.
 %% Pit: true if pilot wants to stop at the pits
 % FIXME: spostare car_pos in Pilot?
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
@@ -298,7 +298,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	
 
 %% Returns the time needed by Car to cover the next segment
-%% or: '{fail, Reason}' | 'pits' | 'race_ended'.
+%% or: {fail, Reason} | 'pits' | 'race_ended'.
 %% Pit: true if pilot wants to stop at the pits
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
@@ -318,11 +318,11 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 		Pilot#pilot.lap > TotalLaps ->
 			{race_ended, 0};
 		CS#car_status.tyres_consumption >= 100.0 ->
-			{fail, tyres_exploded};
+			{fail, 'tyres exploded'};
 		CS#car_status.fuel =< 0.0 ->
-			{fail, out_of_fuel};
+			{fail, 'out of fuel'};
 		Pilot#pilot.retire ->
-			{{fail, pilot_decision}, 0};
+			{{fail, 'team request'}, 0};
 		true ->
 			case access:check_move(Pilot, S, EnterLane, ExitLane, Pit) of
 				{fail, Reason} -> {{fail, Reason}, 0};
