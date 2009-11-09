@@ -114,8 +114,8 @@ to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = _Fuel, tyres = _Tyre
 	"Car " ++ integer_to_list(C) ++ " stopped at the pits";
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
 	"Car " ++ integer_to_list(Surpasser) ++ " surpassed car " ++ integer_to_list(Surpassed);
-to_string(#retire_notif{car = C}) ->
-	"Car " ++ integer_to_list(C) ++ " retired";
+to_string(#retire_notif{car = C, reason = R}) ->
+	"Car " ++ integer_to_list(C) ++ " retired: " ++ atom_to_list(R);
 to_string(#weather_notif{changes = Changes}) ->
 	F = fun(#weather_change{segment = S, new_weather = New}, Acc) ->
 				"\t" ++ integer_to_list(New) ++ " in segment "
