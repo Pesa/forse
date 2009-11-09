@@ -217,7 +217,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
 												  reason = Reason}),
 			remove_car(SOld, Pilot#pilot.id),
-			Time;
+			fail;
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
 			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,

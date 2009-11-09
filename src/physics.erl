@@ -57,7 +57,8 @@ sgm_max_speed(VNext, Amin, S) ->
 
 %% Max speed the car can reach.
 %% TODO: fix the number
-engine_max_speed(_F) -> 42.
+engine_max_speed(_F) ->
+	100.
 
 %% Calculates the car's acceleration.
 %% F: force (brake or engine)
