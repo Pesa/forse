@@ -35,9 +35,8 @@ init(TrackConfig, TeamsNum, CarsList)
 		{atomic, ok} = mnesia:sync_transaction(T),
 		
 		%% Calculates and stores intermediate indexes
-		F = fun(Elem) ->
-					T = Elem#segment.type,
-					T == intermediate orelse T == finish_line
+		F = fun(#segment{type = X}) ->
+					X == intermediate orelse X == finish_line
 			end,
 		FList = lists:keysort(#segment.id, lists:filter(F, SgmList)),
 		Map = map_intermediate(FList),
@@ -286,13 +285,14 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 										   max_speed = 0};
 						   finish_line ->
 							   Msg = #chrono_notif{car = Pilot#pilot.id,
-												   lap = Pilot#pilot.lap + 1,
+												   lap = Pilot#pilot.lap,
 												   intermediate = intermediate_index(S#segment.id),
 												   time = NewCarPos#car_position.exit_t,
 												   max_speed = MaxSpeed,
 												   status = NewCarStatus},
 							   event_dispatcher:notify(Msg),
 							   Pilot#pilot{segment = Sgm,
+										   lap = Pilot#pilot.lap + 1,
 										   lane = ExitLane,
 										   car_status = NewCarStatus,
 										   max_speed = 0,
@@ -672,7 +672,7 @@ map_inter_rec([H | T], 0) ->
 			false -> 0;
 			true -> 1
 		end,
-	map_inter_rec(lists:append(T, [H]), I);
+	map_inter_rec(T ++ [H], I);
 
 map_inter_rec([H | T], I) ->
 	[{H#segment.id, I} | map_inter_rec(T, I + 1)];
