@@ -86,7 +86,7 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	{Time, Acc} = if
-					  A < Amin - ?ACC_TOL ->
+					  A < Amin - ?ACCEL_TOLERANCE ->
 						  {{fail, 'crash'}, 0};
 					  Amax < 0 ->
 						  {{fail, 'insufficient engine power'}, 0};

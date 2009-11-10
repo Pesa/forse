@@ -34,5 +34,5 @@
 %% Maximum capacity of a car's fuel tank (in liters).
 -define(TANK_DIM, 120.0).
 
-%% Acceleration tolerance epsilon
--define(ACC_TOL, 1.0).
+%% Acceleration tolerance.
+-define(ACCEL_TOLERANCE, 1.0).
