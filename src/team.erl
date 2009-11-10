@@ -144,7 +144,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 														  #chrono_notif.intermediate,
 														  LastLS) of
 										   false ->
-											   {[Chrono, LastLS], {undef, undef}};
+											   {[Chrono | LastLS], {undef, undef}};
 										   OldNotif ->
 											   NS = Chrono#chrono_notif.status,
 											   OS = OldNotif#chrono_notif.status,
