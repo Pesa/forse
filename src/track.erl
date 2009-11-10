@@ -28,11 +28,12 @@ init(TrackConfig, TeamsNum, CarsList)
 		Ph4 = set_chrono_lanes(Ph3),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph4),
 		T = fun() ->
+					mnesia:write_lock_table(track),
 					lists:foreach(fun(Sgm) ->
-										  mnesia:write(track, Sgm, sticky_write)
+										  mnesia:write(track, Sgm, write)
 								  end, SgmList)
 			end,
-		{atomic, ok} = mnesia:sync_transaction(T),
+		{atomic, _} = mnesia:sync_transaction(T),
 		
 		% calculate and store intermediates' indexes
 		F = fun
@@ -392,8 +393,9 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	
 	TabName = ?PREELAB_TABLE(Pilot#pilot.id),
 	T = fun() ->
+				mnesia:write_lock_table(TabName),
 				lists:foreach(fun(Elem) ->
-									  mnesia:write(TabName, Elem, write)
+									  mnesia:write(TabName, Elem, sticky_write)
 							  end, FinalBounds)
 		end,
 	{atomic, _} = mnesia:sync_transaction(T).
@@ -570,7 +572,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 				mnesia:write(track, OldSUpdate, write),
 				mnesia:write(track, NewSUpdate, write)
 		end,
-	{atomic, _} = mnesia:sync_transaction(T),
+	{atomic, ok} = mnesia:sync_transaction(T),
 	
 	% send surpass notification to event_dispatcher
 	SendNotif = fun(Elem) ->
@@ -589,7 +591,7 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 	T = fun() ->
 				mnesia:write(track, SUpdate, write)
 		end,
-	{atomic, _} = mnesia:sync_transaction(T).
+	{atomic, ok} = mnesia:sync_transaction(T).
 
 %% Returns car's status after driving Sgm.
 update_car_status(Status, Sgm) ->
