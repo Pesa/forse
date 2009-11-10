@@ -33,6 +33,15 @@ init(TrackConfig, TeamsNum, CarsList)
 								  end, SgmList)
 			end,
 		{atomic, ok} = mnesia:sync_transaction(T),
+		
+		%% Calculates and stores intermediate indexes
+		F = fun(Elem) ->
+					T = Elem#segment.type,
+					T == intermediate orelse T == finish_line
+			end,
+		FList = lists:keysort(#segment.id, lists:filter(F, SgmList)),
+		Map = map_intermediate(FList),
+		utils:set_setting(intermediate_map, Map),
 		ok
 	catch
 		% TODO
@@ -266,7 +275,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 						   intermediate ->
 							   Msg = #chrono_notif{car = Pilot#pilot.id,
 												   lap = Pilot#pilot.lap,
-												   intermediate = S#segment.id,
+												   intermediate = intermediate_index(S#segment.id),
 												   time = NewCarPos#car_position.exit_t,
 												   max_speed = MaxSpeed,
 												   status = NewCarStatus},
@@ -278,7 +287,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 						   finish_line ->
 							   Msg = #chrono_notif{car = Pilot#pilot.id,
 												   lap = Pilot#pilot.lap + 1,
-												   intermediate = S#segment.id,
+												   intermediate = intermediate_index(S#segment.id),
 												   time = NewCarPos#car_position.exit_t,
 												   max_speed = MaxSpeed,
 												   status = NewCarStatus},
@@ -645,3 +654,28 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
+
+%% Takes as input a segment's id of an intermediate and returns the
+%% its index, finish_line is the intermediate with the maximum index.
+intermediate_index(Id) when is_integer(Id) ->
+	Map = utils:get_setting(intermediate_map),
+	{Id, Index} = lists:keyfind(Id, 1, Map),
+	Index.
+
+%% List in input must be sorted by segment's id
+%% Returns list of {SgmId, Index}
+map_intermediate(List)when is_list(List) ->
+	map_inter_rec(List, 0).
+
+map_inter_rec([H | T], 0) ->
+	I = case H#segment.type == finish_line of
+			false -> 0;
+			true -> 1
+		end,
+	map_inter_rec(lists:append(T, [H]), I);
+
+map_inter_rec([H | T], I) ->
+	[{H#segment.id, I} | map_inter_rec(T, I + 1)];
+
+map_inter_rec([], _I) ->
+	[].
