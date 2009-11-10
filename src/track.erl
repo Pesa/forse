@@ -500,35 +500,26 @@ where_am_i(CarId) when is_integer(CarId) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
-%% Returns the id of the segment which has the minimum bound or 0.
+%% Returns the id of the segment with the minimum
+%% bound value and its associated speed.
 min_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.bound),
-	case R of
-		% FIXME: this should be removed from here and
-		%		 checked when loading the config file
-		error -> {0, track_error}; % no bents or pits in this track!!
-		#speed_bound{sgm_id = Id, bound = B} -> {Id, B}
-	end.
+	{R#speed_bound.sgm_id, R#speed_bound.bound}.
 
-%% Returns the id of the segment which has the minimum pit_bound or 0.
+%% Returns the id of the segment with the minimum
+%% pit_bound value and its associated speed.
 min_pit_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.pit_bound),
-	case R of
-		% FIXME: this should be removed from here and
-		%		 checked when loading the config file
-		error -> {0, track_error}; % no bents or pits in this track!!
-		#speed_bound{sgm_id = Id, pit_bound = B} -> {Id, B}
-	end.
+	{R#speed_bound.sgm_id, R#speed_bound.pit_bound}.
 
-%% Returns speed_bound record that has minimum element in the Index-th
-%% position of the record or 'error'.
+%% Returns the speed_bound record that has the
+%% minimum value in the Index-th position.
 min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
 	Min = min_bound_rec(Tail, Index),
 	if
-		element(Index, Head) == undefined ->
-			Min;
-		Min == error;
-		element(Index, Min) > element(Index, Head) ->
+		Min == error ->
+			Head;
+		element(Index, Head) < element(Index, Min) ->
 			Head;
 		true ->
 			Min
