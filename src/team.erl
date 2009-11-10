@@ -66,10 +66,10 @@ pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount) when is_record(CarSta
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
 update(TeamId, {weather, Delta}) when is_integer(Delta) ->
-	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta}, infinity);
+	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta});
 
 update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
-	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}, infinity).
+	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}).
 
 
 %% ====================================================================
