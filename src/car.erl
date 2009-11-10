@@ -67,7 +67,7 @@ init(Config) ->
 			  end, #pilot{}, Config),
 	% FIXME: remove the following line when switching to ft_gen_server
 	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(State) end),
-	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
+	scheduler:queue_work(0.0, #callback{mod = ?MODULE, func = move,
 									  args = [State#pilot.id]}),
 	{ok, State}.
 

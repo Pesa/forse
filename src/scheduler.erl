@@ -231,7 +231,7 @@ recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Spe
 	Timing;
 recalculate_timer(#timing{timer = Timer, expiry = Expiry}, [{NextTime, _} | _], Speedup) ->
 	?DBG({"adjusting timer to expire at", NextTime}),
-	RemainingTime = erlang:cancel_timer(Timer),
+	RemainingTime = erlang:cancel_timer(Timer) / 1000,
 	SleepAmount = RemainingTime - ((Expiry - NextTime) / Speedup),
 	#timing{timer = start_timer(SleepAmount),
 			start = Expiry - RemainingTime * Speedup,
@@ -247,8 +247,10 @@ reset_timing(#timing{timer = Timer, start = Start}) ->
 		undefined ->
 			ok;
 		_ ->
-			erlang:cancel_timer(Timer),
-			?DBG("timer canceled.")
+			case erlang:cancel_timer(Timer) of
+				false -> ok;
+				_ -> ?DBG("timer canceled.")
+			end
 	end,
 	#timing{start = Start}.
 
