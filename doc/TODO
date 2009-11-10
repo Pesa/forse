@@ -13,6 +13,6 @@
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
 - tuning delle macro costanti in config.hrl
-- mostrare l'indice corretto per gli intermedi, non quello del segmento
 - la decelerazione dev'essere negativa
 	=> per ora workaround: nel file di conf si mette un valore negativo per brake
+- controllare che Speedup sia > 0
