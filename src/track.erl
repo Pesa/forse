@@ -34,12 +34,13 @@ init(TrackConfig, TeamsNum, CarsList)
 			end,
 		{atomic, ok} = mnesia:sync_transaction(T),
 		
-		%% Calculates and stores intermediate indexes
-		F = fun(#segment{type = X}) ->
-					X == intermediate orelse X == finish_line
+		% calculate and store intermediates' indexes
+		F = fun
+			   (#segment{type = intermediate}) -> true;
+			   (#segment{type = finish_line}) -> true;
+			   (_) -> false
 			end,
-		FList = lists:keysort(#segment.id, lists:filter(F, SgmList)),
-		Map = map_intermediate(FList),
+		Map = build_intermediate_map(lists:filter(F, SgmList)),
 		utils:set_setting(intermediate_map, Map),
 		ok
 	catch
@@ -655,27 +656,24 @@ is_pit_area(#segment{type = pre_pitstop}) ->
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
 
-%% Takes as input a segment's id of an intermediate and returns the
-%% its index, finish_line is the intermediate with the maximum index.
+%% Takes the id of an intermediate segment as input and returns its
+%% index. The finish line is the intermediate with the maximum index.
 intermediate_index(Id) when is_integer(Id) ->
 	Map = utils:get_setting(intermediate_map),
 	{Id, Index} = lists:keyfind(Id, 1, Map),
 	Index.
 
-%% List in input must be sorted by segment's id
-%% Returns list of {SgmId, Index}
-map_intermediate(List)when is_list(List) ->
-	map_inter_rec(List, 0).
+%% Returns a list of {SgmId, Index} tuples.
+build_intermediate_map(List) ->
+	build_intermediate_map(lists:keysort(#segment.id, List), 0).
 
-map_inter_rec([H | T], 0) ->
-	I = case H#segment.type == finish_line of
-			false -> 0;
-			true -> 1
+build_intermediate_map([H | T], 0) ->
+	I = case H#segment.type of
+			finish_line -> 1;
+			_ -> 0
 		end,
-	map_inter_rec(T ++ [H], I);
-
-map_inter_rec([H | T], I) ->
-	[{H#segment.id, I} | map_inter_rec(T, I + 1)];
-
-map_inter_rec([], _I) ->
+	build_intermediate_map(T ++ [H], I);
+build_intermediate_map([H | T], I) ->
+	[{H#segment.id, I} | build_intermediate_map(T, I + 1)];
+build_intermediate_map([], _I) ->
 	[].
