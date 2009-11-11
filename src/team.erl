@@ -65,10 +65,10 @@ force_pitstop(TeamId, CarId) ->
 pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount) when is_record(CarStatus, car_status) ->
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
-update(TeamId, {weather, Delta}) when is_integer(Delta) ->
+update(TeamId, {update, {weather, Delta}}) when is_integer(Delta) ->
 	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta});
 
-update(TeamId, {chrono, Notif}) when is_record(Notif, chrono_notif) ->
+update(TeamId, {update, {chrono, Notif}}) when is_record(Notif, chrono_notif) ->
 	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}).
 
 
@@ -127,6 +127,7 @@ handle_call({weather_update, Delta}, _From, State) ->
 	{reply, ok, State#state{rain_sum = RainSum}};
 
 handle_call({chrono_update, Chrono}, _From, State) ->
+	?DBG("received chrono update."),
 	
 	% Phase 1: update the status %
 	
@@ -171,6 +172,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 	if
 		CS#car_status.tyres_type /= BestTyres ->
 			% schedule a pitstop for the current lap
+			?DBG({"scheduling an immediate pitstop for car", Chrono#chrono_notif.car}),
 			car:set_next_pitstop(Chrono#chrono_notif.car,
 								 #next_pitstop{lap = Chrono#chrono_notif.lap,
 											   stops_count = PSCount});
@@ -182,10 +184,13 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio, NewState),
 			case is_number(Next) of
 				true ->
-					car:set_next_pitstop(Chrono#chrono_notif.car,
-										 #next_pitstop{lap = Chrono#chrono_notif.lap + Next,
-													   stops_count = PSCount});
-				false -> % not enough information
+					CarId = Chrono#chrono_notif.car,
+					PSLap = Chrono#chrono_notif.lap + Next,
+					?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
+					car:set_next_pitstop(CarId, #next_pitstop{lap = PSLap,
+															  stops_count = PSCount});
+				false ->
+					% not enough information
 					ok
 			end
 	end,

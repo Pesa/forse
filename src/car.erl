@@ -150,6 +150,7 @@ handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->
 	NewState = if
 				   State#pilot.pitstop_count /= SC ->
 					   % the message is obsolete: ignore it
+					   ?DBG("ignoring obsolete next_pitstop message."),
 					   State;
 				   OldStop == -1;
 				   OldStop > Lap;

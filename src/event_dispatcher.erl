@@ -82,16 +82,16 @@ handle_call({subscribe, Service, Callback}, _From, State) ->
 	end;
 
 % Race notifications
-handle_call(Msg, _From, State) when is_record(Msg, chrono_notif)->
+handle_call(Msg, _From, State) when is_record(Msg, chrono_notif) ->
 	internal_dispatching(Msg, ?CHRONO_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
 	internal_dispatching(Msg, ?PITSTOP_OBS),
 	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, surpass_notif)->
+handle_call(Msg, _From, State) when is_record(Msg, surpass_notif) ->
 	internal_dispatching(Msg, ?SURPASS_OBS),
 	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, retire_notif)->
+handle_call(Msg, _From, State) when is_record(Msg, retire_notif) ->
 	internal_dispatching(Msg, ?RETIRE_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
@@ -165,7 +165,7 @@ do_notify(Msg, Callbacks) when is_list(Callbacks) ->
 		  end,
 	lists:reverse(lists:foldl(Fun, [], Callbacks)).
 
-% Casts Msg to each (globally-registered) process in the Destinations list.
+% Casts Msg to each process in the Destinations list.
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
 	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).
 
