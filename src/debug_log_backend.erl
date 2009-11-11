@@ -121,4 +121,4 @@ to_string(#weather_notif{changes = Changes}) ->
 				"\t" ++ integer_to_list(New) ++ " in segment "
 					++ integer_to_list(S) ++ "\n" ++ Acc
 		end,
-	"Weather changed to:\n" ++ lists:foldl(F, "", Changes).
+	"\nWeather changed to:\n" ++ lists:foldl(F, "", Changes).
