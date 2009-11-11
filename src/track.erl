@@ -16,15 +16,15 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table and a few settings.
-init(TrackConfig, TeamsNum, CarsList)
-  when is_list(TrackConfig), is_integer(TeamsNum), is_list(CarsList) ->
+init(TrackConfig, TeamsList, CarsList)
+  when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
 		{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
 		Ph1 = lists:flatten(Ph0),
 		{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 		Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
 		utils:set_setting(sgm_number, length(Ph2)),
-		Ph3 = build_pit_area(Ph2, Pit, TeamsNum),
+		Ph3 = build_pit_area(Ph2, Pit, TeamsList),
 		Ph4 = set_chrono_lanes(Ph3),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph4),
 		T = fun() ->
@@ -92,13 +92,13 @@ sector_to_segments(Template, Start, Stop) when Start < Stop ->
 sector_to_segments(_Template, Start, Start) ->
 	[].
 
-build_pit_area(List, Index, Teams) ->
+build_pit_area(List, Index, TeamsList) ->
 	PrePit = 40,
 	Pit = 10,
 	PostPit = 40,
 	{T1, N1} = set_sgm_type(pre_pitlane, Index, PrePit, List),
 	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
-	{T3, N3} = build_pitstop(N2, Teams, T2),
+	{T3, N3} = build_pitstop(N2, TeamsList, T2),
 	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
 	{T5, _N5} = set_sgm_type(post_pitlane, N4, PostPit, T4),
 	T5.
@@ -135,12 +135,22 @@ max_lane(Type, #segment{max_lane = L}) ->
 			L
 	end.
 
-build_pitstop(Start, 0, SgmList) ->
+build_pitstop(Start, TeamList, SgmList) ->
+	SN = utils:get_setting(sgm_number),
+	build_pitstop_rec(Start, TeamList, SgmList, SN).
+
+build_pitstop_rec(Start, [], SgmList, _SN) ->
 	{SgmList, Start};
-build_pitstop(Start, Num, SgmList) ->
+build_pitstop_rec(Start, [H | T], SgmList, SN) ->
 	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
+	PitId = prev_segment(N1, SN),
+	F = fun() ->
+				[CT] = mnesia:wread({car_type, H}),
+				mnesia:write(car_type, CT#car_type{pitstop_sgm = PitId}, write)
+		end,
+	{atomic, ok} = mnesia:transaction(F),
 	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
-	build_pitstop(N2, Num - 1, L2).
+	build_pitstop_rec(N2, T, L2, SN).
 
 set_chrono_lanes(List) ->
 	Pred = fun(S) ->
