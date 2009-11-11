@@ -123,7 +123,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 			% setup applications' configurations
 			Dispatcher = [],
 			Scheduler = [{speedup, Speedup}],
-			{Teams, Cars, CarsIDs} = split_config(State#state.teams_config),
+			{Teams, TeamsIDs, Cars, CarsIDs} = split_config(State#state.teams_config),
 			Weather = State#state.weather_config,
 			
 			% mnesia database initialization
@@ -162,7 +162,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 			
 			% track & settings initialization
 			% FIXME: change this when track becomes a gen_server
-			rpc:call(Master, track, init, [State#state.track_config, State#state.num_teams, CarsIDs]),
+			rpc:call(Master, track, init, [State#state.track_config, TeamsIDs, CarsIDs]),
 			rpc:call(Master, utils, set_setting, [total_laps, Laps]),
 			
 			{stop, normal, ok, State#state{bootstrapped = true}};
@@ -315,8 +315,8 @@ split_config(Config) ->
 							 false -> throw(car_id_not_found)
 						 end
 				 end,
-	{_, T, C} = lists:foldl(Split, {1, [], []}, Config),
-	{T, C, lists:map(ExtractIDs, C)}.
+	{N, T, C} = lists:foldl(Split, {1, [], []}, Config),
+	{T, lists:seq(1, N - 1), C, lists:map(ExtractIDs, C)}.
 
 start_apps([AppSpec | SpecsTail], [MainNode | NodesTail], Nodes) ->
 	FailoverNodes = lists:delete(MainNode, Nodes),
