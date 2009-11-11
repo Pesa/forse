@@ -49,10 +49,12 @@
 start() ->
 	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
 
-add_node(SupportedApps) when is_list(SupportedApps) ->
+add_node(SupportedApps)
+  when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
-bootstrap(Laps, Speedup) when is_integer(Laps), is_number(Speedup) ->
+bootstrap(Laps, Speedup)
+  when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
 
 read_config_files(TeamsFile, TrackFile, WeatherFile)

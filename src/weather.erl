@@ -27,7 +27,7 @@
 start_link(Config) when is_list(Config) ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Config, []).
 
-apply_change(_Time, NewWeather) ->
+apply_change(_Time, NewWeather) when is_list(NewWeather) ->
 	gen_server:call(?GLOBAL_NAME, {apply_change, NewWeather}, infinity).
 
 schedule_change(When, NewWeather) when is_list(NewWeather) ->
@@ -60,7 +60,7 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({apply_change, PerSectorWeather}, _From, State) ->
+handle_call({apply_change, NewWeatherList}, _From, State) ->
 	ChSect = fun({SectId, NewWeather}, Acc) ->
 					 ChSgm = fun(SgmId) ->
 									 % update the weather in one segment
@@ -89,7 +89,7 @@ handle_call({apply_change, PerSectorWeather}, _From, State) ->
 				% invalidate the pre-elaboration for every pilot
 				mnesia:foldl(Invalidate, 0, pilot, write),
 				% apply the weather changes for each sector
-				lists:foldl(ChSect, [], PerSectorWeather)
+				lists:foldl(ChSect, [], NewWeatherList)
 		end,
 	case mnesia:sync_transaction(T) of
 		{atomic, Changes} ->

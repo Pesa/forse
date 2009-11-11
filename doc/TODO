@@ -1,7 +1,7 @@
 - fare GUI per il bootstrap_server
 - fare GUI e backends per weather, race_info e teams
 - GUI debug_log: generalizzare le parti hard-coded
-- dare priorita' ai TODO/FIXME nel codice
+- TODO/FIXME nel codice
 - come ci accorgiamo che finisce la gara?
 	Una possibile soluzione sarebbe mantenere un contatore della auto in gara
 	gestito da track che lo inizializza nella init e lo decrementa nella funzione remove_car
@@ -15,4 +15,3 @@
 - tuning delle macro costanti in config.hrl
 - la decelerazione dev'essere negativa
 	=> per ora workaround: nel file di conf si mette un valore negativo per brake
-- controllare che Speedup sia > 0

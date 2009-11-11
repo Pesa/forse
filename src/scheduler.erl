@@ -36,10 +36,10 @@
 %% External functions
 %% ====================================================================
 
-start_link(Speedup) when is_number(Speedup) ->
+start_link(Speedup) when is_number(Speedup), Speedup > 0 ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Speedup, []).
 
-set_speedup(NewSpeedup) when is_number(NewSpeedup) ->
+set_speedup(NewSpeedup) when is_number(NewSpeedup), NewSpeedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
 
 start_simulation() ->
