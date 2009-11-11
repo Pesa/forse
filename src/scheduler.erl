@@ -229,13 +229,19 @@ recalculate_timer(#timing{timer = undefined, start = Start}, [{NextTime, _} | _]
 	new_timer(Start, NextTime, Speedup);
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Speedup) ->
 	Timing;
-recalculate_timer(#timing{timer = Timer, expiry = Expiry}, [{NextTime, _} | _], Speedup) ->
-	?DBG({"adjusting timer to expire at", NextTime}),
-	RemainingTime = erlang:cancel_timer(Timer) / 1000,
-	SleepAmount = RemainingTime - ((Expiry - NextTime) / Speedup),
-	#timing{timer = start_timer(SleepAmount),
-			start = Expiry - RemainingTime * Speedup,
-			expiry = NextTime}.
+recalculate_timer(#timing{timer = Timer, expiry = Expiry} = Timing, [{NextTime, _} | _], Speedup) ->
+	case erlang:cancel_timer(Timer) of
+		false ->
+			?DBG("not adjusting an already expired timer."),
+			Timing;
+		RemainingTime ->
+			?DBG({"adjusting timer to expire at", NextTime}),
+			% RemainingTime is expressed in milliseconds
+			SleepAmount = RemainingTime / 1000 - (Expiry - NextTime) / Speedup,
+			#timing{timer = start_timer(SleepAmount),
+					start = Expiry - RemainingTime / 1000 * Speedup,
+					expiry = NextTime}
+	end.
 
 % Starts a timer which fires after SleepAmount seconds.
 start_timer(SleepAmount) ->
