@@ -6,7 +6,8 @@
 		 sgm_max_speed/3,
 		 engine_max_speed/1,
 		 acceleration/5,
-		 deg_to_rad/1]).
+		 deg_to_rad/1,
+		 get_car_ahead/3]).
 
 -include("db_schema.hrl").
 

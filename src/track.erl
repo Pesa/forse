@@ -243,10 +243,18 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
 										  Pilot#pilot.lap, Pilot#pilot.pitstop_count),
 			PitstopTime = pitstop_time(Ops),
-			
+			%% Check if there's another car using pitsop
+			CarBoxPos = physics:get_car_ahead(S, ExitLane, 1),
+			CPExitTime = CarPos#car_position.exit_t,
+			ETime = case CarBoxPos of
+						null ->
+							CPExitTime;
+						_ ->
+							erlang:max(CPExitTime, CarBoxPos#car_position.exit_t)
+					end,
 			NewCarPos = CarPos#car_position{speed = 0,
-											enter_t = CarPos#car_position.exit_t,
-											exit_t = CarPos#car_position.exit_t + PitstopTime,
+											enter_t = CPExitTime,
+											exit_t = ETime + PitstopTime,
 											enter_lane = EnterLane,
 											exit_lane = ExitLane},
 			
