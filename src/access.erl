@@ -7,9 +7,9 @@
 -include("db_schema.hrl").
 
 
-%%
+%% ====================================================================
 %% API Functions
-%%
+%% ====================================================================
 
 % Checks if Pilot can move from EnterLane to ExitLane in Sgm.
 % Returns: 'go' | 'pits' | {fail, Reason}

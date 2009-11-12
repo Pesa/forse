@@ -16,17 +16,30 @@
 -define(DBG(Msg), true).
 -endif.
 
+%%% =============================
+%%%  Common types specifications
+%%% =============================
+
+-type car() :: pos_integer().
+-type rain_amount() :: 0..10.
+-type sgm_id() :: non_neg_integer().
+-type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane' | 'pitlane'
+					| 'pitstop' | 'intermediate' | 'finish_line'.
+-type tyres() :: 'slick' | 'intermediate' | 'wet'.
+
 %%% ==========================================
 %%%  Global messages and notifications format
 %%% ==========================================
 
 %% ------------------------------------------------------------
 %% callback
-%% mod: module's name (atom)
-%% func: function's name (atom), must belong to mod
+%% mod: module's name
+%% func: function's name, must belong to mod
 %% args: list of arguments to mod:func
 %% ------------------------------------------------------------
--record(callback, {mod, func, args}).
+-record(callback, {mod	:: module(),
+				   func	:: atom(),
+				   args	:: [term()]}).
 
 %% ------------------------------------------------------------
 %% car_status
@@ -34,19 +47,18 @@
 %% tyres_consumption: how much the tyres have been worn out
 %%					  (float from 0 to 100)
 %% tyres_type: type of car's tyres
-%%			   ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
--record(car_status, {fuel = ?TANK_DIM,
-					 tyres_consumption = 0.0,
-					 tyres_type = slick}).
+-record(car_status, {fuel				= ?TANK_DIM	:: float(),
+					 tyres_consumption	= 0.0		:: float(),
+					 tyres_type			= slick		:: tyres()}).
 
 %% ------------------------------------------------------------
 %% pitstop_ops
 %% fuel: amount of fuel added
 %% tyres: type of tyres installed
-%%		  ('slick' | 'intermediate' | 'wet')
 %% ------------------------------------------------------------
--record(pitstop_ops, {fuel, tyres}).
+-record(pitstop_ops, {fuel	:: float(),
+					  tyres	:: tyres()}).
 
 %% ------------------------------------------------------------
 %% next_pitstop
@@ -54,7 +66,8 @@
 %% stops_count: number of pit stops the car had done when this
 %%				message was sent, according to the team
 %% ------------------------------------------------------------
--record(next_pitstop, {lap, stops_count}).
+-record(next_pitstop, {lap			:: non_neg_integer(),
+					   stops_count	:: non_neg_integer()}).
 
 %% ------------------------------------------------------------
 %% chrono_notif
@@ -65,41 +78,36 @@
 %% max_speed: maximum speed (in m/s) reached by the car in the intermediate
 %% status: car status at the end of the intermediate
 %% ------------------------------------------------------------
--record(chrono_notif, {car,
-					   lap,
-					   intermediate,
-					   time,
-					   max_speed,
-					   status = #car_status{}}).
+-record(chrono_notif, {car			:: car(),
+					   lap			:: non_neg_integer(),
+					   intermediate	:: pos_integer(),
+					   time			:: float(),
+					   max_speed	:: float(),
+					   status		= #car_status{}	:: #car_status{}}).
 
 %% ------------------------------------------------------------
 %% pitstop_notif
 %% car: ID of the car this notification refers to
 %% ops: operations executed on the car
 %% ------------------------------------------------------------
--record(pitstop_notif, {car,
-						ops = #pitstop_ops{}}).
+-record(pitstop_notif, {car						:: car(),
+						ops	= #pitstop_ops{}	:: #pitstop_ops{}}).
 
 %% ------------------------------------------------------------
 %% surpass_notif
 %% surpasser: ID of the surpassing car
 %% surpassed: ID of the surpassed car
 %% ------------------------------------------------------------
--record(surpass_notif, {surpasser, surpassed}).
+-record(surpass_notif, {surpasser	:: car(),
+						surpassed	:: car()}).
 
 %% ------------------------------------------------------------
 %% retire_notif
 %% car: ID of the retired car
 %% reason: reason for retirement
 %% ------------------------------------------------------------
--record(retire_notif, {car, reason}).
-
-%% ------------------------------------------------------------
-%% weather_notif
-%% changes: list of weather_change records containing
-%%			information about weather changes
-%% ------------------------------------------------------------
--record(weather_notif, {changes = []}).
+-record(retire_notif, {car		:: car(),
+					   reason	:: atom()}).
 
 %% ------------------------------------------------------------
 %% weather_change
@@ -107,4 +115,13 @@
 %% old_weather: how the weather was like before this change
 %% new_weather: how the weather is like after this change
 %% ------------------------------------------------------------
--record(weather_change, {segment, old_weather, new_weather}).
+-record(weather_change, {segment		:: non_neg_integer(),
+						 old_weather	:: rain_amount(),
+						 new_weather	:: rain_amount()}).
+
+%% ------------------------------------------------------------
+%% weather_notif
+%% changes: list of weather_change records containing
+%%			information about weather changes
+%% ------------------------------------------------------------
+-record(weather_notif, {changes	= []	:: [#weather_change{}]}).

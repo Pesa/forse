@@ -12,35 +12,33 @@
 %% speed: exit speed
 %% lane: exit lane
 %% --------------------------------------------------
--record(car_position,{car_id,
-					  enter_t = 0.0,
-					  exit_t = 0.0,
-					  speed = 0.0,
-					  enter_lane,
-					  exit_lane}).
+-record(car_position,{car_id			:: car(),
+					  enter_t	= 0.0	:: float(),
+					  exit_t	= 0.0	:: float(),
+					  speed		= 0.0	:: float(),
+					  enter_lane		:: integer(),
+					  exit_lane			:: integer()}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier
-%% type: segment's type, can be one of the following atoms:
-%%			normal | pre_pitlane | post_pitlane |
-%%			pitlane | pitstop | intermediate | finish_line
+%% type: segment's type
 %% min_lane: minimum lane index
 %% max_lane: maximum lane index
 %% length: the length of the segment
 %% inclination: in degrees
 %% rain: integer from 0 (sun) to 10 (heavy rain)
 %% curvature: radius of curvature
-%% queued_cars: list of car_position records
+%% queued_cars: list of cars queued in this segment
 %% --------------------------------------------------
--record(segment,{id,
-				 type,
-				 min_lane,
-				 max_lane,
-				 length = 0,
-				 inclination = 0.0,
-				 rain = 0,
-				 curvature = 0.0,
-				 queued_cars = []}).
+-record(segment,{id						:: sgm_id(),
+				 type					:: sgm_type(),
+				 min_lane				:: integer(),
+				 max_lane				:: integer(),
+				 length			= 0		:: non_neg_integer(),
+				 inclination	= 0.0	:: float(),
+				 rain			= 0		:: rain_amount(),
+				 curvature		= 0.0	:: float(),
+				 queued_cars	= []	:: [#car_position{}]}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier
@@ -57,20 +55,20 @@
 %% pitstop_count: number of pit stops the car has done
 %% run_preelab: set to true when the pre-elaboration phase must be re-run
 %% --------------------------------------------------
--record(pilot,{id,
-			   name,
-			   skill,
-			   weight,
-			   team,
-			   car_status = #car_status{},
-			   lap = 0,
-			   segment = 0,
-			   lane,
-			   max_speed = 0.0,
-			   next_pitstop = -1,
-			   pitstop_count = 0,
-			   retire = false,
-			   run_preelab = true}).
+-record(pilot,{id							:: car(),
+			   name							:: string(),
+			   skill						:: integer(),
+			   weight						:: float(),
+			   team							:: pos_integer(),
+			   car_status		= #car_status{}	:: #car_status{},
+			   lap				= 0			:: non_neg_integer(),
+			   segment			= 0			:: sgm_id(),
+			   lane							:: integer(),
+			   max_speed		= 0.0		:: float(),
+			   next_pitstop		= -1		:: integer(),
+			   pitstop_count	= 0			:: non_neg_integer(),
+			   retire			= false		:: boolean(),
+			   run_preelab		= true		:: boolean()}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier
@@ -80,12 +78,12 @@
 %% weight: car's weight (excluding fuel)
 %% pitstop_sgm: id of the segment containing the team's pits
 %% --------------------------------------------------
--record(car_type,{id,
-				  team_name,
-				  brake,
-				  power,
-				  weight,
-				  pitstop_sgm}).
+-record(car_type,{id			:: pos_integer(),
+				  team_name		:: string(),
+				  brake			:: float(),
+				  power			:: float(),
+				  weight		:: float(),
+				  pitstop_sgm	:: sgm_id()}).
 
 %% --------------------------------------------------
 %% smg_id: id of the segment
@@ -93,9 +91,10 @@
 %% pit_bound: same as bound, but it's applied only when
 %%			  driving through the pitlane
 %% --------------------------------------------------
--record(speed_bound,{sgm_id,
-					 bound,
-					 pit_bound}).
+-record(speed_bound,{sgm_id		:: sgm_id(),
+					 bound		:: float(),
+					 pit_bound	:: float()}).
 
 %% --------------------------------------------------
--record(setting, {key, value}).
+-record(setting, {key	:: atom(),
+				  value	:: term()}).
