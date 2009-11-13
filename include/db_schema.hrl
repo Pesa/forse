@@ -12,12 +12,12 @@
 %% speed: exit speed
 %% lane: exit lane
 %% --------------------------------------------------
--record(car_position,{car_id			:: car(),
-					  enter_t	= 0.0	:: float(),
-					  exit_t	= 0.0	:: float(),
-					  speed		= 0.0	:: float(),
-					  enter_lane		:: integer(),
-					  exit_lane			:: integer()}).
+-record(car_position,{car_id				:: car(),
+					  enter_t		= 0.0	:: float(),
+					  exit_t		= 0.0	:: float(),
+					  speed			= 0.0	:: float(),
+					  enter_lane			:: integer(),
+					  exit_lane				:: integer()}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier
@@ -55,20 +55,20 @@
 %% pitstop_count: number of pit stops the car has done
 %% run_preelab: set to true when the pre-elaboration phase must be re-run
 %% --------------------------------------------------
--record(pilot,{id							:: car(),
-			   name							:: string(),
-			   skill						:: integer(),
-			   weight						:: float(),
-			   team							:: pos_integer(),
+-record(pilot,{id								:: car(),
+			   name								:: string(),
+			   skill							:: integer(),
+			   weight							:: float(),
+			   team								:: pos_integer(),
 			   car_status		= #car_status{}	:: #car_status{},
-			   lap				= 0			:: non_neg_integer(),
-			   segment			= 0			:: sgm_id(),
-			   lane							:: integer(),
-			   max_speed		= 0.0		:: float(),
-			   next_pitstop		= -1		:: integer(),
-			   pitstop_count	= 0			:: non_neg_integer(),
-			   retire			= false		:: boolean(),
-			   run_preelab		= true		:: boolean()}).
+			   lap				= 0				:: non_neg_integer(),
+			   segment			= 0				:: sgm_id(),
+			   lane								:: integer(),
+			   max_speed		= 0.0			:: float(),
+			   next_pitstop		= -1			:: integer(),
+			   pitstop_count	= 0				:: non_neg_integer(),
+			   retire			= false			:: boolean(),
+			   run_preelab		= true			:: boolean()}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier

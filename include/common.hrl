@@ -47,8 +47,7 @@
 %% ------------------------------------------------------------
 %% car_status
 %% fuel: amount of fuel left
-%% tyres_consumption: how much the tyres have been worn out
-%%					  (float from 0 to 100)
+%% tyres_consumption: how much the tyres have been worn out (from 0.0 to 100.0)
 %% tyres_type: type of car's tyres
 %% ------------------------------------------------------------
 -record(car_status, {fuel				= ?TANK_DIM	:: float(),
@@ -81,12 +80,20 @@
 %% max_speed: maximum speed (in m/s) reached by the car in the intermediate
 %% status: car status at the end of the intermediate
 %% ------------------------------------------------------------
--record(chrono_notif, {car			:: car(),
-					   lap			:: non_neg_integer(),
-					   intermediate	:: pos_integer(),
-					   time			:: float(),
-					   max_speed	:: float(),
+-record(chrono_notif, {car							:: car(),
+					   lap							:: non_neg_integer(),
+					   intermediate					:: pos_integer(),
+					   time							:: float(),
+					   max_speed					:: float(),
 					   status		= #car_status{}	:: #car_status{}}).
+
+%% ------------------------------------------------------------
+%% config_notif
+%% app: name of the application this notification refers to
+%% config: application's configuration
+%% ------------------------------------------------------------
+-record(config_notif, {app		:: atom(),
+					   config	:: conflist()}).
 
 %% ------------------------------------------------------------
 %% pitstop_notif
@@ -124,13 +131,12 @@
 %% old_weather: how the weather was like before this change
 %% new_weather: how the weather is like after this change
 %% ------------------------------------------------------------
--record(weather_change, {segment		:: non_neg_integer(),
+-record(weather_change, {segment		:: sgm_id(),
 						 old_weather	:: rain_amount(),
 						 new_weather	:: rain_amount()}).
 
 %% ------------------------------------------------------------
 %% weather_notif
-%% changes: list of weather_change records containing
-%%			information about weather changes
+%% changes: information about weather changes
 %% ------------------------------------------------------------
 -record(weather_notif, {changes	= []	:: [#weather_change{}]}).
