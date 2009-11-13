@@ -23,6 +23,7 @@
 -type car() :: pos_integer().
 -type conf() :: {Key :: atom(), Value :: term()}.
 -type conflist() :: [conf()].
+-type race_event() :: 'started' | 'paused' | 'resumed' | 'ended'.
 -type rain_amount() :: 0..10.
 -type sgm_id() :: non_neg_integer().
 -type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane' | 'pitlane'
@@ -94,6 +95,12 @@
 %% ------------------------------------------------------------
 -record(pitstop_notif, {car						:: car(),
 						ops	= #pitstop_ops{}	:: #pitstop_ops{}}).
+
+%% ------------------------------------------------------------
+%% race_notif
+%% event: what happened
+%% ------------------------------------------------------------
+-record(race_notif, {event	:: race_event()}).
 
 %% ------------------------------------------------------------
 %% surpass_notif
