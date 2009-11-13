@@ -261,14 +261,9 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			% update car_position in track table
 			move_car(SOld, S, NewCarPos),
 			Fuel = CarStatus#car_status.fuel + Ops#pitstop_ops.fuel,
-			NewCarStatus = case Ops#pitstop_ops.tyres == null of
-							   true ->
-								   CarStatus#car_status{fuel = Fuel};
-							   false ->
-								   #car_status{fuel = Fuel,
-											   tyres_consumption = 0.0,
-											   tyres_type = Ops#pitstop_ops.tyres}
-						   end,
+			NewCarStatus = #car_status{fuel = Fuel,
+									   tyres_consumption = 0.0,
+									   tyres_type = Ops#pitstop_ops.tyres},
 			NewPilot = Pilot#pilot{segment = Sgm,
 								   lane = ExitLane,
 								   car_status = NewCarStatus,
