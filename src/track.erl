@@ -603,9 +603,18 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 								  S#segment.queued_cars),
 	SUpdate = S#segment{queued_cars = QueueUpdate},
 	T = fun() ->
-				mnesia:write(track, SUpdate, write)
+				Num = utils:get_setting(running_cars),
+				mnesia:write(track, SUpdate, write),
+				utils:set_setting(running_cars, Num - 1),
+				Num - 1
 		end,
-	{atomic, ok} = mnesia:sync_transaction(T).
+	{atomic, Left} = mnesia:sync_transaction(T),
+	case Left of
+		0 ->
+			event_dispatcher:notify(#race_notif{event = finished});
+		_ ->
+			ok
+	end.
 
 %% Returns car's status after driving Sgm.
 update_car_status(Status, Sgm) ->
