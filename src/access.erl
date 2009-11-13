@@ -12,9 +12,12 @@
 %% ====================================================================
 
 % Checks if Pilot can move from EnterLane to ExitLane in Sgm.
-% Returns: 'go' | 'pits' | {fail, Reason}
-check_move(Pilot, Sgm, EnterLane, ExitLane, Pit) when is_record(Pilot, pilot),
-													  is_record(Sgm, segment) ->
+
+-spec check_move(#pilot{}, #segment{}, integer(), integer(), boolean()) ->
+				'go' | 'pits' | {fail, Reason :: atom()}.
+
+check_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
+  when is_record(Pilot, pilot), is_record(Sgm, segment) ->
 	MaxL = Sgm#segment.max_lane,
 	MinL = Sgm#segment.min_lane,
 	Type = Sgm#segment.type,
