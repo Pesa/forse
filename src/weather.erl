@@ -82,17 +82,23 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 							 mnesia:abort("invalid sector " ++ integer_to_list(SectId))
 					 end
 			 end,
-	Invalidate = fun(Pilot, _) ->
-						 mnesia:write(Pilot#pilot{run_preelab = true})
-				 end,
+	GetPilots = fun(Pilot, Acc) ->
+						[Pilot#pilot.id | Acc]
+				end,
 	T = fun() ->
-				% invalidate the pre-elaboration for every pilot
-				mnesia:foldl(Invalidate, 0, pilot, write),
+				% build a list containing the IDs of all pilots
+				Pilots = mnesia:foldl(GetPilots, [], pilot),
 				% apply the weather changes for each sector
-				lists:foldl(ChSect, [], NewWeatherList)
+				Changes = lists:foldl(ChSect, [], NewWeatherList),
+				{Pilots, Changes}
 		end,
 	case mnesia:sync_transaction(T) of
-		{atomic, Changes} ->
+		{atomic, {Pilots, Changes}} ->
+			% invalidate the pre-elaboration for every pilot
+			lists:foreach(fun(Id) ->
+								  car:invalidate_preelab(Id)
+						  end, Pilots),
+			% send the notification
 			event_dispatcher:notify(#weather_notif{changes = Changes});
 		{aborted, Reason} ->
 			?ERR({"failed to change weather", Reason})

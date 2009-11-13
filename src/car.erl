@@ -6,8 +6,8 @@
 -export([start_link/1,
 		 move/2,
 		 retire/1,
-		 set_next_pitstop/2,
-		 invalidate_preelab/1]).
+		 invalidate_preelab/1,
+		 set_next_pitstop/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -36,11 +36,12 @@ move(_Time, CarId) ->
 retire(CarId) ->
 	gen_server:call(?CAR_NAME(CarId), retire, infinity).
 
+invalidate_preelab(CarId) ->
+	gen_server:call(?CAR_NAME(CarId), invalidate_preelab, infinity).
+
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:call(?CAR_NAME(CarId), PitStop, infinity).
 
-invalidate_preelab(CarId) ->
-	gen_server:call(?CAR_NAME(CarId), set_preelab_true, infinity).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -146,7 +147,7 @@ handle_call(move, _From, State) ->
 handle_call(retire, _From, State) ->
 	{reply, ok, State#pilot{retire = true}};
 
-handle_call(set_preelab_true, _From, State) ->
+handle_call(invalidate_preelab, _From, State) ->
 	{reply, ok, State#pilot{run_preelab = true}};
 
 handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->

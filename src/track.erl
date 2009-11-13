@@ -385,6 +385,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 %% Calculates the maximum speed that Pilot's car
 %% can reach in each segment of the track.
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
+	?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
 	Mass = Car#car_type.weight + Pilot#pilot.weight
