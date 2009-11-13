@@ -182,16 +182,16 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 			TS = CS#car_status.tyres_consumption,
 			FS = CS#car_status.fuel,
 			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio, NewState),
-			case is_number(Next) of
-				true ->
+			case Next of
+				undef ->
+					% not enough information
+					ok;
+				_ ->
 					CarId = Chrono#chrono_notif.car,
 					PSLap = Chrono#chrono_notif.lap + Next,
 					?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
 					car:set_next_pitstop(CarId, #next_pitstop{lap = PSLap,
-															  stops_count = PSCount});
-				false ->
-					% not enough information
-					ok
+															  stops_count = PSCount})
 			end
 	end,
 	{reply, ok, NewState};
@@ -291,6 +291,8 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
 	Fun = fun({Left, Ratio}) ->
 				  if
+					  Ratio == undef ->
+						  undef;
 					  Left > 0 ->
 						  trunc(Left / Ratio);
 					  true ->
