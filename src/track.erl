@@ -252,7 +252,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 						_ ->
 							erlang:max(CPExitTime, CarBoxPos#car_position.exit_t)
 					end,
-			NewCarPos = CarPos#car_position{speed = 0,
+			NewCarPos = CarPos#car_position{speed = 0.0,
 											enter_t = CPExitTime,
 											exit_t = ETime + PitstopTime,
 											enter_lane = EnterLane,
@@ -302,7 +302,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 							   Pilot#pilot{segment = Sgm,
 										   lane = ExitLane,
 										   car_status = NewCarStatus,
-										   max_speed = 0};
+										   max_speed = 0.0};
 						   finish_line ->
 							   Msg = #chrono_notif{car = Pilot#pilot.id,
 												   lap = Pilot#pilot.lap,
@@ -315,7 +315,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 										   lap = Pilot#pilot.lap + 1,
 										   lane = ExitLane,
 										   car_status = NewCarStatus,
-										   max_speed = 0,
+										   max_speed = 0.0,
 										   run_preelab = true};
 						   _ ->
 							   Pilot#pilot{segment = Sgm,
