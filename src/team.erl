@@ -198,7 +198,13 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 
 handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
-	BestTyres = best_tyres(AvgRain, ?TYRES_SPECS),
+	BestTyres = case best_tyres(AvgRain, ?TYRES_SPECS) of
+					null ->
+						% No appropriate tyres_type found
+						CarStatus#car_status.tyres_type;
+					Else ->
+						Else
+				end,
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
 	LapsLeft = utils:get_setting(total_laps) - Lap,
@@ -285,24 +291,12 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
 	Fun = fun({Left, Ratio}) ->
 				  if
-					  not is_number(Left) ->
-						  undef;
 					  Left > 0 ->
 						  trunc(Left / Ratio);
 					  true ->
 						  0
 				  end
 		  end,
-	TempT = case is_number(TS) of
-				true ->
-					State#state.tyres_limit - TS;
-				false ->
-					TS
-			end,
-	TempF = case is_number(FS) of
-				true ->
-					FS - State#state.fuel_limit;
-				false ->
-					FS
-			end,
+	TempT = State#state.tyres_limit - TS,
+	TempF = FS - State#state.fuel_limit,
 	lists:min(lists:map(Fun, [{TempT, TCRatio}, {TempF, FCRatio}])).
