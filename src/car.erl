@@ -40,7 +40,7 @@ invalidate_preelab(CarId) ->
 	gen_server:call(?CAR_NAME(CarId), invalidate_preelab, infinity).
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
-	gen_server:call(?CAR_NAME(CarId), PitStop, infinity).
+	gen_server:cast(?CAR_NAME(CarId), PitStop).
 
 %% ====================================================================
 %% Server functions
