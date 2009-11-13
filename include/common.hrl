@@ -21,6 +21,8 @@
 %%% =============================
 
 -type car() :: pos_integer().
+-type conf() :: {Key :: atom(), Value :: term()}.
+-type conflist() :: [conf()].
 -type rain_amount() :: 0..10.
 -type sgm_id() :: non_neg_integer().
 -type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane' | 'pitlane'

@@ -49,13 +49,19 @@
 start() ->
 	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
 
+-spec add_node(conflist()) -> 'ok'.
+
 add_node(SupportedApps)
   when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
+-spec bootstrap(pos_integer(), pos_integer()) -> 'ok' | 'config_error'.
+
 bootstrap(Laps, Speedup)
   when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
+
+-spec read_config_files(conflist(), conflist(), conflist()) -> 'ok' | 'config_error'.
 
 read_config_files(TeamsFile, TrackFile, WeatherFile)
   when is_list(TeamsFile), is_list(TrackFile), is_list(WeatherFile) ->
@@ -117,7 +123,6 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
 	case check_reqs(State#state.candidates, Reqs) of
 		true when State#state.num_cars > 0 ->
-			% FIXME: how to choose the master node?
 			Master = hd(Nodes),
 			
 			% setup applications' configurations
@@ -241,6 +246,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
+-spec app_spec(atom(), conflist()) -> tuple().
+
 app_spec(car, Config) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	{application, utils:build_id_atom("car_", Id),
@@ -263,6 +270,8 @@ app_spec(weather, Config) ->
 	{application, weather,
 	 [{applications, [kernel, stdlib, scheduler]},
 	  {mod, {weather_app, Config}}]}.
+
+-spec check_reqs(conflist(), conflist()) -> boolean().
 
 check_reqs(Candidates, Reqs) ->
 	Sum = fun({_, N}, Acc) -> Acc + N end,
@@ -287,12 +296,16 @@ check_reqs(Candidates, Reqs) ->
 			false
 	end.
 
+-spec choose_nodes(conflist(), non_neg_integer(), [node()]) -> [node()].
+
 choose_nodes(_, 0, Config) ->
 	Config;
 choose_nodes([{_Node, 0} | Tail], N, Config) ->
 	choose_nodes(Tail, N, Config);
 choose_nodes([{Node, Avail} | Tail], N, Config) ->
 	choose_nodes(Tail ++ [{Node, Avail - 1}], N - 1, [Node | Config]).
+
+-spec split_config(conflist()) -> {conflist(), [pos_integer()], conflist(), [car()]}.
 
 split_config(Config) ->
 	Split = fun(Team, {Id, T, C} = Acc) ->
@@ -317,6 +330,8 @@ split_config(Config) ->
 				 end,
 	{N, T, C} = lists:foldl(Split, {1, [], []}, Config),
 	{T, lists:seq(1, N - 1), C, lists:map(ExtractIDs, C)}.
+
+-spec start_apps([tuple()], [node()], [node()]) -> 'ok'.
 
 start_apps([AppSpec | SpecsTail], [MainNode | NodesTail], Nodes) ->
 	FailoverNodes = lists:delete(MainNode, Nodes),
