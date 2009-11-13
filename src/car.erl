@@ -85,9 +85,10 @@ init(Config) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call(move, _From, State) ->
+	Id = State#pilot.id,
 	State1 = case State#pilot.lane of
 				 undefined ->
-					 {SgmId, Lane} = track:where_am_i(State#pilot.id),
+					 {SgmId, Lane} = track:where_am_i(Id),
 					 State#pilot{segment = SgmId, lane = Lane};
 				 _ ->
 					 State
@@ -137,10 +138,12 @@ handle_call(move, _From, State) ->
 	% actually move the car
 	case track:move(State2, ExitLane, PitStop) of
 		{NextTime, NewState} ->
-			Reply = {requeue, NextTime, #callback{mod = ?MODULE, func = move,
-												  args = [State2#pilot.id]}},
+			Callback = #callback{mod = ?MODULE, func = move, args = [Id]},
+			Reply = {requeue, NextTime, Callback},
 			{reply, Reply, NewState};
 		_ ->
+			% FIXME: remove the following line when switching to ft_gen_server
+			{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:delete({pilot, Id}) end),
 			{stop, normal, done, State2}
 	end;
 
