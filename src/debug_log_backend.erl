@@ -68,6 +68,7 @@ handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
 handle_cast(Msg, State) when is_record(Msg, chrono_notif);
 							 is_record(Msg, pitstop_notif);
 							 is_record(Msg, surpass_notif);
+							 is_record(Msg, race_notif);
 							 is_record(Msg, retire_notif);
 							 is_record(Msg, weather_notif) ->
 	NewObs = event_dispatcher:notify_update(to_string(Msg), State#state.observers),
@@ -114,6 +115,8 @@ to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = _Fuel, tyres = _Tyre
 	"Car " ++ integer_to_list(C) ++ " stopped at the pits";
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
 	"Car " ++ integer_to_list(Surpasser) ++ " surpassed car " ++ integer_to_list(Surpassed);
+to_string(#race_notif{event = E}) ->
+	"Race " ++ atom_to_list(E);
 to_string(#retire_notif{car = C, reason = R}) ->
 	"Car " ++ integer_to_list(C) ++ " retired: " ++ atom_to_list(R);
 to_string(#weather_notif{changes = Changes}) ->

@@ -21,10 +21,12 @@
 
 -include("common.hrl").
 
--define(PITSTOP_OBS, [debug_log_backend, race_info_backend]).
 -define(CHRONO_OBS, [debug_log_backend, team_backend, race_info_backend]).
--define(SURPASS_OBS, [debug_log_backend, race_info_backend]).
+-define(CONFIG_OBS, [team_backend, race_info_backend, weather_backend]).
+-define(PITSTOP_OBS, [debug_log_backend, race_info_backend]).
+-define(RACE_OBS, [debug_log_backend, race_info_backend, weather_backend]).
 -define(RETIRE_OBS, [debug_log_backend, team_backend, race_info_backend]).
+-define(SURPASS_OBS, [debug_log_backend, race_info_backend]).
 -define(WEATHER_OBS, [debug_log_backend, team_backend, weather_backend]).
 
 -record(state, {}).
@@ -81,18 +83,24 @@ handle_call({subscribe, Service, Callback}, _From, State) ->
 			{reply, ok, State}
 	end;
 
-% Race notifications
+% Notifications
 handle_call(Msg, _From, State) when is_record(Msg, chrono_notif) ->
 	internal_dispatching(Msg, ?CHRONO_OBS),
+	{reply, ok, State};
+handle_call(Msg, _From, State) when is_record(Msg, config_notif) ->
+	internal_dispatching(Msg, ?CONFIG_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
 	internal_dispatching(Msg, ?PITSTOP_OBS),
 	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, surpass_notif) ->
-	internal_dispatching(Msg, ?SURPASS_OBS),
+handle_call(Msg, _From, State) when is_record(Msg, race_notif) ->
+	internal_dispatching(Msg, ?RACE_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, retire_notif) ->
 	internal_dispatching(Msg, ?RETIRE_OBS),
+	{reply, ok, State};
+handle_call(Msg, _From, State) when is_record(Msg, surpass_notif) ->
+	internal_dispatching(Msg, ?SURPASS_OBS),
 	{reply, ok, State};
 handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
 	internal_dispatching(Msg, ?WEATHER_OBS),
