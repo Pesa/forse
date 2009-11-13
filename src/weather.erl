@@ -72,15 +72,10 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 							 end,
 					 % get the IDs of the segments belonging to this sector
 					 Sector = utils:build_id_atom("sector_", SectId),
-					 case mnesia:read(setting, Sector) of
-						 [R] ->
-							 {From, To} = R#setting.value,
-							 % for each segment invoke ChSgm to change its weather
-							 SectChanges = lists:map(ChSgm, lists:seq(From, To)),
-							 Acc ++ SectChanges;
-						 _ ->
-							 mnesia:abort("invalid sector " ++ integer_to_list(SectId))
-					 end
+					 {From, To} = utils:get_setting(Sector),
+					 % for each segment invoke ChSgm to change its weather
+					 SectChanges = lists:map(ChSgm, lists:seq(From, To)),
+					 Acc ++ SectChanges
 			 end,
 	GetPilots = fun(Pilot, Acc) ->
 						[Pilot#pilot.id | Acc]
