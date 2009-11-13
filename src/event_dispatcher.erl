@@ -72,7 +72,6 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
-% Subscription request
 handle_call({subscribe, Service, Callback}, _From, State) ->
 	Backend = service_map(Service),
 	case Backend of
@@ -83,32 +82,26 @@ handle_call({subscribe, Service, Callback}, _From, State) ->
 			{reply, ok, State}
 	end;
 
-% Notifications
-handle_call(Msg, _From, State) when is_record(Msg, chrono_notif) ->
-	internal_dispatching(Msg, ?CHRONO_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, config_notif) ->
-	internal_dispatching(Msg, ?CONFIG_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, pitstop_notif) ->
-	internal_dispatching(Msg, ?PITSTOP_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, race_notif) ->
-	internal_dispatching(Msg, ?RACE_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, retire_notif) ->
-	internal_dispatching(Msg, ?RETIRE_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, surpass_notif) ->
-	internal_dispatching(Msg, ?SURPASS_OBS),
-	{reply, ok, State};
-handle_call(Msg, _From, State) when is_record(Msg, weather_notif) ->
-	internal_dispatching(Msg, ?WEATHER_OBS),
-	{reply, ok, State};
-
-handle_call(Msg, From, State) ->
-	?WARN({"unhandled call", Msg, "from", From}),
-	{noreply, State}.
+handle_call(Msg, _From, State) ->
+	if
+		is_record(Msg, chrono_notif) ->
+			internal_dispatching(Msg, ?CHRONO_OBS);
+		is_record(Msg, config_notif) ->
+			internal_dispatching(Msg, ?CONFIG_OBS);
+		is_record(Msg, pitstop_notif) ->
+			internal_dispatching(Msg, ?PITSTOP_OBS);
+		is_record(Msg, race_notif) ->
+			internal_dispatching(Msg, ?RACE_OBS);
+		is_record(Msg, retire_notif) ->
+			internal_dispatching(Msg, ?RETIRE_OBS);
+		is_record(Msg, surpass_notif) ->
+			internal_dispatching(Msg, ?SURPASS_OBS);
+		is_record(Msg, weather_notif) ->
+			internal_dispatching(Msg, ?WEATHER_OBS);
+		true ->
+			?WARN({"unhandled call", Msg})
+	end,
+	{reply, ok, State}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2
