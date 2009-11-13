@@ -654,7 +654,7 @@ is_pit_area_lane(#segment{type = pitstop} = Sgm, Lane) ->
 		Sgm#segment.max_lane - 1 =< Lane -> true;
 		true -> false
 	end;
-is_pit_area_lane(#segment{type = pre_pitstop} = Sgm, Lane) ->
+is_pit_area_lane(#segment{type = pre_pitlane} = Sgm, Lane) ->
 	if
 		Sgm#segment.max_lane == Lane -> true;
 		true -> false
@@ -666,7 +666,7 @@ is_pit_area(#segment{type = pitlane}) ->
 	true;
 is_pit_area(#segment{type = pitstop}) ->
 	true;
-is_pit_area(#segment{type = pre_pitstop}) ->
+is_pit_area(#segment{type = pre_pitlane}) ->
 	true;
 is_pit_area(Sgm) when is_record(Sgm, segment) ->
 	false.
