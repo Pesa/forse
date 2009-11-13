@@ -73,11 +73,10 @@ init([]) ->
 %% --------------------------------------------------------------------
 
 handle_call({subscribe, Service, Callback}, _From, State) ->
-	Backend = service_map(Service),
-	case Backend of
+	case service_map(Service) of
 		not_found ->
 			{reply, {error, service_not_found}, State};
-		_ ->
+		Backend ->
 			gen_server:cast(Backend, {subscribe, Callback}),
 			{reply, ok, State}
 	end;

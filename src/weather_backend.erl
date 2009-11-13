@@ -65,6 +65,14 @@ handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
 	NewObs = State#state.observers ++ [Callback],
 	{noreply, State#state{observers = NewObs}};
 
+handle_cast(Msg, State) when is_record(Msg, config_notif) ->
+	%TODO elaborare i dati ricevuti
+	{noreply, State};
+
+handle_cast(Msg, State) when is_record(Msg, race_notif) ->
+	%TODO elaborare i dati ricevuti
+	{noreply, State};
+
 handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State}.

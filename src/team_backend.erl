@@ -69,6 +69,10 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	NewObs = event_dispatcher:notify_update({chrono, Msg}, State#state.observers),
 	{noreply, State#state{observers = NewObs}};
 
+handle_cast(Msg, State) when is_record(Msg, config_notif) ->
+	%TODO elaborare i dati ricevuti
+	{noreply, State};
+
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
