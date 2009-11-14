@@ -22,7 +22,6 @@
 
 -include("common.hrl").
 
--type time() :: number().
 -type timer_ref() :: any().
 -type workqueue() :: [{time(), #callback{}}].
 

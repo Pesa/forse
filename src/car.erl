@@ -32,7 +32,7 @@ start_link(Config) when is_list(Config) ->
 	{id, CarId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?CAR_NAME(CarId), ?MODULE, Config, []).
 
--spec move(number(), car()) -> token_reply().
+-spec move(time(), car()) -> token_reply().
 
 move(_Time, CarId) ->
 	gen_server:call(?CAR_NAME(CarId), move, infinity).

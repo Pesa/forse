@@ -8,6 +8,7 @@
 -define(LOCAL_NAME, {local, ?MODULE}).
 
 -define(ERR(Msg), io:format("[~s] ERROR: ~p~n", [?MODULE_STRING, Msg])).
+
 -define(WARN(Msg), io:format("[~s] WARNING: ~p~n", [?MODULE_STRING, Msg])).
 
 -ifdef(debug).
@@ -16,23 +17,26 @@
 -define(DBG(Msg), true).
 -endif.
 
+
 %%% =============================
 %%%  Common types specifications
 %%% =============================
 
--type car() :: pos_integer().
--type conf() :: {Key :: atom(), Value :: term()}.
--type conflist() :: [conf()].
--type race_event() :: 'started' | 'paused' | 'resumed'
-					| 'finished' | 'terminated'.
--type rain_amount() :: 0..10.
--type sgm_id() :: non_neg_integer().
--type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane'
-				  | 'pitlane' | 'pitstop' | 'intermediate'
-				  | 'finish_line'.
--type start_result() :: 'ignore' | {'error', Error :: term()}
-					  | {'ok', Pid :: pid()}.
--type tyres() :: 'slick' | 'intermediate' | 'wet'.
+-type car()				:: pos_integer().
+-type conf()			:: {Key :: atom(), Value :: term()}.
+-type conflist()		:: [conf()].
+-type race_event()		:: 'started' | 'paused' | 'resumed'
+						 | 'finished' | 'terminated'.
+-type rain_amount()		:: 0..10.
+-type sgm_id()			:: non_neg_integer().
+-type sgm_type()		:: 'normal' | 'pre_pitlane' | 'post_pitlane'
+						 | 'pitlane' | 'pitstop' | 'intermediate'
+						 | 'finish_line'.
+-type start_result()	:: 'ignore' | {'error', Error :: term()}
+						 | {'ok', Pid :: pid()}.
+-type time()			:: number().
+-type tyres()			:: 'slick' | 'intermediate' | 'wet'.
+
 
 %%% ==========================================
 %%%  Global messages and notifications format
@@ -48,7 +52,7 @@
 				   func	:: atom(),
 				   args	:: [term()]}).
 
--type token_reply() :: 'done'
+-type token_reply()	:: 'done'
 					 | {'requeue', Time :: number(), Callback :: #callback{}}.
 
 %% ------------------------------------------------------------
@@ -148,6 +152,6 @@
 %% ------------------------------------------------------------
 -record(weather_notif, {changes	= []	:: [#weather_change{}]}).
 
--type any_notif() :: #chrono_notif{} | #config_notif{} | #pitstop_notif{}
-				   | #race_notif{} | #surpass_notif{} | #retire_notif{}
-				   | #weather_notif{}.
+-type any_notif()	:: #chrono_notif{} | #config_notif{} | #pitstop_notif{}
+					 | #race_notif{} | #surpass_notif{} | #retire_notif{}
+					 | #weather_notif{}.

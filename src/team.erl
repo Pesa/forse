@@ -20,13 +20,15 @@
 
 -define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
+-type consumption() :: {TyresCons :: float() | 'undef',
+						FuelCons :: float() | 'undef'}.
+
 %% last_ls: list of chrono_notif containing at most
 %%			one record for each intermediate
-%% avg_consumption: {TyresC, FuelC}
--record(car_stats, {car_id,
-					pitstop_count,
-					avg_consumption = {undef, undef},
-					last_ls = []}).
+-record(car_stats, {car_id								:: car(),
+					pitstop_count						:: non_neg_integer(),
+					avg_consumption	= {undef, undef}	:: consumption(),
+					last_ls			= []				:: [#chrono_notif{}]}).
 
 %% fuel_limit: if a car's fuel is lesser than the limit
 %%			   then this car should stop at the pits
@@ -34,15 +36,17 @@
 %%				the limit then this car should stop at the pits
 %% rain_sum: sum of rain field of all the segments
 %% cars_stats: list of car_stats records
--record(state, {fuel_limit,
-				tyres_limit,
-				rain_sum,
-				cars_stats = []}).
+-record(state, {fuel_limit			:: float(),
+				tyres_limit			:: float(),
+				rain_sum	= 0		:: non_neg_integer(),
+				cars_stats	= []	:: [#car_stats{}]}).
 
-%% type: slick | intermediate | wet
+%% type: type of tyres
 %% min: minimum value of rain index
 %% max: maximum value of rain index
--record(tyres_interval, {type, min, max}).
+-record(tyres_interval, {type	:: tyres(),
+						 min	:: float(),
+						 max	:: float()}).
 
 %% List of tyres_interval records, it represents the intervals
 %% within which each different type of tyres performs better.
@@ -55,14 +59,22 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link(conflist()) -> start_result().
+
 start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
+-spec force_pitstop(pos_integer(), car()) -> 'ok'.
+
 force_pitstop(TeamId, CarId) ->
 	gen_server:call(?TEAM_NAME(TeamId), {force_pitstop, CarId}, infinity).
 
-pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount) when is_record(CarStatus, car_status) ->
+-spec pitstop_operations(pos_integer(), car(), #car_status{}, non_neg_integer(),
+						 non_neg_integer()) -> #pitstop_ops{}.
+
+pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount)
+  when is_record(CarStatus, car_status) ->
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
 update(TeamId, {update, {weather, Delta}}) when is_integer(Delta) ->
@@ -178,15 +190,14 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 											   stops_count = PSCount});
 		true ->
 			% when will the car need the next pitstop?
-			{TCRatio, FCRatio} = NCStats#car_stats.avg_consumption,
+			AvgCons = NCStats#car_stats.avg_consumption,
 			TS = CS#car_status.tyres_consumption,
 			FS = CS#car_status.fuel,
-			Next = calculate_laps_left(TS, FS, TCRatio, FCRatio, NewState),
-			case Next of
+			case calculate_laps_left(TS, FS, AvgCons, NewState) of
 				undef ->
 					% not enough information
 					ok;
-				_ ->
+				Next when is_integer(Next) ->
 					CarId = Chrono#chrono_notif.car,
 					PSLap = Chrono#chrono_notif.lap + Next,
 					?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
@@ -200,7 +211,7 @@ handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
 	BestTyres = case best_tyres(AvgRain, ?TYRES_SPECS) of
 					null ->
-						% No appropriate tyres_type found
+						% no appropriate tyres_type found: keep the old one
 						CarStatus#car_status.tyres_type;
 					Else ->
 						Else
@@ -266,7 +277,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
-best_tyres(Rain, [H | T]) when is_record(H, tyres_interval) ->
+-spec best_tyres(float(), [#tyres_interval{}]) -> tyres() | 'null'.
+
+best_tyres(Rain, [H | T]) ->
 	case Rain >= H#tyres_interval.min andalso Rain < H#tyres_interval.max of
 		true -> H#tyres_interval.type;
 		false -> best_tyres(Rain, T)
@@ -274,9 +287,9 @@ best_tyres(Rain, [H | T]) when is_record(H, tyres_interval) ->
 best_tyres(_Rain, []) ->
 	null.
 
-%% Returns {TyreC, FuelC}
-delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
-									 is_record(NS, car_status) ->
+-spec delta_consumption(#car_status{}, #car_status{}, integer()) -> consumption().
+
+delta_consumption(OS, NS, Laps) ->
 	TyresC = (NS#car_status.tyres_consumption - OS#car_status.tyres_consumption) / Laps,
 	FuelC = (OS#car_status.fuel - NS#car_status.fuel) / Laps,
 	Fun = fun(X) ->
@@ -288,7 +301,10 @@ delta_consumption(OS, NS, Laps) when is_record(OS, car_status),
 	{Fun(TyresC), Fun(FuelC)}.
 
 %% Returns undef when no estimation can be done
-calculate_laps_left(TS, FS, TCRatio, FCRatio, State) when is_record(State, state) ->
+-spec calculate_laps_left(float(), float(), consumption(), #state{}) ->
+						  non_neg_integer() | 'undef'.
+
+calculate_laps_left(TS, FS, {TCRatio, FCRatio}, State) ->
 	Fun = fun({Left, Ratio}) ->
 				  if
 					  Ratio == undef ->

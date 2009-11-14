@@ -17,6 +17,10 @@
 
 -include("db_schema.hrl").
 
+-type hms() :: {Hours	:: non_neg_integer(),
+				Minutes	:: 0..59,
+				Seconds	:: 0..59}.
+
 -record(state, {}).
 
 
@@ -24,11 +28,17 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link(conflist()) -> start_result().
+
 start_link(Config) when is_list(Config) ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Config, []).
 
+-spec apply_change(time(), conflist()) -> token_reply().
+
 apply_change(_Time, NewWeather) when is_list(NewWeather) ->
 	gen_server:call(?GLOBAL_NAME, {apply_change, NewWeather}, infinity).
+
+-spec schedule_change(hms() | non_neg_integer(), conflist()) -> 'ok' | 'error'.
 
 schedule_change(When, NewWeather) when is_list(NewWeather) ->
 	gen_server:call(?GLOBAL_NAME, {schedule_change, When, NewWeather}).
@@ -150,6 +160,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
+
+-spec register_weather_change({hms() | non_neg_integer(), conflist()}) -> 'ok' | 'error'.
 
 register_weather_change({{H, M, S}, NewWeather}) ->
 	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},

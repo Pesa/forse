@@ -9,11 +9,15 @@
 
 -include("db_schema.hrl").
 
+
 %%% ==========================
 %%%  Common utility functions
 %%% ==========================
 
+
 %% Returns an atom which is the result of appending Suffix to Prefix.
+-spec build_id_atom(string(), atom() | non_neg_integer() | string()) -> atom().
+
 build_id_atom(Prefix, Suffix) when is_list(Prefix), is_atom(Suffix) ->
 	list_to_atom(Prefix ++ atom_to_list(Suffix));
 build_id_atom(Prefix, Suffix) when is_list(Prefix), is_integer(Suffix) ->
@@ -22,20 +26,27 @@ build_id_atom(Prefix, Suffix) when is_list(Prefix), is_list(Suffix) ->
 	list_to_atom(Prefix ++ Suffix).
 
 %% Returns the value associated with the setting Key.
+-spec get_setting(atom()) -> term().
+
 get_setting(Key) ->
 	H = utils:mnesia_read(setting, Key),
 	H#setting.value.
 
 %% Sets the value of the setting Key.
+-spec set_setting(atom(), term()) -> 'ok'.
+
 set_setting(Key, Value) ->
 	S = #setting{key = Key, value = Value},
 	T = fun() ->
 				mnesia:write(setting, S, write)
 		end,
-	{atomic, ok} = mnesia:sync_transaction(T).
+	{atomic, ok} = mnesia:sync_transaction(T),
+	ok.
 
 %% Wraps a mnesia:read/2 in a transaction context.
 %% If the transaction fails, an exception is raised.
+-spec mnesia_read(atom(), atom() | non_neg_integer()) -> term().
+
 mnesia_read(Tab, Key) ->
 	T = fun() ->
 				[R] = mnesia:read(Tab, Key),
@@ -46,5 +57,7 @@ mnesia_read(Tab, Key) ->
 
 %% Returns true if a mnesia table named TableName
 %% exists, false otherwise.
+-spec table_exists(atom()) -> boolean().
+
 table_exists(TableName) ->
 	lists:member(TableName, mnesia:system_info(tables)).

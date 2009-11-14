@@ -588,7 +588,7 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 		end,
 	{atomic, ok} = mnesia:sync_transaction(T),
 	
-	% send surpass notification to event_dispatcher
+	% send surpass notifications to event_dispatcher
 	SendNotif = fun(Elem) ->
 						Msg = #surpass_notif{surpasser = CS#car_position.car_id,
 											 surpassed = Elem#car_position.car_id},
@@ -598,18 +598,17 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 
 %% Removes car_position of index PilotId from segment S.
 remove_car(S, PilotId) when is_record(S, segment) ->
-	QueueUpdate = lists:keydelete(PilotId,
-								  #car_position.car_id,
-								  S#segment.queued_cars),
-	SUpdate = S#segment{queued_cars = QueueUpdate},
+	NewQueue = lists:keydelete(PilotId, #car_position.car_id,
+							   S#segment.queued_cars),
+	NewS = S#segment{queued_cars = NewQueue},
 	T = fun() ->
-				Num = utils:get_setting(running_cars),
-				mnesia:write(track, SUpdate, write),
-				utils:set_setting(running_cars, Num - 1),
-				Num - 1
+				Running = utils:get_setting(running_cars) - 1,
+				mnesia:write(track, NewS, write),
+				utils:set_setting(running_cars, Running),
+				Running
 		end,
-	{atomic, Left} = mnesia:sync_transaction(T),
-	case Left of
+	{atomic, CarsLeft} = mnesia:sync_transaction(T),
+	case CarsLeft of
 		0 ->
 			event_dispatcher:notify(#race_notif{event = finished});
 		_ ->

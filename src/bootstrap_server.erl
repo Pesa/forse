@@ -32,14 +32,14 @@
 								 {ram_copies, Nodes},
 								 {record_name, Record}]).
 
--record(state, {bootstrapped = false,
-				candidates = [],
-				nodes = [],
-				num_cars,
-				num_teams,
-				teams_config,
-				track_config,
-				weather_config}).
+-record(state, {bootstrapped	= false	:: boolean(),
+				candidates		= []	:: conflist(),
+				nodes			= []	:: [node()],
+				num_cars				:: non_neg_integer(),
+				num_teams				:: non_neg_integer(),
+				teams_config			:: conflist(),
+				track_config			:: conflist(),
+				weather_config			:: conflist()}).
 
 
 %% ====================================================================
