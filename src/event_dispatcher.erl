@@ -36,11 +36,17 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link() -> start_result().
+
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
+-spec subscribe(atom(), #callback{}) -> {'error', Error :: atom()} | 'ok'.
+
 subscribe(Service, Callback) when is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {subscribe, Service, Callback}, infinity).
+
+-spec notify(any_notif()) -> 'ok'.
 
 notify(Msg) ->
 	gen_server:call(?GLOBAL_NAME, Msg, infinity).
@@ -143,8 +149,12 @@ code_change(_OldVsn, State, _Extra) ->
 %% Functions exported to backends
 %% --------------------------------------------------------------------
 
+-spec notify_init(term(), [#callback{}]) -> [#callback{}].
+
 notify_init(InitMsg, Callbacks) ->
 	do_notify({init, InitMsg}, Callbacks).
+
+-spec notify_update(term(), [#callback{}]) -> [#callback{}].
 
 notify_update(UpdateMsg, Callbacks) ->
 	do_notify({update, UpdateMsg}, Callbacks).
@@ -156,6 +166,8 @@ notify_update(UpdateMsg, Callbacks) ->
 
 % Applies each callback in Callbacks list, adding Msg as last argument.
 % Returns an updated callback list, without the ones that have failed.
+-spec do_notify(term(), [#callback{}]) -> [#callback{}].
+
 do_notify(Msg, Callbacks) when is_list(Callbacks) ->
 	Fun = fun(#callback{mod = M, func = F, args = A} = CB, Acc) ->
 				  case catch apply(M, F, A ++ [Msg]) of
@@ -166,10 +178,14 @@ do_notify(Msg, Callbacks) when is_list(Callbacks) ->
 	lists:reverse(lists:foldl(Fun, [], Callbacks)).
 
 % Casts Msg to each process in the Destinations list.
+-spec internal_dispatching(any_notif(), [atom()]) -> 'ok'.
+
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
 	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).
 
 % Mapping from services to dispatcher backends.
+-spec service_map(atom()) -> atom().
+
 service_map(Service) ->
 	case Service of
 		debug_log -> debug_log_backend;

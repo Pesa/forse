@@ -22,31 +22,45 @@
 
 -include("common.hrl").
 
--record(timing, {timer,
-				 start = 0,
-				 expiry}).
--record(state, {running = false,
-				token_available = true,
-				speedup,
-				timing_info = #timing{},
-				workqueue = []}).
+-type time() :: number().
+-type timer_ref() :: any().
+-type workqueue() :: [{time(), #callback{}}].
+
+-record(timing, {timer			:: timer_ref(),
+				 start	= 0.0	:: time(),
+				 expiry			:: time()}).
+-record(state, {running			= false		:: boolean(),
+				token_available	= true		:: boolean(),
+				speedup						:: number(),
+				timing_info		= #timing{}	:: #timing{},
+				workqueue		= []		:: workqueue()}).
 
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
+-spec start_link(number()) -> start_result().
+
 start_link(Speedup) when is_number(Speedup), Speedup > 0 ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Speedup, []).
+
+-spec set_speedup(number()) -> 'ok'.
 
 set_speedup(NewSpeedup) when is_number(NewSpeedup), NewSpeedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
 
+-spec start_simulation() -> 'ok'.
+
 start_simulation() ->
 	gen_server:call(?GLOBAL_NAME, start).
 
+-spec pause_simulation() -> 'ok'.
+
 pause_simulation() ->
 	gen_server:call(?GLOBAL_NAME, pause).
+
+-spec queue_work(time(), #callback{}) -> 'ok'.
 
 queue_work(Time, Callback) when is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {enqueue, Time, Callback}, infinity).
@@ -173,6 +187,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 % Processes the next item on the workqueue, if all preconditions are met.
+-spec process_next(#state{}) -> #state{}.
+
 process_next(#state{timing_info = Timing} = State)
   when State#state.running,
 	   State#state.token_available,
@@ -202,6 +218,8 @@ process_next(State) ->
 	State.
 
 % Sends the token to the worker identified by the arguments.
+-spec give_token(#callback{}) -> 'ok'.
+
 give_token(#callback{mod = M, func = F, args = A} = CB) ->
 	?DBG({"sending token to", CB}),
 	case apply(M, F, A) of
@@ -217,6 +235,8 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 	gen_server:call(?GLOBAL_NAME, done, infinity).
 
 % Starts a new timer to expire at Expiry.
+-spec new_timer(time(), time(), number()) -> #timing{}.
+
 new_timer(Now, Expiry, Speedup) ->
 	?DBG({"starting timer at", Now, "expiring at", Expiry}),
 	SleepAmount = (Expiry - Now) / Speedup,
@@ -225,6 +245,8 @@ new_timer(Now, Expiry, Speedup) ->
 			expiry = Expiry}.
 
 % Adjusts the expiration time of the currently pending timer, if necessary.
+-spec recalculate_timer(#timing{}, workqueue(), number()) -> #timing{}.
+
 recalculate_timer(#timing{timer = undefined, start = Start}, [{NextTime, _} | _], Speedup) ->
 	new_timer(Start, NextTime, Speedup);
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Speedup) ->
@@ -244,10 +266,14 @@ recalculate_timer(#timing{timer = Timer, expiry = Expiry} = Timing, [{NextTime, 
 	end.
 
 % Starts a timer which fires after SleepAmount seconds.
+-spec start_timer(time()) -> timer_ref().
+
 start_timer(SleepAmount) ->
 	erlang:start_timer(erlang:max(0, round(SleepAmount * 1000)), self(), wakeup).
 
 % Cancels any pending timer.
+-spec reset_timing(#timing{}) -> #timing{}.
+
 reset_timing(#timing{timer = Timer, start = Start}) ->
 	case Timer of
 		undefined ->
@@ -261,6 +287,8 @@ reset_timing(#timing{timer = Timer, start = Start}) ->
 	#timing{start = Start}.
 
 % Inserts {Time, Callback} in the workqueue.
+-spec insert({time(), #callback{}}, workqueue()) -> workqueue().
+
 insert({Time, Callback}, List) ->
 	[ X || X <- List, element(1, X) =< Time ]
 	++ [{Time, Callback}] ++

@@ -22,6 +22,8 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link() -> start_result().
+
 start_link() ->
 	gen_server:start_link(?LOCAL_NAME, ?MODULE, [], []).
 
@@ -106,6 +108,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 
 %% Converts a notification record into a human-readable string.
+
+-spec to_string(any_notif()) -> string().
+
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
 	"Car " ++ integer_to_list(C) ++ " has gone through intermediate " ++
 		integer_to_list(Inter) ++ " of lap " ++ integer_to_list(Lap) ++

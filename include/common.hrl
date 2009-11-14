@@ -23,11 +23,15 @@
 -type car() :: pos_integer().
 -type conf() :: {Key :: atom(), Value :: term()}.
 -type conflist() :: [conf()].
--type race_event() :: 'started' | 'paused' | 'resumed' | 'finished' | 'terminated'.
+-type race_event() :: 'started' | 'paused' | 'resumed'
+					| 'finished' | 'terminated'.
 -type rain_amount() :: 0..10.
 -type sgm_id() :: non_neg_integer().
--type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane' | 'pitlane'
-					| 'pitstop' | 'intermediate' | 'finish_line'.
+-type sgm_type() :: 'normal' | 'pre_pitlane' | 'post_pitlane'
+				  | 'pitlane' | 'pitstop' | 'intermediate'
+				  | 'finish_line'.
+-type start_result() :: 'ignore' | {'error', Error :: term()}
+					  | {'ok', Pid :: pid()}.
 -type tyres() :: 'slick' | 'intermediate' | 'wet'.
 
 %%% ==========================================
@@ -43,6 +47,9 @@
 -record(callback, {mod	:: module(),
 				   func	:: atom(),
 				   args	:: [term()]}).
+
+-type token_reply() :: 'done'
+					 | {'requeue', Time :: number(), Callback :: #callback{}}.
 
 %% ------------------------------------------------------------
 %% car_status
@@ -140,3 +147,7 @@
 %% changes: information about weather changes
 %% ------------------------------------------------------------
 -record(weather_notif, {changes	= []	:: [#weather_change{}]}).
+
+-type any_notif() :: #chrono_notif{} | #config_notif{} | #pitstop_notif{}
+				   | #race_notif{} | #surpass_notif{} | #retire_notif{}
+				   | #weather_notif{}.

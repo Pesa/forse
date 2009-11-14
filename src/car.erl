@@ -26,18 +26,28 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link(conflist()) -> start_result().
+
 start_link(Config) when is_list(Config) ->
 	{id, CarId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?CAR_NAME(CarId), ?MODULE, Config, []).
 
+-spec move(number(), car()) -> token_reply().
+
 move(_Time, CarId) ->
 	gen_server:call(?CAR_NAME(CarId), move, infinity).
+
+-spec retire(car()) -> 'ok'.
 
 retire(CarId) ->
 	gen_server:call(?CAR_NAME(CarId), retire, infinity).
 
+-spec invalidate_preelab(car()) -> 'ok'.
+
 invalidate_preelab(CarId) ->
 	gen_server:call(?CAR_NAME(CarId), invalidate_preelab, infinity).
+
+-spec set_next_pitstop(car(), #next_pitstop{}) -> 'ok'.
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:cast(?CAR_NAME(CarId), PitStop).
@@ -70,8 +80,8 @@ init(Config) ->
 			  end, #pilot{}, Config),
 	% FIXME: remove the following line when switching to ft_gen_server
 	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(State) end),
-	scheduler:queue_work(0.0, #callback{mod = ?MODULE, func = move,
-										args = [State#pilot.id]}),
+	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
+									  args = [State#pilot.id]}),
 	{ok, State}.
 
 %% --------------------------------------------------------------------

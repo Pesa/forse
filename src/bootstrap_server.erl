@@ -46,6 +46,8 @@
 %% External functions
 %% ====================================================================
 
+-spec start() -> start_result().
+
 start() ->
 	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
 
@@ -55,7 +57,7 @@ add_node(SupportedApps)
   when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
--spec bootstrap(pos_integer(), pos_integer()) -> 'ok' | 'config_error'.
+-spec bootstrap(pos_integer(), number()) -> 'ok' | 'config_error'.
 
 bootstrap(Laps, Speedup)
   when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->

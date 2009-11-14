@@ -22,6 +22,8 @@
 %% External functions
 %% ====================================================================
 
+-spec start_link() -> start_result().
+
 start_link() ->
 	gen_server:start_link(?LOCAL_NAME, ?MODULE, [], []).
 
