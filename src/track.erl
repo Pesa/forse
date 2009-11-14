@@ -16,6 +16,9 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table and a few settings.
+-spec init(conflist(), [pos_integer()], [car()]) ->
+		   'ok' | {'error', Error :: term()}.
+
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
@@ -42,8 +45,7 @@ init(TrackConfig, TeamsList, CarsList)
 			   (_) -> false
 			end,
 		Map = build_intermediate_map(lists:filter(F, SgmList)),
-		utils:set_setting(intermediate_map, Map),
-		ok
+		utils:set_setting(intermediate_map, Map)
 	catch
 		% TODO
 		throw : E ->
@@ -217,9 +219,11 @@ put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 
 
 %% Moves the car to the next segment.
-%% Returns {fail, Reason} | {NextTime, NewPilotState} | 'race_ended'.
 %% Pit: true if pilot wants to stop at the pits
 % FIXME: spostare car_pos in Pilot?
+-spec move(#pilot{}, integer(), boolean()) ->
+		   {NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
+
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -321,9 +325,11 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	end.
 	
 
-%% Returns the time needed by Car to cover the next segment
-%% or: {fail, Reason} | 'pits' | 'race_ended'.
+%% Returns the time needed by Car to cover the next segment.
 %% Pit: true if pilot wants to stop at the pits
+-spec simulate(#pilot{}, integer(), boolean()) ->
+			   Time :: float() | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
+
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -384,6 +390,8 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 
 %% Calculates the maximum speed that Pilot's car
 %% can reach in each segment of the track.
+-spec preelaborate(#pilot{}) -> 'ok'.
+
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
@@ -412,7 +420,8 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 									  mnesia:write(TabName, Elem, sticky_write)
 							  end, FinalBounds)
 		end,
-	{atomic, _} = mnesia:sync_transaction(T).
+	{atomic, _} = mnesia:sync_transaction(T),
+	ok.
 
 %% Recursively calculates the speed bounds for AttIndex.
 %% FDec: power of brakes
@@ -494,13 +503,17 @@ bent_and_pit(Pilot, Sgm) ->
 
 
 %% Returns true if next segment's type is 'pre_pitlane', false otherwise.
-is_pre_pitlane(Id) when is_integer(Id) ->
+-spec is_pre_pitlane(sgm_id()) -> boolean().
+
+is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 	Sgm = utils:mnesia_read(track, next_segment(Id)),
 	Sgm#segment.type == pre_pitlane.
 
 
 %% Used by the first invocation of car:move/2 for each car
 %% in a race to find out their starting segment and lane.
+-spec where_am_i(car()) -> {sgm_id(), integer()}.
+
 where_am_i(CarId) when is_integer(CarId) ->
 	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
 	Guard = {'/=', '$2', []},
