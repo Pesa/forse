@@ -232,16 +232,10 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
 	
-	{Time, Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
-	case Time of
+	case simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) of
 		race_ended ->
 			remove_car(SOld, Pilot#pilot.id),
 			race_ended;
-		{fail, Reason} ->
-			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
-												  reason = Reason}),
-			remove_car(SOld, Pilot#pilot.id),
-			fail;
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
 			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
@@ -278,7 +272,12 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			% finally notify the event_dispatcher
 			event_dispatcher:notify(#pitstop_notif{car = Pilot#pilot.id, ops = Ops}),
 			{NewCarPos#car_position.exit_t, NewPilot};
-		_ ->
+		{fail, Reason} ->
+			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
+												  reason = Reason}),
+			remove_car(SOld, Pilot#pilot.id),
+			fail;
+		{ok, Time, Speed} ->
 			NewCarPos = CarPos#car_position{speed = Speed,
 											enter_t = CarPos#car_position.exit_t,
 											exit_t = CarPos#car_position.exit_t + Time,
@@ -323,7 +322,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 					   end,
 			{NewCarPos#car_position.exit_t, NewPilot}
 	end.
-	
+
 
 %% Returns the time needed by Car to cover the next segment.
 %% Pit: true if pilot wants to stop at the pits
@@ -337,26 +336,28 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
-	{Time, _Speed} = simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos),
-	Time.
+	case simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) of
+		{ok, Time, _Speed} -> Time;
+		Else -> Else
+	end.
 
-simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
-  when is_record(Pilot, pilot), is_record(S, segment), is_record(CarPos, car_position) ->
+-spec simulate(#pilot{}, #segment{}, integer(), integer(), boolean(), #car_position{}) ->
+		{ok, Time :: float(), Speed :: float()} | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
+
+simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 	CS = Pilot#pilot.car_status,
 	TotalLaps = utils:get_setting(total_laps),
 	if
 		Pilot#pilot.lap > TotalLaps ->
-			{race_ended, 0};
+			race_ended;
 		CS#car_status.tyres_consumption >= 100.0 ->
-			{{fail, 'tyres exploded'}, 0};
+			{fail, 'tyres exploded'};
 		CS#car_status.fuel =< 0.0 ->
-			{{fail, 'out of fuel'}, 0};
+			{fail, 'out of fuel'};
 		Pilot#pilot.retire ->
-			{{fail, 'team request'}, 0};
+			{fail, 'team request'};
 		true ->
 			case access:check_move(Pilot, S, EnterLane, ExitLane, Pit) of
-				{fail, Reason} -> {{fail, Reason}, 0};
-				pits -> {pits, 0};
 				go ->
 					EnterTime = CarPos#car_position.exit_t,
 					Space = S#segment.length,
@@ -383,7 +384,8 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos)
 					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
 					
 					physics:simulate(S, EnterLane, ExitLane, EnterTime, 1,
-									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
+									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax);
+				Else -> Else
 			end
 	end.
 
@@ -570,6 +572,8 @@ min_bound_rec([], _Index) ->
 %% OldS: old segment
 %% NewS: new segment
 %% CS: car status
+-spec move_car(#segment{}, #segment{}, #car_position{}) -> 'ok'.
+
 move_car(OldS, NewS, CS) when is_record(CS, car_position),
 							  is_record(OldS, segment),
 							  is_record(NewS, segment) ->
@@ -629,6 +633,8 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 	end.
 
 %% Returns car's status after driving Sgm.
+-spec update_car_status(#car_status{}, #segment{}) -> #car_status{}.
+
 update_car_status(Status, Sgm) ->
 	FCons = ?FUEL_PER_SGM * (1 + math:sin(physics:deg_to_rad(Sgm#segment.inclination))),
 	Coeff = case Sgm#segment.curvature /= 0 of
@@ -640,6 +646,8 @@ update_car_status(Status, Sgm) ->
 					  tyres_consumption = Status#car_status.tyres_consumption + TCons}.
 
 %% Returns the time needed to perform the pitstop operations.
+-spec pitstop_time(#pitstop_ops{}) -> float().
+
 pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 	RefuelTime = 2.0 + F / ?REFUEL_SPEED,
 	if
@@ -651,6 +659,8 @@ pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 	end.
 
 %% Returns percentual consumption of tyres.
+-spec tyres_cons(tyres(), rain_amount()) -> float().
+
 tyres_cons(slick, Rain) ->
 	-0.0001 * Rain + 0.004;
 tyres_cons(intermediate, Rain) ->

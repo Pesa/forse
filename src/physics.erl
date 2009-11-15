@@ -14,14 +14,16 @@
 %% Earth's gravity.
 -define(g, 9.80665).
 
+-type calc_result() :: {ok, Time :: float(), Speed :: float()}
+					 | {'fail', Reason :: atom()}.
+
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 -spec simulate(#segment{}, integer(), integer(), float(), pos_integer(),
-			   number(), float(), float(), float(), float()) ->
-		{float() | {'fail', Reason :: atom()}, float()}.
+			   number(), float(), float(), float(), float()) -> calc_result().
 
 simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
@@ -117,38 +119,36 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 %% speed of Speed and an ending speed of MaxSpeed.
 %% Amin: maximum deceleration of brakes (always negative)
 %% Amax: maximum acceleration the engine can supply
--spec calculate(number(), float(), float(), float(), float()) ->
-				{Time :: float() | {'fail', Reason :: atom()}, Speed :: float()}.
+-spec calculate(number(), float(), float(), float(), float()) -> calc_result().
 
 calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
-	{0.0, Speed};
+	{ok, 0.0, Speed};
 calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax) when Amax =< 0 ->
-	{{fail, 'insufficient engine power'}, 0};
+	{fail, 'insufficient engine power'};
 calculate(Space, Speed, MaxSpeed, Amin, Amax) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
-	{Time, Acc} = if
-					  A < Amin - ?ACCEL_TOLERANCE ->
-						  {{fail, 'crash'}, 0};
-					  A > Amax ->
-						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
-					  true ->
-						  {T1, A}
-				  end,
-	case Time of
-		{fail, _} ->
-			{Time, 0};
-		_ ->
-			{Time, Speed + Acc * Time}
+	Result = if
+				 A < Amin - ?ACCEL_TOLERANCE ->
+					 {fail, 'crash'};
+				 A > Amax ->
+					 {ok, (math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
+				 true ->
+					 {ok, T1, A}
+			 end,
+	case Result of
+		{ok, Time, Accel} ->
+			{ok, Time, Speed + Accel * Time};
+		Else ->
+			Else
 	end.
 
--spec add_g(number(), {float() | {'fail', Reason :: atom()}, float()}) ->
-			{float() | {'fail', Reason :: atom()}, float()}.
+-spec add_g(number(), calc_result()) -> calc_result().
 
-add_g(_, {{fail, _}, _} = T) ->
-	T;
-add_g(G, {T, Speed}) ->
-	{G + T, Speed}.
+add_g(G, {ok, T, S}) ->
+	{ok, G + T, S};
+add_g(_G, T) ->
+	T.
 
 %% Calculates coefficient of friction
 -spec friction(#car_status{}, rain_amount()) -> float().
