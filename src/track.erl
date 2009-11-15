@@ -514,23 +514,26 @@ is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 %% in a race to find out their starting segment and lane.
 -spec where_am_i(car()) -> {sgm_id(), integer()}.
 where_am_i(CarId) when is_integer(CarId) ->
-	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
-	Guard = {'/=', '$2', []},
-	Result = {{'$1', '$2'}},
+	Select = fun
+				(#segment{queued_cars = []}, Acc) ->
+					 Acc;
+				(#segment{id = Id, queued_cars = Q}, Acc) ->
+					 [{Id, Q} | Acc]
+			 end,
 	T = fun() ->
-				mnesia:select(track, [{MatchHead, [Guard], [Result]}])
+				mnesia:foldl(Select, [], track)
 		end,
-	{atomic, R} = mnesia:transaction(T),
-	Fun = fun({Id, CPs}, Acc) ->
-				  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
-				  case CP of
-					  false ->
-						  Acc;
-					  _ ->
-						  [{Id, CP#car_position.exit_lane} | Acc]
-				  end
-		  end,
-	[Res] = lists:foldl(Fun, [], R),
+	{atomic, List} = mnesia:transaction(T),
+	FindCar = fun({Id, CPs}, Acc) ->
+					  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
+					  case CP of
+						  false ->
+							  Acc;
+						  _ ->
+							  [{Id, CP#car_position.exit_lane} | Acc]
+					  end
+			  end,
+	[Res] = lists:foldl(FindCar, [], List),
 	Res.
 
 
