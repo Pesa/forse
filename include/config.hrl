@@ -22,11 +22,11 @@
 -define(FUEL_SPEC_GRAVITY, 0.7).
 
 %% Speed limit within the pitlane.
-% FIXME: unita' di misura?
--define(PIT_MAX_SPEED, 42).
+% FIXME: unita' di misura? m/s?
+-define(PIT_MAX_SPEED, 22.5).
 
 %% Time in seconds needed to change tyres.
--define(TYRES_CHANGE, 5.0).
+-define(TYRES_CHANGE, 4.5).
 
 %% Refuelling speed (in liters per second).
 -define(REFUEL_SPEED, 12.0).
