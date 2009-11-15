@@ -18,7 +18,6 @@
 %% Initializes the track table and a few settings.
 -spec init(conflist(), [pos_integer()], [car()]) ->
 		   'ok' | {'error', Error :: term()}.
-
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
@@ -89,6 +88,7 @@ build_sector({intermediate}, {Sect, Sgm}) ->
 build_sector({pitlane_entrance}, {Sect, Sgm}) ->
 	{[{pitlane_entrance, Sgm}], {Sect, Sgm}}.
 
+-spec sector_to_segments(#segment{}, sgm_id(), sgm_id()) -> [#segment{}].
 sector_to_segments(Template, Start, Stop) when Start < Stop ->
 	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
 sector_to_segments(_Template, Start, Start) ->
@@ -118,23 +118,24 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 		T == normal ->
 			Temp = lists:keydelete(Start, #segment.id, Sgms),
 			NewSgm = S#segment{type = Type,
-							   max_lane = max_lane(Type, S)},
+							   max_lane = max_lane(S#segment.max_lane, Type)},
 			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
 		true ->
 			% FIXME: track is too short, throw an exception
 			throw(track_too_short)
 	end.
 
-max_lane(Type, #segment{max_lane = L}) ->
+-spec max_lane(integer(), sgm_type()) -> integer().
+max_lane(Lane, Type) ->
 	if
 		Type == pre_pitlane;
 		Type == post_pitlane;
 		Type == pitlane ->
-			L + 1;
+			Lane + 1;
 		Type == pitstop ->
-			L + 2;
+			Lane + 2;
 		true ->
-			L
+			Lane
 	end.
 
 build_pitstop(Start, TeamList, SgmList) ->
@@ -175,13 +176,14 @@ set_chrono_lanes_rec([H | T], List) ->
 					max_lane = MaxLane},
 	set_chrono_lanes_rec(T, [Sgm | Temp]).
 
+-spec fill_starting_grid([car()], [#segment{}]) -> [#segment{}].
 fill_starting_grid(CarsList, SgmList) ->
 	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
 	SgmNumber = length(SgmList),
-	put_cars(CarsList, SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
+	add_cars(CarsList, SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
 
-%% LanePos: 1 | 2
-put_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
+-spec add_cars([car()], [#segment{}], sgm_id(), 1 | 2, pos_integer()) -> [#segment{}].
+add_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
 	Sgm = lists:keyfind(Index, #segment.id, SgmList),
 	Type = Sgm#segment.type,
 	NextLP = case LanePos of
@@ -191,24 +193,22 @@ put_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
 	if
 		Type == intermediate;
 		Type == finish_lane ->
-			put_cars(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
+			add_cars(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
 		true ->
 			X = if
-					Type == normal ->
-						0;
-					Type == pitstop ->
-						2;
-					true ->
-						1
+					Type == normal -> 0;
+					Type == pitstop -> 2;
+					true -> 1
 				end,
-			NewSgm = put_one_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X, Sgm, LanePos),
+			NewSgm = place_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X, Sgm, LanePos),
 			Temp = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
-			put_cars(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
+			add_cars(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
 	end;
-put_cars([], SgmList, _Index, _LanePos, _SNum) ->
+add_cars([], SgmList, _Index, _LanePos, _SNum) ->
 	SgmList.
 
-put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
+-spec place_car(car(), integer(), integer(), #segment{}, 1 | 2) -> #segment{}.
+place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 	Lanes = MaxLane - MinLane,
 	% FIXME: se Lines < 3 deve lanciare un'eccezione
 	L = MinLane + LanePos * (Lanes div 3),
@@ -223,7 +223,6 @@ put_one_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 % FIXME: spostare car_pos in Pilot?
 -spec move(#pilot{}, integer(), boolean()) ->
 		   {NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
-
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -328,7 +327,6 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 %% Pit: true if pilot wants to stop at the pits
 -spec simulate(#pilot{}, integer(), boolean()) ->
 			   Time :: float() | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
-
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -343,7 +341,6 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 
 -spec simulate(#pilot{}, #segment{}, integer(), integer(), boolean(), #car_position{}) ->
 		{ok, Time :: float(), Speed :: float()} | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
-
 simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 	CS = Pilot#pilot.car_status,
 	TotalLaps = utils:get_setting(total_laps),
@@ -393,7 +390,6 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 %% Calculates the maximum speed that Pilot's car
 %% can reach in each segment of the track.
 -spec preelaborate(#pilot{}) -> 'ok'.
-
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
@@ -403,7 +399,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 	FDec = Car#car_type.brake,
 	SgmNum = utils:get_setting(sgm_number),
 	
-	Bounds = preelab_bent_and_pit(Pilot),
+	Bounds = preelab_bent_and_pit(CarStatus),
 	{MinBoundIndex, MinSpeed} = min_bound(Bounds),
 	BoundsPre = preelab_sgm(Bounds, #speed_bound.bound, FDec,
 							prev_segment(MinBoundIndex, SgmNum),
@@ -431,6 +427,8 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 %% LastSgm: id of min speed bound segment
 %% VNext: speed bound of the next segment
 %% SgmNum: total number of segments in the track
+-spec preelab_sgm([#speed_bound{}], pos_integer(), number(), sgm_id(), sgm_id(), float(),
+				  #car_status{}, float(), pos_integer()) -> [#speed_bound{}].
 preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, SgmNum) ->
 	S = utils:mnesia_read(track, Sgm),
 	Length = S#segment.length,
@@ -446,7 +444,7 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 									  prev_segment(Sgm, SgmNum), LastSgm,
 									  Calc, CarStatus, Mass, SgmNum);
 					  false ->
-						  % last segment to be inspected so there's
+						  % this is the last segment, so there's
 						  % no need to do the recursive call
 						  BoundList
 				  end,
@@ -467,24 +465,25 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 									  element(AttIndex, NewBound),
 									  CarStatus, Mass, SgmNum);
 					  false ->
-						  % last segment to be inspected so there's
+						  % this is the last segment, so there's
 						  % no need to do the recursive call
 						  NewBoundList
 				  end,
 			[NewBound | Rec]
 	end.
 
-%% Returns a list of speed_bound records.
-preelab_bent_and_pit(Pilot) when is_record(Pilot, pilot) ->
-	bent_and_pit(Pilot, utils:get_setting(sgm_number) - 1).
+-spec preelab_bent_and_pit(#car_status{}) -> [#speed_bound{}].
+preelab_bent_and_pit(CarStatus) ->
+	bent_and_pit(CarStatus, utils:get_setting(sgm_number) - 1).
 
-bent_and_pit(_Pilot, -1) ->
+-spec bent_and_pit(#car_status{}, integer()) -> [#speed_bound{}].
+bent_and_pit(_CarStatus, -1) ->
 	[];
-bent_and_pit(Pilot, Sgm) ->
+bent_and_pit(CarStatus, Sgm) ->
 	S = utils:mnesia_read(track, Sgm),
 	BentBound = case S#segment.curvature /= 0 of
 					true ->
-						physics:bent_max_speed(Pilot, S);
+						physics:bent_max_speed(CarStatus, S);
 					false ->
 						undefined
 				end,
@@ -495,18 +494,17 @@ bent_and_pit(Pilot, Sgm) ->
 			R = #speed_bound{sgm_id = Sgm,
 							 pit_bound = erlang:min(?PIT_MAX_SPEED, BentBound),
 							 bound = BentBound},
-			[R | bent_and_pit(Pilot, Sgm - 1)];
+			[R | bent_and_pit(CarStatus, Sgm - 1)];
 		true ->
 			R = #speed_bound{sgm_id = Sgm,
 							 bound = BentBound,
 							 pit_bound = BentBound},
-			[R | bent_and_pit(Pilot, Sgm - 1)]
+			[R | bent_and_pit(CarStatus, Sgm - 1)]
 	end.
 
 
 %% Returns true if next segment's type is 'pre_pitlane', false otherwise.
 -spec is_pre_pitlane(sgm_id()) -> boolean().
-
 is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 	Sgm = utils:mnesia_read(track, next_segment(Id)),
 	Sgm#segment.type == pre_pitlane.
@@ -515,7 +513,6 @@ is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 %% Used by the first invocation of car:move/2 for each car
 %% in a race to find out their starting segment and lane.
 -spec where_am_i(car()) -> {sgm_id(), integer()}.
-
 where_am_i(CarId) when is_integer(CarId) ->
 	MatchHead = #segment{id='$1', queued_cars='$2', _='_'},
 	Guard = {'/=', '$2', []},
@@ -543,19 +540,22 @@ where_am_i(CarId) when is_integer(CarId) ->
 
 %% Returns the id of the segment with the minimum
 %% bound value and its associated speed.
+-spec min_bound([#speed_bound{}]) -> {sgm_id(), float()}.
 min_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.bound),
 	{R#speed_bound.sgm_id, R#speed_bound.bound}.
 
 %% Returns the id of the segment with the minimum
 %% pit_bound value and its associated speed.
+-spec min_pit_bound([#speed_bound{}]) -> {sgm_id(), float()}.
 min_pit_bound(List) ->
 	R = min_bound_rec(List, #speed_bound.pit_bound),
 	{R#speed_bound.sgm_id, R#speed_bound.pit_bound}.
 
 %% Returns the speed_bound record that has the
 %% minimum value in the Index-th position.
-min_bound_rec([Head | Tail], Index) when is_record(Head, speed_bound) ->
+-spec min_bound_rec([#speed_bound{}], pos_integer()) -> #speed_bound{} | 'error'.
+min_bound_rec([Head | Tail], Index) ->
 	Min = min_bound_rec(Tail, Index),
 	if
 		Min == error ->
@@ -573,22 +573,19 @@ min_bound_rec([], _Index) ->
 %% NewS: new segment
 %% CS: car status
 -spec move_car(#segment{}, #segment{}, #car_position{}) -> 'ok'.
-
-move_car(OldS, NewS, CS) when is_record(CS, car_position),
-							  is_record(OldS, segment),
-							  is_record(NewS, segment) ->
-	OldQUpdate = lists:keydelete(CS#car_position.car_id,
+move_car(OldSgm, NewSgm, CarPos) ->
+	OldQUpdate = lists:keydelete(CarPos#car_position.car_id,
 								 #car_position.car_id,
-								 OldS#segment.queued_cars),
-	OldSUpdate = OldS#segment{queued_cars = OldQUpdate},
+								 OldSgm#segment.queued_cars),
+	OldSUpdate = OldSgm#segment{queued_cars = OldQUpdate},
 	% FIXME: keydelete su NewQ per togliere CS.car_id
-	NewQ = NewS#segment.queued_cars,
+	NewQ = NewSgm#segment.queued_cars,
 	
 	% check if CS surpassed some cars in NewQ
 	Surpass = fun(Elem) ->
 					  if
-						  Elem#car_position.enter_t < CS#car_position.enter_t
-							andalso Elem#car_position.exit_t > CS#car_position.exit_t ->
+						  Elem#car_position.enter_t < CarPos#car_position.enter_t
+							andalso Elem#car_position.exit_t > CarPos#car_position.exit_t ->
 							  true;
 						  true ->
 							  false
@@ -596,8 +593,8 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 			  end,
 	Surpassed = lists:filter(Surpass, NewQ),
 	
-	NewQUpdate = [CS | NewQ],
-	NewSUpdate = NewS#segment{queued_cars = NewQUpdate},
+	NewQUpdate = [CarPos | NewQ],
+	NewSUpdate = NewSgm#segment{queued_cars = NewQUpdate},
 	% insert the updated segments in track table
 	T = fun() ->
 				mnesia:write(track, OldSUpdate, write),
@@ -607,14 +604,15 @@ move_car(OldS, NewS, CS) when is_record(CS, car_position),
 	
 	% send surpass notifications to event_dispatcher
 	SendNotif = fun(Elem) ->
-						Msg = #surpass_notif{surpasser = CS#car_position.car_id,
+						Msg = #surpass_notif{surpasser = CarPos#car_position.car_id,
 											 surpassed = Elem#car_position.car_id},
 						event_dispatcher:notify(Msg)
 				end,
 	lists:foreach(SendNotif, Surpassed).
 
 %% Removes car_position of index PilotId from segment S.
-remove_car(S, PilotId) when is_record(S, segment) ->
+-spec remove_car(#segment{}, car()) -> 'ok'.
+remove_car(S, PilotId) ->
 	NewQueue = lists:keydelete(PilotId, #car_position.car_id,
 							   S#segment.queued_cars),
 	NewS = S#segment{queued_cars = NewQueue},
@@ -634,7 +632,6 @@ remove_car(S, PilotId) when is_record(S, segment) ->
 
 %% Returns car's status after driving Sgm.
 -spec update_car_status(#car_status{}, #segment{}) -> #car_status{}.
-
 update_car_status(Status, Sgm) ->
 	FCons = ?FUEL_PER_SGM * (1 + math:sin(physics:deg_to_rad(Sgm#segment.inclination))),
 	Coeff = case Sgm#segment.curvature /= 0 of
@@ -647,7 +644,6 @@ update_car_status(Status, Sgm) ->
 
 %% Returns the time needed to perform the pitstop operations.
 -spec pitstop_time(#pitstop_ops{}) -> float().
-
 pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 	RefuelTime = 2.0 + F / ?REFUEL_SPEED,
 	if
@@ -660,7 +656,6 @@ pitstop_time(#pitstop_ops{fuel = F, tyres = T}) ->
 
 %% Returns percentual consumption of tyres.
 -spec tyres_cons(tyres(), rain_amount()) -> float().
-
 tyres_cons(slick, Rain) ->
 	-0.0001 * Rain + 0.004;
 tyres_cons(intermediate, Rain) ->
@@ -668,14 +663,17 @@ tyres_cons(intermediate, Rain) ->
 tyres_cons(wet, Rain) ->
 	-0.0005 * Rain + 0.008.
 
+-spec next_segment(sgm_id()) -> sgm_id().
 next_segment(Id) ->
 	(Id + 1) rem utils:get_setting(sgm_number).
 
+-spec prev_segment(sgm_id(), pos_integer()) -> sgm_id().
 prev_segment(0, N) ->
 	N - 1;
 prev_segment(Id, _N) ->
 	Id - 1.
 
+-spec is_pit_area_lane(#segment{}, integer()) -> boolean().
 is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
 	if
 		Sgm#segment.max_lane == Lane -> true;
@@ -694,6 +692,7 @@ is_pit_area_lane(#segment{type = pre_pitlane} = Sgm, Lane) ->
 is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
 	false.
 
+-spec is_pit_area(#segment{}) -> boolean().
 is_pit_area(#segment{type = pitlane}) ->
 	true;
 is_pit_area(#segment{type = pitstop}) ->
@@ -705,15 +704,18 @@ is_pit_area(Sgm) when is_record(Sgm, segment) ->
 
 %% Takes the id of an intermediate segment as input and returns its
 %% index. The finish line is the intermediate with the maximum index.
-intermediate_index(Id) when is_integer(Id) ->
+-spec intermediate_index(sgm_id()) -> pos_integer().
+intermediate_index(Id) when is_integer(Id), Id >= 0 ->
 	Map = utils:get_setting(intermediate_map),
 	{Id, Index} = lists:keyfind(Id, 1, Map),
 	Index.
 
 %% Returns a list of {SgmId, Index} tuples.
+-spec build_intermediate_map([#segment{}]) -> [{sgm_id(), pos_integer()}].
 build_intermediate_map(List) ->
 	build_intermediate_map(lists:keysort(#segment.id, List), 0).
 
+-spec build_intermediate_map([#segment{}], non_neg_integer()) -> [{sgm_id(), pos_integer()}].
 build_intermediate_map([H | T], 0) ->
 	I = case H#segment.type of
 			finish_line -> 1;

@@ -24,7 +24,6 @@
 
 -spec simulate(#segment{}, integer(), integer(), float(), pos_integer(),
 			   number(), float(), float(), float(), float()) -> calc_result().
-
 simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
 	G = if
@@ -50,21 +49,18 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 					 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
 	end.
 
--spec bent_max_speed(#pilot{}, #segment{}) -> float().
-
-bent_max_speed(Pilot, #segment{curvature = R} = S) when R /= 0 ->
+-spec bent_max_speed(#car_status{}, #segment{}) -> float().
+bent_max_speed(CarStatus, #segment{curvature = R} = S) when R /= 0 ->
 	Cos = math:cos(deg_to_rad(S#segment.inclination)),
-	K = friction(Pilot#pilot.car_status, S#segment.rain),
+	K = friction(CarStatus, S#segment.rain),
 	math:sqrt(K * Cos * R * ?g).
 
 -spec sgm_max_speed(float(), float(), number()) -> float().
-
 sgm_max_speed(VNext, Amin, SgmLength) ->
 	math:sqrt(math:pow(VNext, 2) - 2 * Amin * SgmLength).
 
 %% Maximum speed the car can reach.
 -spec engine_max_speed(number()) -> float().
-
 engine_max_speed(_F) ->
 	% TODO: implement me!
 	100.0.
@@ -75,13 +71,11 @@ engine_max_speed(_F) ->
 %% Inclination: in rad
 -spec acceleration(number(), number(), float(), #car_status{},
 				   rain_amount()) -> float().
-
 acceleration(F, M, Inclination, CarStatus, Rain) ->
 	K = 1 - (1 - friction_coeff(CarStatus, Rain)) / 2,
 	K * (F / M - math:sin(Inclination) * ?g).
 
 -spec deg_to_rad(number()) -> float().
-
 deg_to_rad(Angle) when is_number(Angle) ->
 	Angle * math:pi() / 180.0.
 
@@ -91,7 +85,6 @@ deg_to_rad(Angle) when is_number(Angle) ->
 % (altrimenti una simulate dopo un crash non funziona)
 -spec get_car_ahead(#segment{}, integer(), pos_integer()) ->
 					#car_position{} | 'null'.
-
 get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 	Filter = fun(Pos) ->
 					 case Pos of
@@ -120,7 +113,6 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 %% Amin: maximum deceleration of brakes (always negative)
 %% Amax: maximum acceleration the engine can supply
 -spec calculate(number(), float(), float(), float(), float()) -> calc_result().
-
 calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
 	{ok, 0.0, Speed};
 calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax) when Amax =< 0 ->
@@ -144,7 +136,6 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) when Amin =< 0 ->
 	end.
 
 -spec add_g(number(), calc_result()) -> calc_result().
-
 add_g(G, {ok, T, S}) ->
 	{ok, G + T, S};
 add_g(_G, T) ->
@@ -152,13 +143,11 @@ add_g(_G, T) ->
 
 %% Calculates coefficient of friction
 -spec friction(#car_status{}, rain_amount()) -> float().
-
 friction(CarStatus, Rain) ->
 	?FRICTION_BASE * friction_coeff(CarStatus, Rain).
 
 %% Calculates a coefficient (between 0 and 1) for the base friction.
 -spec friction_coeff(#car_status{}, rain_amount()) -> float().
-
 friction_coeff(CarStatus, Rain) ->
 	A = consumption(CarStatus#car_status.tyres_consumption),
 	B = friction_tab(CarStatus#car_status.tyres_type, Rain),
@@ -167,7 +156,6 @@ friction_coeff(CarStatus, Rain) ->
 %% Returns a float from 1 to 0.5
 %% Y = (-3/500)X^2 + (1/10)X + 100
 -spec consumption(float()) -> float().
-
 consumption(Val) ->
 	Per = (-3.0 / 500.0) * math:pow(Val, 2) + Val / 10.0 + 100.0,
 	Per / 100.0.
@@ -175,7 +163,6 @@ consumption(Val) ->
 %% Returns a float between 0 and 1
 %% Y = ((y2 - y1)/(x2 - x1))(X - x1) + y1
 -spec friction_tab(tyres(), rain_amount()) -> float().
-
 friction_tab(slick, Rain) ->
 	% (0,1) (10,0.3)
 	-0.07 * Rain + 1.0;
