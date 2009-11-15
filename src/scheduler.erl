@@ -97,11 +97,11 @@ handle_call({speedup, NewSpeedup}, _From, State) ->
 	{reply, ok, State#state{speedup = NewSpeedup}};
 
 handle_call(start, _From, State) when not State#state.started ->
-	?DBG("starting the simulation ..."),
+	event_dispatcher:notify(#race_notif{event = started}),
 	NewState = State#state{running = true, started = true},
 	{reply, ok, process_next(NewState)};
 handle_call(start, _From, State) when not State#state.running ->
-	?DBG("resuming execution ..."),
+	event_dispatcher:notify(#race_notif{event = resumed}),
 	NewState = State#state{running = true},
 	{reply, ok, process_next(NewState)};
 handle_call(start, _From, State) ->
@@ -109,7 +109,7 @@ handle_call(start, _From, State) ->
 	{reply, ok, State};
 
 handle_call(pause, _From, State) when State#state.running ->
-	?DBG("pausing execution ..."),
+	event_dispatcher:notify(#race_notif{event = paused}),
 	NewTiming = reset_timing(State#state.timing_info),
 	{reply, ok, State#state{running = false,
 							timing_info = NewTiming}};
