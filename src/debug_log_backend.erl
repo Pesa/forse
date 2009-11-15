@@ -112,21 +112,19 @@ code_change(_OldVsn, State, _Extra) ->
 -spec to_string(any_notif()) -> string().
 
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
-	"Car " ++ integer_to_list(C) ++ " has gone through intermediate " ++
-		integer_to_list(Inter) ++ " of lap " ++ integer_to_list(Lap) ++
-		" in " ++ float_to_list(T) ++ " seconds, with a maximum speed of "
-		++ float_to_list(S * 3.6) ++ " Km/h";
-to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = _Fuel, tyres = _Tyres}}) ->
-	"Car " ++ integer_to_list(C) ++ " stopped at the pits";
+	lists:concat(["Car ", C, " has gone through intermediate ", Inter, " of lap ", Lap,
+				  " in ", T, " seconds, with a maximum speed of ", S * 3.6, " Km/h."]);
+to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = F, tyres = Ty}}) ->
+	lists:concat(["Pitstop for car ", C, ": ", F, " liters of fuel have been added and ",
+				  Ty, " tyres have been installed."]);
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
-	"Car " ++ integer_to_list(Surpasser) ++ " surpassed car " ++ integer_to_list(Surpassed);
+	lists:concat(["Car ", Surpasser, " surpassed car ", Surpassed, "."]);
 to_string(#race_notif{event = E}) ->
-	"Race " ++ atom_to_list(E);
+	lists:concat(["Race ", E, "."]);
 to_string(#retire_notif{car = C, reason = R}) ->
-	"Car " ++ integer_to_list(C) ++ " retired: " ++ atom_to_list(R);
+	lists:concat(["Car ", C, " retired: ", R, "."]);
 to_string(#weather_notif{changes = Changes}) ->
 	F = fun(#weather_change{segment = S, new_weather = New}, Acc) ->
-				"\t" ++ integer_to_list(New) ++ " in segment "
-					++ integer_to_list(S) ++ "\n" ++ Acc
+				lists:concat([Acc, "\t", New, " in segment ", S, "\n"])
 		end,
-	"\nWeather changed to:\n" ++ lists:foldl(F, "", Changes).
+	lists:concat(["\nWeather changed to:\n", lists:foldl(F, "", Changes)]).
