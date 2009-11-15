@@ -2,13 +2,8 @@
 - fare GUI e backends per weather, race_info e teams
 - GUI debug_log: generalizzare le parti hard-coded
 - TODO/FIXME nel codice
-- come ci accorgiamo che finisce la gara?
-	Una possibile soluzione sarebbe mantenere un contatore della auto in gara
-	gestito da track che lo inizializza nella init e lo decrementa nella funzione remove_car
-	mandando poi un messaggio al dispatcher che comunica agli iscritti la fine della gara quando il 
-	contatore arriva a 0.
-	In questo modo sarebbe l'ultima auto a informare il sistema.
-	Un problema di questa soluzione è come dirlo a chi non è iscritto al dispatcher...
+- fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
+	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - physics:get_car_ahead -> non deve considerare se stessa
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
