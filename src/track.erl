@@ -247,7 +247,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
 										  Pilot#pilot.lap, Pilot#pilot.pitstop_count),
 			PitstopTime = pitstop_time(Ops),
-			%% Check if there's another car using pitsop
+			% check if there's another car at the pits
 			CarBoxPos = physics:get_car_ahead(S, ExitLane, 1),
 			CPExitTime = CarPos#car_position.exit_t,
 			ETime = case CarBoxPos of
