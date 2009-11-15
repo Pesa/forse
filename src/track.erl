@@ -21,10 +21,8 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph0, {_, _, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, 0}, TrackConfig),
-		Ph1 = lists:flatten(Ph0),
-		{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
-		Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
+		{Ph1, {_, _, Pit, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, -1, 0}, TrackConfig),
+		Ph2 = lists:flatten(Ph1),
 		utils:set_setting(sgm_number, length(Ph2)),
 		Ph3 = build_pit_area(Ph2, Pit, TeamsList),
 		Ph4 = set_chrono_lanes(Ph3),
@@ -51,14 +49,14 @@ init(TrackConfig, TeamsList, CarsList)
 		event_dispatcher:notify(#config_notif{app = track,
 											  config = Config})
 	catch
-		% TODO
+		% TODO: gestione delle eccezioni
 		throw : E ->
 			{error, E};
 		error : {badmatch, _} ->
 			{error, something_went_wrong}
 	end.
 
-build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, RainSum}) ->
+build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum}) ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
@@ -68,8 +66,8 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, RainSum}
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, RainSum + Rain}};
-build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, RainSum}) ->
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
+build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum}) ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
@@ -79,19 +77,21 @@ build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm,
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, RainSum + Rain}};
-build_sector({finish_line}, {Sect, Sgm, RainSum}) ->
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
+build_sector({finish_line}, {Sect, Sgm, Pit, RainSum}) ->
 	S = #segment{id = Sgm,
 				 type = finish_line,
 				 length = 0},
-	{[S], {Sect, Sgm + 1, RainSum}};
-build_sector({intermediate}, {Sect, Sgm, RainSum}) ->
+	{[S], {Sect, Sgm + 1, Pit, RainSum}};
+build_sector({intermediate}, {Sect, Sgm, Pit, RainSum}) ->
 	S = #segment{id = Sgm,
 				 type = intermediate,
 				 length = 0},
-	{[S], {Sect, Sgm + 1, RainSum}};
-build_sector({pitlane_entrance}, {Sect, Sgm, RainSum}) ->
-	{[{pitlane_entrance, Sgm}], {Sect, Sgm, RainSum}}.
+	{[S], {Sect, Sgm + 1, Pit, RainSum}};
+build_sector({pitlane_entrance}, {Sect, Sgm, -1, RainSum}) ->
+	{[], {Sect, Sgm, Sgm, RainSum}};
+build_sector({pitlane_entrance}, {_Sect, _Sgm, _Pit, _RainSum}) ->
+	throw('multiple pitlane entrances').
 
 -spec sector_to_segments(#segment{}, sgm_id(), sgm_id()) -> [#segment{}].
 sector_to_segments(Template, Start, Stop) when Start < Stop ->
@@ -99,6 +99,8 @@ sector_to_segments(Template, Start, Stop) when Start < Stop ->
 sector_to_segments(_Template, Start, Start) ->
 	[].
 
+build_pit_area(_List, -1, _TeamsList) ->
+	throw('missing pitlane entrance');
 build_pit_area(List, Index, TeamsList) ->
 	PrePit = 40,
 	Pit = 10,
@@ -126,8 +128,7 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 							   max_lane = max_lane(S#segment.max_lane, Type)},
 			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
 		true ->
-			% FIXME: track is too short, throw an exception
-			throw(track_too_short)
+			throw('track too short')
 	end.
 
 -spec max_lane(integer(), sgm_type()) -> integer().
