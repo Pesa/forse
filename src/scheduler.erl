@@ -29,6 +29,7 @@
 				 start	= 0.0	:: time(),
 				 expiry			:: time()}).
 -record(state, {running			= false		:: boolean(),
+				started			= false		:: boolean(),
 				token_available	= true		:: boolean(),
 				speedup						:: number(),
 				timing_info		= #timing{}	:: #timing{},
@@ -95,8 +96,12 @@ handle_call({speedup, NewSpeedup}, _From, State) ->
 	?DBG({"changing speedup factor to", NewSpeedup}),
 	{reply, ok, State#state{speedup = NewSpeedup}};
 
+handle_call(start, _From, State) when not State#state.started ->
+	?DBG("starting the simulation ..."),
+	NewState = State#state{running = true, started = true},
+	{reply, ok, process_next(NewState)};
 handle_call(start, _From, State) when not State#state.running ->
-	?DBG("starting/resuming execution ..."),
+	?DBG("resuming execution ..."),
 	NewState = State#state{running = true},
 	{reply, ok, process_next(NewState)};
 handle_call(start, _From, State) ->
