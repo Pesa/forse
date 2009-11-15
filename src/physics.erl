@@ -118,18 +118,18 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 %% Amin: maximum deceleration of brakes (always negative)
 %% Amax: maximum acceleration the engine can supply
 -spec calculate(number(), float(), float(), float(), float()) ->
-				{float() | {'fail', Reason :: atom()}, float()}.
+				{Time :: float() | {'fail', Reason :: atom()}, Speed :: float()}.
 
 calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
-	{0, Speed};
-calculate(Space, Speed, MaxSpeed, Amin, Amax) ->
+	{0.0, Speed};
+calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax) when Amax =< 0 ->
+	{{fail, 'insufficient engine power'}, 0};
+calculate(Space, Speed, MaxSpeed, Amin, Amax) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	{Time, Acc} = if
 					  A < Amin - ?ACCEL_TOLERANCE ->
 						  {{fail, 'crash'}, 0};
-					  Amax < 0 ->
-						  {{fail, 'insufficient engine power'}, 0};
 					  A > Amax ->
 						  {(math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
 					  true ->
