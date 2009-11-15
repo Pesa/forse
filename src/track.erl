@@ -21,7 +21,7 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph0, _} = lists:mapfoldl(fun build_sector/2, {0, 0}, TrackConfig),
+		{Ph0, {_, _, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, 0}, TrackConfig),
 		Ph1 = lists:flatten(Ph0),
 		{pitlane_entrance, Pit} = lists:keyfind(pitlane_entrance, 1, Ph1),
 		Ph2 = lists:keydelete(pitlane_entrance, 1, Ph1),
@@ -44,7 +44,12 @@ init(TrackConfig, TeamsList, CarsList)
 			   (_) -> false
 			end,
 		Map = build_intermediate_map(lists:filter(F, SgmList)),
-		utils:set_setting(intermediate_map, Map)
+		utils:set_setting(intermediate_map, Map),
+		
+		Config = [{sectors, TrackConfig},
+				  {initial_rain_sum, RainSum}],
+		event_dispatcher:notify(#config_notif{app = track,
+											  config = Config})
 	catch
 		% TODO
 		throw : E ->
@@ -53,7 +58,7 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, something_went_wrong}
 	end.
 
-build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
+build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, RainSum}) ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
@@ -63,8 +68,8 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
-build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}) ->
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, RainSum + Rain}};
+build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, RainSum}) ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
@@ -74,19 +79,19 @@ build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm}
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last}};
-build_sector({finish_line}, {Sect, Sgm}) ->
+	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, RainSum + Rain}};
+build_sector({finish_line}, {Sect, Sgm, RainSum}) ->
 	S = #segment{id = Sgm,
 				 type = finish_line,
 				 length = 0},
-	{[S], {Sect, Sgm + 1}};
-build_sector({intermediate}, {Sect, Sgm}) ->
+	{[S], {Sect, Sgm + 1, RainSum}};
+build_sector({intermediate}, {Sect, Sgm, RainSum}) ->
 	S = #segment{id = Sgm,
 				 type = intermediate,
 				 length = 0},
-	{[S], {Sect, Sgm + 1}};
-build_sector({pitlane_entrance}, {Sect, Sgm}) ->
-	{[{pitlane_entrance, Sgm}], {Sect, Sgm}}.
+	{[S], {Sect, Sgm + 1, RainSum}};
+build_sector({pitlane_entrance}, {Sect, Sgm, RainSum}) ->
+	{[{pitlane_entrance, Sgm}], {Sect, Sgm, RainSum}}.
 
 -spec sector_to_segments(#segment{}, sgm_id(), sgm_id()) -> [#segment{}].
 sector_to_segments(Template, Start, Stop) when Start < Stop ->
