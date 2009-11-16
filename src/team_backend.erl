@@ -15,7 +15,8 @@
 
 -include("common.hrl").
 
--record(state, {observers = []}).
+-record(state, {observers	= []	:: [#callback{}],
+				rain_sum			:: non_neg_integer()}).
 
 
 %% ====================================================================
@@ -64,28 +65,37 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
-	NewObs = State#state.observers ++ [Callback],
+	NewCB = event_dispatcher:notify_init({rain_sum, State#state.rain_sum}, [Callback]),
+	NewObs = State#state.observers ++ NewCB,
 	{noreply, State#state{observers = NewObs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
-	NewObs = event_dispatcher:notify_update({chrono, Msg}, State#state.observers),
+	NewObs = event_dispatcher:notify_update(Msg, State#state.observers),
 	{noreply, State#state{observers = NewObs}};
 
+handle_cast(#config_notif{app = track, config = Config}, State) ->
+	{initial_rain_sum, RainSum} = lists:keyfind(initial_rain_sum, 1, Config),
+	NewObs = event_dispatcher:notify_init({rain_sum, RainSum},
+										  State#state.observers),
+	{noreply, State#state{observers = NewObs,
+						  rain_sum = RainSum}};
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
-	%TODO elaborare i dati ricevuti
+	% ignore config_notif from apps other than track
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
-	%TODO elaborare i dati ricevuti
+	% TODO: probabilmente solo le GUI sono interessate ai ritiri
 	{noreply, State};
 
-handle_cast(Msg, State) when is_record(Msg, weather_notif) ->
+handle_cast(#weather_notif{changes = Changes}, State) ->
 	F = fun(#weather_change{old_weather = W1, new_weather = W2}, Sum) ->
 				Sum + W2 - W1
 		end,
-	Delta = lists:foldl(F, 0, Msg#weather_notif.changes),
-	NewObs = event_dispatcher:notify_update({weather, Delta}, State#state.observers),
-	{noreply, State#state{observers = NewObs}}.
+	NewRainSum = lists:foldl(F, State#state.rain_sum, Changes),
+	NewObs = event_dispatcher:notify_init({rain_sum, NewRainSum},
+										  State#state.observers),
+	{noreply, State#state{observers = NewObs,
+						  rain_sum = NewRainSum}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2
@@ -112,8 +122,3 @@ terminate(_Reason, _State) ->
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
-
-
-%% --------------------------------------------------------------------
-%% Internal functions
-%% --------------------------------------------------------------------

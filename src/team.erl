@@ -36,9 +36,9 @@
 %%				the limit then this car should stop at the pits
 %% rain_sum: sum of rain field of all the segments
 %% cars_stats: list of car_stats records
--record(state, {fuel_limit			:: float(),
-				tyres_limit			:: float(),
-				rain_sum	= 0		:: non_neg_integer(),
+-record(state, {fuel_limit	= 110.0	:: float(), % TODO
+				tyres_limit	= 50.0	:: float(), % TODO
+				rain_sum			:: non_neg_integer(),
 				cars_stats	= []	:: [#car_stats{}]}).
 
 %% type: type of tyres
@@ -77,11 +77,13 @@ pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount)
   when is_record(CarStatus, car_status) ->
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
-update(TeamId, {update, {weather, Delta}}) when is_integer(Delta) ->
-	gen_server:call(?TEAM_NAME(TeamId), {weather_update, Delta});
+-spec update(pos_integer(), {'update', #chrono_notif{}}
+						  | {'init', {'rain_sum', non_neg_integer()}}) -> 'ok'.
 
-update(TeamId, {update, {chrono, Notif}}) when is_record(Notif, chrono_notif) ->
-	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Notif}).
+update(TeamId, {init, {rain_sum, RainSum}}) ->
+	gen_server:call(?TEAM_NAME(TeamId), {set_rain_sum, RainSum});
+update(TeamId, {update, Chrono}) when is_record(Chrono, chrono_notif) ->
+	gen_server:call(?TEAM_NAME(TeamId), {chrono_update, Chrono}).
 
 
 %% ====================================================================
@@ -127,19 +129,14 @@ init(Config) ->
 %% --------------------------------------------------------------------
 handle_call({force_pitstop, CarId}, _From, State) ->
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
-	PC = case CarStats of
-			 false -> 0;
-			 _ -> CarStats#car_stats.pitstop_count
-		 end,
-	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, stops_count = PC}),
+	PSC = case CarStats of
+			  false -> 0;
+			  _ -> CarStats#car_stats.pitstop_count
+		  end,
+	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, stops_count = PSC}),
 	{reply, ok, State};
 
-handle_call({weather_update, Delta}, _From, State) ->
-	RainSum = State#state.rain_sum + Delta,
-	{reply, ok, State#state{rain_sum = RainSum}};
-
 handle_call({chrono_update, Chrono}, _From, State) ->
-	?DBG("received chrono update."),
 	
 	% Phase 1: update the status %
 	
@@ -231,6 +228,9 @@ handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	NewCS = CarStats#car_stats{pitstop_count = CarPSCount},
 	Reply = #pitstop_ops{tyres = BestTyres, fuel = AddF},
 	{reply, Reply, State#state{cars_stats = [NewCS | Rest]}};
+
+handle_call({set_rain_sum, RainSum}, _From, State) ->
+	{reply, ok, State#state{rain_sum = RainSum}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
