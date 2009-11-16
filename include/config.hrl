@@ -12,8 +12,8 @@
 -define(LANE_CHANGE_TIME, 0.5).
 
 %% Coefficient of friction of new slick tyres when rain == 0.
-%% TODO: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
--define(FRICTION_BASE, 10).
+%% source: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
+-define(FRICTION_BASE, 0.8).
 
 %% Base fuel consumption per segment (in liters).
 -define(FUEL_PER_SGM, 0.0042).
