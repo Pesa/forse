@@ -12,7 +12,7 @@
 -define(LANE_CHANGE_TIME, 0.5).
 
 %% Coefficient of friction of new slick tyres when rain == 0.
-%% source: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
+%% Source: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
 -define(FRICTION_BASE, 0.8).
 
 %% Base fuel consumption per segment (in liters).
@@ -21,8 +21,7 @@
 %% Specific gravity of fuel.
 -define(FUEL_SPEC_GRAVITY, 0.7).
 
-%% Speed limit within the pitlane.
-% FIXME: unita' di misura? m/s?
+%% Speed limit within the pitlane (in m/s).
 -define(PIT_MAX_SPEED, 22.5).
 
 %% Time in seconds needed to change tyres.
