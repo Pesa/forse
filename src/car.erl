@@ -163,23 +163,6 @@ handle_call(retire, _From, State) ->
 handle_call(invalidate_preelab, _From, State) ->
 	{reply, ok, State#pilot{run_preelab = true}};
 
-handle_call(#next_pitstop{lap = NewStop, stops_count = SC}, _From, State) ->
-	Lap = State#pilot.lap,
-	OldStop = State#pilot.next_pitstop,
-	NewState = if
-				   State#pilot.pitstop_count /= SC ->
-					   % the message is obsolete: ignore it
-					   ?DBG("ignoring obsolete next_pitstop message."),
-					   State;
-				   OldStop == -1;
-				   OldStop > Lap;
-				   NewStop > Lap ->
-					   State#pilot{next_pitstop = NewStop};
-				   true ->
-					   State
-			   end,
-	{reply, ok, NewState};
-
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
 	{noreply, State}.
@@ -191,6 +174,25 @@ handle_call(Msg, From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_cast(#next_pitstop{lap = NewStop, stops_count = SC}, State) ->
+	Lap = State#pilot.lap,
+	OldStop = State#pilot.next_pitstop,
+	NewState = if
+				   State#pilot.pitstop_count /= SC ->
+					   % the message is obsolete: ignore it
+					   ?DBG("ignoring obsolete next_pitstop message."),
+					   State;
+				   OldStop == -1;
+				   OldStop > Lap;
+				   NewStop > Lap ->
+					   ?DBG({"setting next_pitstop to", NewStop}),
+					   State#pilot{next_pitstop = NewStop};
+				   true ->
+					   ?DBG("ignoring next_pitstop message."),
+					   State
+			   end,
+	{noreply, NewState};
+
 handle_cast(_Msg, State) ->
 	{noreply, State}.
 
