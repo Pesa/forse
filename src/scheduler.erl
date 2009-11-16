@@ -93,7 +93,7 @@ init(Speedup) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({speedup, NewSpeedup}, _From, State) ->
-	?DBG({"changing speedup factor to", NewSpeedup}),
+	%?DBG({"changing speedup factor to", NewSpeedup}),
 	{reply, ok, State#state{speedup = NewSpeedup}};
 
 handle_call(start, _From, State) when not State#state.started ->
@@ -118,7 +118,7 @@ handle_call(pause, _From, State) ->
 	{reply, ok, State};
 
 handle_call({enqueue, Time, Callback}, _From, State) ->
-	?DBG({"enqueuing new work", Callback, "at time", Time}),
+	%?DBG({"enqueuing new work", Callback, "at time", Time}),
 	% enqueue the new callback
 	NewQueue = insert({Time, Callback}, State#state.workqueue),
 	% update the timer if needed
@@ -133,7 +133,7 @@ handle_call({enqueue, Time, Callback}, _From, State) ->
 							workqueue = NewQueue}};
 
 handle_call(done, _From, State) ->
-	?DBG("got the token back."),
+	%?DBG("got the token back."),
 	NewState = State#state{token_available = true},
 	{reply, ok, process_next(NewState)};
 
@@ -161,7 +161,7 @@ handle_cast(Msg, State) ->
 %% --------------------------------------------------------------------
 handle_info({timeout, _Timer, wakeup}, State) ->
 	Timing = State#state.timing_info,
-	?DBG({"timer started at", Timing#timing.start, "expired at", Timing#timing.expiry}),
+	%?DBG({"timer started at", Timing#timing.start, "expired at", Timing#timing.expiry}),
 	NewState = State#state{timing_info = reset_timing(Timing)},
 	{noreply, process_next(NewState)};
 
@@ -218,14 +218,14 @@ process_next(#state{timing_info = Timing} = State)
 			State
 	end;
 process_next(State) ->
-	?DBG("preconditions not satisfied."),
+	%?DBG("preconditions not satisfied."),
 	State.
 
 % Sends the token to the worker identified by the arguments.
 -spec give_token(#callback{}) -> 'ok'.
 
 give_token(#callback{mod = M, func = F, args = A} = CB) ->
-	?DBG({"sending token to", CB}),
+	%?DBG({"sending token to", CB}),
 	case apply(M, F, A) of
 		{requeue, Time, NewCB} when is_number(Time), Time >= 0,
 									is_record(NewCB, callback) ->
@@ -242,7 +242,7 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 -spec new_timer(time(), time(), number()) -> #timing{}.
 
 new_timer(Now, Expiry, Speedup) ->
-	?DBG({"starting timer at", Now, "expiring at", Expiry}),
+	%?DBG({"starting timer at", Now, "expiring at", Expiry}),
 	SleepAmount = (Expiry - Now) / Speedup,
 	#timing{timer = start_timer(SleepAmount),
 			start = Now,
@@ -258,10 +258,10 @@ recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Spe
 recalculate_timer(#timing{timer = Timer, expiry = Expiry} = Timing, [{NextTime, _} | _], Speedup) ->
 	case erlang:cancel_timer(Timer) of
 		false ->
-			?DBG("not adjusting an already expired timer."),
+			%?DBG("not adjusting an already expired timer."),
 			Timing;
 		RemainingTime ->
-			?DBG({"adjusting timer to expire at", NextTime}),
+			%?DBG({"adjusting timer to expire at", NextTime}),
 			% RemainingTime is expressed in milliseconds
 			SleepAmount = RemainingTime / 1000 - (Expiry - NextTime) / Speedup,
 			#timing{timer = start_timer(SleepAmount),
@@ -285,7 +285,7 @@ reset_timing(#timing{timer = Timer, start = Start}) ->
 		_ ->
 			case erlang:cancel_timer(Timer) of
 				false -> ok;
-				_ -> ?DBG("timer canceled.")
+				_ -> ok %?DBG("timer canceled.")
 			end
 	end,
 	#timing{start = Start}.
