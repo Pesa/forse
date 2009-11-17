@@ -225,7 +225,7 @@ handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 				   NeededFuel - Fuel
 		   end,
 	Rest = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
-	NewCS = CarStats#car_stats{pitstop_count = CarPSCount},
+	NewCS = CarStats#car_stats{pitstop_count = CarPSCount + 1},
 	Reply = #pitstop_ops{tyres = BestTyres, fuel = AddF},
 	{reply, Reply, State#state{cars_stats = [NewCS | Rest]}};
 
