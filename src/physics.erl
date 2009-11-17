@@ -124,7 +124,7 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax) when Amin =< 0 ->
 				 A < Amin - ?ACCEL_TOLERANCE ->
 					 {fail, 'crash'};
 				 A > Amax ->
-					 {ok, (math:sqrt(math:pow(Speed, 2) + 8*Amax*Space) - Speed) / (2*Amax), Amax};
+					 {ok, (math:sqrt(math:pow(Speed, 2) + 2*Amax*Space) - Speed) / Amax, Amax};
 				 true ->
 					 {ok, T1, A}
 			 end,
