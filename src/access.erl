@@ -33,7 +33,7 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 		Time andalso ExitLane /= EnterLane;
 		PL andalso ExitLane /= EnterLane;
 		Type == pre_pitlane andalso ExitLane == MaxL andalso not Pit;
-		Type == pitlane andalso EnterLane /= MaxL andalso ExitLane == MaxL;
+		Type == pitlane andalso EnterLane < MaxL andalso ExitLane == MaxL;
 		Type == pitstop andalso EnterLane < MaxL - 1 andalso ExitLane >= MaxL - 1;
 		ExitLane < EnterLane andalso (PrePL orelse PostPL orelse PS) ->
 			{fail, 'access denied'};
