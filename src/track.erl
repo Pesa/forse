@@ -151,22 +151,22 @@ max_lane(Lane, Type) ->
 			Lane
 	end.
 
-build_pitstop(Start, TeamList, SgmList) ->
+build_pitstop(Start, TeamsList, SgmList) ->
 	SN = utils:get_setting(sgm_number),
-	build_pitstop_rec(Start, TeamList, SgmList, SN).
+	build_pitstop_rec(Start, TeamsList, SgmList, SN).
 
 build_pitstop_rec(Start, [], SgmList, _SN) ->
 	{SgmList, Start};
-build_pitstop_rec(Start, [H | T], SgmList, SN) ->
+build_pitstop_rec(Start, [TeamId | Tail], SgmList, SN) ->
 	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
 	PitId = prev_segment(N1, SN),
-	F = fun() ->
-				[CT] = mnesia:wread({car_type, H}),
+	T = fun() ->
+				[CT] = mnesia:wread({car_type, TeamId}),
 				mnesia:write(car_type, CT#car_type{pitstop_sgm = PitId}, write)
 		end,
-	{atomic, ok} = mnesia:transaction(F),
+	{atomic, ok} = mnesia:sync_transaction(T),
 	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
-	build_pitstop_rec(N2, T, L2, SN).
+	build_pitstop_rec(N2, Tail, L2, SN).
 
 set_chrono_lanes(List) ->
 	Pred = fun(S) ->
