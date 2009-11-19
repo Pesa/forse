@@ -56,7 +56,9 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, something_went_wrong}
 	end.
 
-build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum}) ->
+build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
+  when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
+	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
@@ -67,14 +69,16 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, Rai
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
 	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
-build_sector({Type, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
-  when Type == left orelse Type == right ->
+build_sector({Type, Len, Curv, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
+  when (Type == left orelse Type == right), is_number(Len), Len > 0,
+	   is_integer(MinLane), is_integer(MaxLane), is_number(Curv), Curv > 0,
+	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
 					length = ?SEGMENT_LENGTH,
 					inclination = Incl,
-					curvature = CurveRadius,
+					curvature = Curv,
 					rain = Rain},
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
@@ -92,7 +96,9 @@ build_sector({intermediate}, {Sect, Sgm, Pit, RainSum}) ->
 build_sector({pitlane_entrance}, {Sect, Sgm, -1, RainSum}) ->
 	{[], {Sect, Sgm, Sgm, RainSum}};
 build_sector({pitlane_entrance}, {_Sect, _Sgm, _Pit, _RainSum}) ->
-	throw('multiple pitlane entrances').
+	throw("multiple pitlane entrances");
+build_sector(S, {_Sect, _Sgm, _Pit, _RainSum}) ->
+	throw({"invalid sector", S}).
 
 -spec sector_to_segments(#segment{}, sgm_id(), sgm_id()) -> [#segment{}].
 sector_to_segments(Template, Start, Stop) when Start < Stop ->
@@ -101,7 +107,7 @@ sector_to_segments(_Template, Start, Start) ->
 	[].
 
 build_pit_area(_List, -1, _TeamsList) ->
-	throw('missing pitlane entrance');
+	throw("missing pitlane entrance");
 build_pit_area(List, Index, TeamsList) ->
 	PrePit = 40,
 	Pit = 10,
@@ -129,7 +135,7 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 							   max_lane = max_lane(S#segment.max_lane, Type)},
 			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
 		true ->
-			throw('track too short')
+			throw("track is too short")
 	end.
 
 -spec max_lane(integer(), sgm_type()) -> integer().
@@ -217,12 +223,16 @@ add_cars([], SgmList, _Index, _LanePos, _SNum) ->
 -spec place_car(car(), integer(), integer(), #segment{}, 1 | 2) -> #segment{}.
 place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 	Lanes = MaxLane - MinLane,
-	% FIXME: se Lines < 3 deve lanciare un'eccezione
-	L = MinLane + LanePos * (Lanes div 3),
-	CP = #car_position{car_id = CarId,
-					   enter_lane = L,
-					   exit_lane = L},
-	Sgm#segment{queued_cars = [CP]}.
+	if
+		Lanes < 3 ->
+			throw("starting grid is too narrow");
+		true ->
+			L = MinLane + LanePos * (Lanes div 3),
+			CP = #car_position{car_id = CarId,
+							   enter_lane = L,
+							   exit_lane = L},
+			Sgm#segment{queued_cars = [CP]}
+	end.
 
 
 %% Moves the car to the next segment.
