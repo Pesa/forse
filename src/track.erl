@@ -67,7 +67,8 @@ build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, Rai
 	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
 	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
 	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
-build_sector({bent, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum}) ->
+build_sector({Type, Len, CurveRadius, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
+  when Type == left orelse Type == right ->
 	Temp = #segment{type = normal,
 					min_lane = MinLane,
 					max_lane = MaxLane,
