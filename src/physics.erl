@@ -56,8 +56,8 @@ bent_max_speed(CarStatus, #segment{curvature = R} = S) when R /= 0 ->
 	math:sqrt(K * Cos * R * ?g).
 
 -spec sgm_max_speed(float(), float(), number()) -> float().
-sgm_max_speed(VNext, Amin, SgmLength) ->
-	math:sqrt(math:pow(VNext, 2) - 2 * Amin * SgmLength).
+sgm_max_speed(VNext, Amin, SgmLength)->
+	math:sqrt(math:pow(VNext, 2) + 2 * erlang:abs(Amin) * SgmLength).
 
 %% Maximum speed the car can reach.
 -spec engine_max_speed(number()) -> float().
@@ -122,20 +122,23 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	%%DEBUG FIXME: togliere quando non servira'
-	%Delta = Amin - A,
-	%if
-	%	A < 0.0 andalso Delta > 0.0 ->
-	%		?DBG({"DELTA", Delta});
-	%	true ->
-	%		ok
-	%end,
+	Delta = Amin - A,
+	if
+		A < 0.0 andalso Delta > 0.0 ->
+			?DBG({"DELTA", Delta});
+		true ->
+			ok
+	end,
 	SAmax = SkillCoeff * Amax,
 	Result = if
 				 A < (?ACCEL_TOLERANCE + SkillCoeff + 0.1) * Amin ->
 					 ?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff + 0.1, Speed, MaxSpeed}),
 					 {fail, 'crash'};
 				 A > SAmax ->
-					 {ok, (math:sqrt(math:pow(Speed, 2) + 2*SAmax*Space) - Speed) / SAmax, SAmax};
+					 Sqrt = math:sqrt(4.0 * math:pow(Speed, 2) + 8.0 * SAmax * Space),
+					 X = -0.5 * (2.0 * Speed + sgn(Speed) * Sqrt),
+					 Eq = (-2.0 * Space) / X,
+					 {ok, Eq, SAmax};
 				 true ->
 					 {ok, T1, A}
 			 end,
@@ -183,3 +186,11 @@ friction_tab(intermediate, Rain) ->
 friction_tab(wet, Rain) ->
 	% (0,0.7) (10,0.6)
 	-0.01 * Rain + 0.7.
+
+sgn(Num) when is_number(Num) ->
+	case Num >= 0 of
+		true ->
+			1;
+		false ->
+			-1
+	end.
