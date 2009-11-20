@@ -181,7 +181,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 	if
 		CS#car_status.tyres_type /= BestTyres ->
 			% schedule a pitstop for the current lap
-			?DBG({"scheduling an immediate pitstop for car", Chrono#chrono_notif.car}),
+			%?DBG({"scheduling an immediate pitstop for car", Chrono#chrono_notif.car}),
 			car:set_next_pitstop(Chrono#chrono_notif.car,
 								 #next_pitstop{lap = Chrono#chrono_notif.lap,
 											   stops_count = PSCount});
@@ -197,7 +197,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 				Next when is_integer(Next) ->
 					CarId = Chrono#chrono_notif.car,
 					PSLap = Chrono#chrono_notif.lap + Next,
-					?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
+					%?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
 					car:set_next_pitstop(CarId, #next_pitstop{lap = PSLap,
 															  stops_count = PSCount})
 			end

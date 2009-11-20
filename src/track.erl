@@ -281,6 +281,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
 												  reason = Reason}),
 			remove_car(SOld, Pilot#pilot.id),
+			?DBG({"Car ", Pilot#pilot.id, "crashed in segment", Sgm}),
 			fail;
 		{ok, Time, Speed} ->
 			NewCarPos = CarPos#car_position{speed = Speed,
@@ -385,9 +386,9 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 					
 					Amin = physics:acceleration(FDec, Mass, Inc, CS, S#segment.rain),
 					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
-					
+					SkCoeff = 1.0 - (?MAX_SKILL - Pilot#pilot.skill) / 100.0,
 					physics:simulate(S, EnterLane, ExitLane, EnterTime, 1,
-									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax);
+									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkCoeff);
 				Else -> Else
 			end
 	end.
@@ -397,7 +398,7 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 %% can reach in each segment of the track.
 -spec preelaborate(#pilot{}) -> 'ok'.
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
-	?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
+	%?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
 	Mass = Car#car_type.weight + Pilot#pilot.weight

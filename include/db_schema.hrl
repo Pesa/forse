@@ -43,7 +43,7 @@
 %% --------------------------------------------------
 %% id: unique numerical identifier
 %% name: pilot's name
-%% skill: integer representing the pilot's skill
+%% skill: integer representing the pilot's skill <- [1,10]
 %% weight: pilot's weight
 %% team: id of the pilot's team
 %% car_status: current car status

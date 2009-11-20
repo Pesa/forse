@@ -1,7 +1,7 @@
 -module(physics).
 
 %% Exported Functions
--export([simulate/10,
+-export([simulate/11,
 		 bent_max_speed/2,
 		 sgm_max_speed/3,
 		 engine_max_speed/1,
@@ -23,9 +23,9 @@
 %% ====================================================================
 
 -spec simulate(#segment{}, integer(), integer(), float(), pos_integer(),
-			   number(), float(), float(), float(), float()) -> calc_result().
+			   number(), float(), float(), float(), float(), float()) -> calc_result().
 simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
-		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax) ->
+		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC) ->
 	G = if
 			EnterLane == ExitLane -> 0;
 			true -> ?LANE_CHANGE_TIME
@@ -37,16 +37,16 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
 		 end,
 	case K of
 		null ->
-			add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax));
+			add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC));
 		_ when EnterLane == K#car_position.enter_lane ->
 			MaxSpeed = erlang:min(K#car_position.speed, MaxExitSpeed),
-			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
+			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax, SkillC));
 		_ when EnterTime + G > K#car_position.enter_t + GK ->
 			MaxSpeed = erlang:min(K#car_position.speed, MaxExitSpeed),
-			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax));
+			add_g(G, calculate(Space, EnterSpeed, MaxSpeed, Amin, Amax, SkillC));
 		_ ->
 			simulate(Sgm, EnterLane, ExitLane, EnterTime, Index + 1,
-					 Space, EnterSpeed, MaxExitSpeed, Amin, Amax)
+					 Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC)
 	end.
 
 -spec bent_max_speed(#car_status{}, #segment{}) -> float().
@@ -112,19 +112,31 @@ get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 %% speed of Speed and an ending speed of MaxSpeed.
 %% Amin: maximum deceleration of brakes (always negative)
 %% Amax: maximum acceleration the engine can supply
--spec calculate(number(), float(), float(), float(), float()) -> calc_result().
-calculate(0, Speed, _MaxSpeed, _Amin, _Amax) ->
+%% SkillCoeff: float from 0.9 to 1.0
+-spec calculate(number(), float(), float(), float(), float(), float()) -> calc_result().
+calculate(0, Speed, _MaxSpeed, _Amin, _Amax, _SkillCoeff) ->
 	{ok, 0.0, Speed};
-calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax) when Amax =< 0 ->
+calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax, _SkillCoeff) when Amax =< 0 ->
 	{fail, 'insufficient engine power'};
-calculate(Space, Speed, MaxSpeed, Amin, Amax) when Amin =< 0 ->
+calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
+	
+	%%DEBUG FIXME: togliere quando non servira'
+	%Delta = Amin - A,
+	%if
+	%	A < 0.0 andalso Delta > 0.0 ->
+	%		?DBG({"DELTA", Delta});
+	%	true ->
+	%		ok
+	%end,
+	SAmax = SkillCoeff * Amax,
 	Result = if
-				 A < Amin - ?ACCEL_TOLERANCE ->
+				 A < (?ACCEL_TOLERANCE + SkillCoeff + 0.1) * Amin ->
+					 ?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff, Speed, MaxSpeed}),
 					 {fail, 'crash'};
-				 A > Amax ->
-					 {ok, (math:sqrt(math:pow(Speed, 2) + 2*Amax*Space) - Speed) / Amax, Amax};
+				 A > SAmax ->
+					 {ok, (math:sqrt(math:pow(Speed, 2) + 2*SAmax*Space) - Speed) / SAmax, SAmax};
 				 true ->
 					 {ok, T1, A}
 			 end,

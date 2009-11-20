@@ -106,6 +106,7 @@ handle_call(move, _From, State) ->
 	State2 = if
 				 State1#pilot.run_preelab ->
 					 track:preelaborate(State1),
+					 ?DBG({"Car", Id, "Preelab exiting sgm", State1#pilot.segment}),
 					 State1#pilot{run_preelab = false};
 				 true ->
 					 State1
@@ -180,15 +181,15 @@ handle_cast(#next_pitstop{lap = NewStop, stops_count = SC}, State) ->
 	NewState = if
 				   State#pilot.pitstop_count /= SC ->
 					   % the message is obsolete: ignore it
-					   ?DBG("ignoring obsolete next_pitstop message."),
+					   %?DBG("ignoring obsolete next_pitstop message."),
 					   State;
 				   OldStop == -1;
 				   OldStop > Lap;
 				   NewStop > Lap ->
-					   ?DBG({"setting next_pitstop to", NewStop}),
+					   %?DBG({"setting next_pitstop to", NewStop}),
 					   State#pilot{next_pitstop = NewStop};
 				   true ->
-					   ?DBG("ignoring next_pitstop message."),
+					   %?DBG("ignoring next_pitstop message."),
 					   State
 			   end,
 	{noreply, NewState};
