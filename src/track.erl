@@ -222,12 +222,18 @@ add_cars([], SgmList, _Index, _LanePos, _SNum) ->
 
 -spec place_car(car(), integer(), integer(), #segment{}, 1 | 2) -> #segment{}.
 place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
-	Lanes = MaxLane - MinLane,
+	Lanes = MaxLane - MinLane + 1,
 	if
 		Lanes < 3 ->
 			throw("starting grid is too narrow");
 		true ->
-			L = MinLane + LanePos * (Lanes div 3),
+			Delta = (Lanes -3) div 2,
+			L = case LanePos of
+					1 ->
+						MinLane + Delta;
+					2 ->
+						MaxLane - Delta
+				end,
 			CP = #car_position{car_id = CarId,
 							   enter_lane = L,
 							   exit_lane = L},
