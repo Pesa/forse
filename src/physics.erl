@@ -133,7 +133,7 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	SAmax = SkillCoeff * Amax,
 	Result = if
 				 A < (?ACCEL_TOLERANCE + SkillCoeff + 0.1) * Amin ->
-					 ?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff, Speed, MaxSpeed}),
+					 ?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff + 0.1, Speed, MaxSpeed}),
 					 {fail, 'crash'};
 				 A > SAmax ->
 					 {ok, (math:sqrt(math:pow(Speed, 2) + 2*SAmax*Space) - Speed) / SAmax, SAmax};
