@@ -227,7 +227,7 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 		Lanes < 3 ->
 			throw("starting grid is too narrow");
 		true ->
-			Delta = (Lanes -3) div 2,
+			Delta = (Lanes - 3) div 2,
 			L = case LanePos of
 					1 ->
 						MinLane + Delta;
@@ -403,9 +403,9 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 					
 					Amin = physics:acceleration(FDec, Mass, Inc, CS, S#segment.rain),
 					Amax = physics:acceleration(FAcc, Mass, Inc, CS, S#segment.rain),
-					SkCoeff = 1.0 - (?MAX_SKILL - Pilot#pilot.skill) / 100.0,
-					physics:simulate(S, EnterLane, ExitLane, EnterTime, 1,
-									 Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkCoeff);
+					SkCoeff = 0.9 + Pilot#pilot.skill / 100.0,
+					physics:simulate(S, EnterLane, ExitLane, EnterTime, 1, Space,
+									 EnterSpeed, MaxExitSpeed, Amin, Amax, SkCoeff);
 				Else -> Else
 			end
 	end.

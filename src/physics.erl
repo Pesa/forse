@@ -24,8 +24,8 @@
 
 -spec simulate(#segment{}, integer(), integer(), float(), pos_integer(),
 			   number(), float(), float(), float(), float(), float()) -> calc_result().
-simulate(Sgm, EnterLane, ExitLane, EnterTime, Index,
-		 Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC) ->
+simulate(Sgm, EnterLane, ExitLane, EnterTime, Index, Space,
+		 EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC) ->
 	G = if
 			EnterLane == ExitLane -> 0;
 			true -> ?LANE_CHANGE_TIME
@@ -121,7 +121,6 @@ calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax, _SkillCoeff) when Amax =< 0 ->
 calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
-	
 	%%DEBUG FIXME: togliere quando non servira'
 	%Delta = Amin - A,
 	%if
