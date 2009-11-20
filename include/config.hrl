@@ -35,5 +35,3 @@
 
 %% Acceleration tolerance in percentage.
 -define(ACCEL_TOLERANCE, 0.15).
-
--define(MAX_SKILL, 10).
