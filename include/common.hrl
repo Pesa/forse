@@ -32,6 +32,7 @@
 -type sgm_type()		:: 'normal' | 'pre_pitlane' | 'post_pitlane'
 						 | 'pitlane' | 'pitstop' | 'intermediate'
 						 | 'finish_line'.
+-type skill()			:: 1..10.
 -type start_result()	:: 'ignore' | {'error', Error :: term()}
 						 | {'ok', Pid :: pid()}.
 -type time()			:: number().

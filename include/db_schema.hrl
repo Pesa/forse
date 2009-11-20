@@ -43,7 +43,7 @@
 %% --------------------------------------------------
 %% id: unique numerical identifier
 %% name: pilot's name
-%% skill: integer representing the pilot's skill <- [1,10]
+%% skill: integer from 1 to 10 representing the pilot's skill
 %% weight: pilot's weight
 %% team: id of the pilot's team
 %% car_status: current car status
@@ -53,11 +53,12 @@
 %% max_speed: maximum speed reached in the current intermediate
 %% next_pitstop: lap of the next pitstop
 %% pitstop_count: number of pit stops the car has done
-%% run_preelab: set to true when the pre-elaboration phase must be re-run
+%% retire: true when an user requested the retirement of this car
+%% run_preelab: true when the pre-elaboration phase must be re-run
 %% --------------------------------------------------
 -record(pilot,{id								:: car(),
 			   name								:: string(),
-			   skill							:: integer(),
+			   skill							:: skill(),
 			   weight							:: float(),
 			   team								:: pos_integer(),
 			   car_status		= #car_status{}	:: #car_status{},
