@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table and a few settings.
--spec init(conflist(), [pos_integer()], [car()]) ->
+-spec init([tuple()], [pos_integer()], [car()]) ->
 		   'ok' | {'error', Error :: term()}.
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
