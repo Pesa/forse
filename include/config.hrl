@@ -34,6 +34,6 @@
 -define(TANK_DIM, 120.0).
 
 %% Acceleration tolerance in percentage.
--define(ACCEL_TOLERANCE, 0.1).
+-define(ACCEL_TOLERANCE, 0.15).
 
 -define(MAX_SKILL, 10).
