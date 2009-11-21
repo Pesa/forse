@@ -38,7 +38,7 @@
 				num_cars				:: non_neg_integer(),
 				num_teams				:: non_neg_integer(),
 				teams_config			:: conflist(),
-				track_config			:: conflist(),
+				track_config			:: [sector()],
 				weather_config			:: conflist()}).
 
 
@@ -63,7 +63,7 @@ bootstrap(Laps, Speedup)
   when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
 
--spec read_config_files(conflist(), conflist(), conflist()) -> 'ok' | 'config_error'.
+-spec read_config_files(string(), string(), string()) -> 'ok' | 'config_error'.
 
 read_config_files(TeamsFile, TrackFile, WeatherFile)
   when is_list(TeamsFile), is_list(TrackFile), is_list(WeatherFile) ->

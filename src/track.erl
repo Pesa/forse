@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table and a few settings.
--spec init([tuple()], [pos_integer()], [car()]) ->
+-spec init([sector()], [pos_integer()], [car()]) ->
 		   'ok' | {'error', Error :: term()}.
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
@@ -56,6 +56,8 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, something_went_wrong}
 	end.
 
+-spec build_sector(sector(), {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}) ->
+			{[#segment{}], {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}}.
 build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
   when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
 	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
@@ -106,6 +108,7 @@ sector_to_segments(Template, Start, Stop) when Start < Stop ->
 sector_to_segments(_Template, Start, Start) ->
 	[].
 
+-spec build_pit_area([#segment{}], sgm_id() | -1, [pos_integer()]) -> [#segment{}].
 build_pit_area(_List, -1, _TeamsList) ->
 	throw("missing pitlane entrance");
 build_pit_area(List, Index, TeamsList) ->
