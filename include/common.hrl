@@ -25,15 +25,16 @@
 -type car()				:: pos_integer().
 -type conf()			:: {Key :: atom(), Value :: term()}.
 -type conflist()		:: [conf()].
+-type lane()			:: integer().
 -type race_event()		:: 'started' | 'paused' | 'resumed'
 						 | 'finished' | 'terminated'.
 -type rain_amount()		:: 0..10.
 -type sector()			:: {'straight', Length :: pos_integer(),
-							MinLane :: integer(), MaxLane :: integer(),
+							MinLane :: lane(), MaxLane :: lane(),
 							Inclination :: float(), Rain :: rain_amount()}
 						 | {'left' | 'right', Length :: pos_integer(),
-							CurveRadius :: float(), MinLane :: integer(),
-							MaxLane :: integer(), Inclination :: float(),
+							CurveRadius :: float(), MinLane :: lane(),
+							MaxLane :: lane(), Inclination :: float(),
 							Rain :: rain_amount()}
 						 | {'finish_line'} | {'intermediate'}
 						 | {'pitlane_entrance'} | {'pitlane_exit'}.

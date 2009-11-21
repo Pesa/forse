@@ -141,7 +141,7 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 			throw("track is too short")
 	end.
 
--spec max_lane(integer(), sgm_type()) -> integer().
+-spec max_lane(lane(), sgm_type()) -> lane().
 max_lane(Lane, Type) ->
 	if
 		Type == pre_pitlane;
@@ -223,7 +223,7 @@ add_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
 add_cars([], SgmList, _Index, _LanePos, _SNum) ->
 	SgmList.
 
--spec place_car(car(), integer(), integer(), #segment{}, 1 | 2) -> #segment{}.
+-spec place_car(car(), lane(), lane(), #segment{}, 1 | 2) -> #segment{}.
 place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 	Lanes = MaxLane - MinLane + 1,
 	if
@@ -247,8 +247,8 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 %% Moves the car to the next segment.
 %% Pit: true if pilot wants to stop at the pits
 % FIXME: spostare car_pos in Pilot?
--spec move(#pilot{}, integer(), boolean()) ->
-		   {NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
+-spec move(#pilot{}, lane(), boolean()) ->
+		{NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -352,8 +352,8 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 
 %% Returns the time needed by Car to cover the next segment.
 %% Pit: true if pilot wants to stop at the pits
--spec simulate(#pilot{}, integer(), boolean()) ->
-			   Time :: float() | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
+-spec simulate(#pilot{}, lane(), boolean()) ->
+		Time :: float() | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
@@ -366,7 +366,7 @@ simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 		Else -> Else
 	end.
 
--spec simulate(#pilot{}, #segment{}, integer(), integer(), boolean(), #car_position{}) ->
+-spec simulate(#pilot{}, #segment{}, lane(), lane(), boolean(), #car_position{}) ->
 		{ok, Time :: float(), Speed :: float()} | {'fail', Reason :: atom()} | 'pits' | 'race_ended'.
 simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 	CS = Pilot#pilot.car_status,
@@ -503,7 +503,7 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 preelab_bent_and_pit(CarStatus) ->
 	bent_and_pit(CarStatus, utils:get_setting(sgm_number) - 1).
 
--spec bent_and_pit(#car_status{}, integer()) -> [#speed_bound{}].
+-spec bent_and_pit(#car_status{}, sgm_id() | -1) -> [#speed_bound{}].
 bent_and_pit(_CarStatus, -1) ->
 	[];
 bent_and_pit(CarStatus, Sgm) ->
@@ -539,7 +539,7 @@ is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 
 %% Used by the first invocation of car:move/2 for each car
 %% in a race to find out their starting segment and lane.
--spec where_am_i(car()) -> {sgm_id(), integer()}.
+-spec where_am_i(car()) -> {sgm_id(), lane()}.
 where_am_i(CarId) when is_integer(CarId) ->
 	Select = fun
 				(#segment{queued_cars = []}, Acc) ->
@@ -703,7 +703,7 @@ prev_segment(0, N) ->
 prev_segment(Id, _N) ->
 	Id - 1.
 
--spec is_pit_area_lane(#segment{}, integer()) -> boolean().
+-spec is_pit_area_lane(#segment{}, lane()) -> boolean().
 is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
 	if
 		Sgm#segment.max_lane == Lane -> true;

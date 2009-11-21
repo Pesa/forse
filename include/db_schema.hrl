@@ -10,14 +10,13 @@
 %% 			(i.e. the time it exited from the previous one)
 %% exit_t: when the car will leave the current segment
 %% speed: exit speed
-%% lane: exit lane
 %% --------------------------------------------------
 -record(car_position,{car_id				:: car(),
 					  enter_t		= 0.0	:: float(),
 					  exit_t		= 0.0	:: float(),
 					  speed			= 0.0	:: float(),
-					  enter_lane			:: integer(),
-					  exit_lane				:: integer()}).
+					  enter_lane			:: lane(),
+					  exit_lane				:: lane()}).
 
 %% --------------------------------------------------
 %% id: unique numerical identifier
@@ -32,8 +31,8 @@
 %% --------------------------------------------------
 -record(segment,{id						:: sgm_id(),
 				 type					:: sgm_type(),
-				 min_lane				:: integer(),
-				 max_lane				:: integer(),
+				 min_lane				:: lane(),
+				 max_lane				:: lane(),
 				 length			= 0		:: non_neg_integer(),
 				 inclination	= 0.0	:: float(),
 				 rain			= 0		:: rain_amount(),
@@ -64,7 +63,7 @@
 			   car_status		= #car_status{}	:: #car_status{},
 			   lap				= 0				:: non_neg_integer(),
 			   segment			= 0				:: sgm_id(),
-			   lane								:: integer(),
+			   lane								:: lane(),
 			   max_speed		= 0.0			:: float(),
 			   next_pitstop		= -1			:: integer(),
 			   pitstop_count	= 0				:: non_neg_integer(),

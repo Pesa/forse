@@ -22,7 +22,7 @@
 %% External functions
 %% ====================================================================
 
--spec simulate(#segment{}, integer(), integer(), float(), pos_integer(),
+-spec simulate(#segment{}, lane(), lane(), float(), pos_integer(),
 			   number(), float(), float(), float(), float(), float()) -> calc_result().
 simulate(Sgm, EnterLane, ExitLane, EnterTime, Index, Space,
 		 EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC) ->
@@ -83,7 +83,7 @@ deg_to_rad(Angle) when is_number(Angle) ->
 %% Index starts from 1
 % FIXME: non deve considerare se stessa
 % (altrimenti una simulate dopo un crash non funziona)
--spec get_car_ahead(#segment{}, integer(), pos_integer()) ->
+-spec get_car_ahead(#segment{}, lane(), pos_integer()) ->
 					#car_position{} | 'null'.
 get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
 	Filter = fun(Pos) ->
