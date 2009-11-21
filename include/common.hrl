@@ -28,6 +28,15 @@
 -type race_event()		:: 'started' | 'paused' | 'resumed'
 						 | 'finished' | 'terminated'.
 -type rain_amount()		:: 0..10.
+-type sector()			:: {'straight', Length :: pos_integer(),
+							MinLane :: integer(), MaxLane :: integer(),
+							Inclination :: float(), Rain :: rain_amount()}
+						 | {'left' | 'right', Length :: pos_integer(),
+							CurveRadius :: float(), MinLane :: integer(),
+							MaxLane :: integer(), Inclination :: float(),
+							Rain :: rain_amount()}
+						 | {'finish_line'} | {'intermediate'}
+						 | {'pitlane_entrance'} | {'pitlane_exit'}.
 -type sgm_id()			:: non_neg_integer().
 -type sgm_type()		:: 'normal' | 'pre_pitlane' | 'post_pitlane'
 						 | 'pitlane' | 'pitstop' | 'intermediate'
