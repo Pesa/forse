@@ -15,7 +15,8 @@
 
 -include("common.hrl").
 
--record(state, {observers = []}).
+-record(state, {observers	= []	:: [#callback{}],
+				sectors				:: [sector()]}).
 
 
 %% ====================================================================
@@ -64,15 +65,21 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
-	NewObs = State#state.observers ++ [Callback],
+	NewCB = event_dispatcher:notify_init({sectors, State#state.sectors}, [Callback]),
+	NewObs = State#state.observers ++ NewCB,
 	{noreply, State#state{observers = NewObs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
+handle_cast(#config_notif{app = track, config = Config}, State) ->
+	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
+	NewObs = event_dispatcher:notify_init({sectors, Sectors},
+										  State#state.observers),
+	{noreply, State#state{observers = NewObs,
+						  sectors = Sectors}};
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
-	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
