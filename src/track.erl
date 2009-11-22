@@ -21,8 +21,8 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph1, Pit, RainSum} = parse_config(TrackConfig),
-		Ph2 = build_pit_area(Ph1, Pit, TeamsList),
+		{Ph1, PitStart, Config} = parse_config(TrackConfig),
+		Ph2 = build_pit_area(Ph1, PitStart, TeamsList),
 		Ph3 = set_chrono_lanes(Ph2),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3),
 		T = fun() ->
@@ -42,8 +42,6 @@ init(TrackConfig, TeamsList, CarsList)
 		Map = build_intermediate_map(lists:filter(F, SgmList)),
 		utils:set_setting(intermediate_map, Map),
 		
-		Config = [{sectors, TrackConfig},
-				  {initial_rain_sum, RainSum}],
 		event_dispatcher:notify(#config_notif{app = track,
 											  config = Config})
 	catch
@@ -54,63 +52,70 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, something_went_wrong}
 	end.
 
--spec parse_config([{sector()}]) -> {[#segment{}], sgm_id() | -1, non_neg_integer()}.
-parse_config(Config) ->
-	{SgmList, {_, SgmNum, Pit, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, -1, 0}, Config),
+-spec parse_config([{sector()}]) -> {[#segment{}], sgm_id() | -1, conflist()}.
+parse_config(TrackConfig) ->
+	{SgmList, SgmNum, SectorsMap, Pit, RainSum} = build_sector(TrackConfig, [], [], 0, 0, -1, 0),
 	utils:set_setting(sgm_number, SgmNum),
-	{lists:flatten(SgmList), Pit, RainSum}.
+	Config = [{sectors, TrackConfig},
+			  {sectors_map, SectorsMap},
+			  {initial_rain_sum, RainSum}],
+	{SgmList, Pit, Config}.
 
--spec build_sector(sector(), {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}) ->
-			{[#segment{}], {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}}.
-build_sector({straight, Len, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
+-spec build_sector([sector()], [#segment{}], [{non_neg_integer(), {sgm_id(), sgm_id()}}],
+				   non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()) ->
+		{[#segment{}], sgm_id(), [{non_neg_integer(), {sgm_id(), sgm_id()}}],
+		 sgm_id() | -1, non_neg_integer()}.
+build_sector([], SgmList, SectorsMap, _Sect, Sgm, Pit, RainSum) ->
+	{SgmList, Sgm, SectorsMap, Pit, RainSum};
+build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
+			 SgmList, SectorsMap, Sect, Sgm, Pit, RainSum)
   when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
 	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
-	Temp = #segment{type = normal,
-					min_lane = MinLane,
-					max_lane = MaxLane,
-					length = ?SEGMENT_LENGTH,
-					inclination = Incl,
-					curvature = 0.0,
-					rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
-	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
-build_sector({Type, Len, Curv, MinLane, MaxLane, Incl, Rain}, {Sect, Sgm, Pit, RainSum})
+	S = #segment{type = normal,
+				 min_lane = MinLane,
+				 max_lane = MaxLane,
+				 length = ?SEGMENT_LENGTH,
+				 inclination = Incl,
+				 curvature = 0.0,
+				 rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Sgm - 1,
+	NewSgms = [ S#segment{id = X} || X <- lists:seq(Sgm, Last) ],
+	NewMapping = {Sect, {Sgm, Last}},
+	build_sector(Tail, NewSgms ++ SgmList, [NewMapping | SectorsMap],
+				 Sect + 1, Last + 1, Pit, RainSum + Rain);
+build_sector([{Type, Len, Curv, MinLane, MaxLane, Incl, Rain} | Tail],
+			 SgmList, SectorsMap, Sect, Sgm, Pit, RainSum)
   when (Type == left orelse Type == right), is_number(Len), Len > 0,
 	   is_integer(MinLane), is_integer(MaxLane), is_number(Curv), Curv > 0,
 	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
-	Temp = #segment{type = normal,
-					min_lane = MinLane,
-					max_lane = MaxLane,
-					length = ?SEGMENT_LENGTH,
-					inclination = Incl,
-					curvature = Curv,
-					rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Sgm,
-	utils:set_setting(utils:build_id_atom("sector_", Sect), {Sgm, Last - 1}),
-	{sector_to_segments(Temp, Sgm, Last), {Sect + 1, Last, Pit, RainSum + Rain}};
-build_sector({finish_line}, {Sect, Sgm, Pit, RainSum}) ->
+	S = #segment{type = normal,
+				 min_lane = MinLane,
+				 max_lane = MaxLane,
+				 length = ?SEGMENT_LENGTH,
+				 inclination = Incl,
+				 curvature = Curv,
+				 rain = Rain},
+	Last = round(Len / ?SEGMENT_LENGTH) + Sgm - 1,
+	NewSgms = [ S#segment{id = X} || X <- lists:seq(Sgm, Last) ],
+	NewMapping = {Sect, {Sgm, Last}},
+	build_sector(Tail, NewSgms ++ SgmList, [NewMapping | SectorsMap],
+				 Sect + 1, Last + 1, Pit, RainSum + Rain);
+build_sector([{finish_line} | Tail], SgmList, SectorsMap, Sect, Sgm, Pit, RainSum) ->
 	S = #segment{id = Sgm,
 				 type = finish_line,
 				 length = 0},
-	{[S], {Sect, Sgm + 1, Pit, RainSum}};
-build_sector({intermediate}, {Sect, Sgm, Pit, RainSum}) ->
+	build_sector(Tail, [S | SgmList], SectorsMap, Sect, Sgm + 1, Pit, RainSum);
+build_sector([{intermediate} | Tail], SgmList, SectorsMap, Sect, Sgm, Pit, RainSum) ->
 	S = #segment{id = Sgm,
 				 type = intermediate,
 				 length = 0},
-	{[S], {Sect, Sgm + 1, Pit, RainSum}};
-build_sector({pitlane_entrance}, {Sect, Sgm, -1, RainSum}) ->
-	{[], {Sect, Sgm, Sgm, RainSum}};
-build_sector({pitlane_entrance}, {_Sect, _Sgm, _Pit, _RainSum}) ->
+	build_sector(Tail, [S | SgmList], SectorsMap, Sect, Sgm + 1, Pit, RainSum);
+build_sector([{pitlane_entrance} | Tail], SgmList, SectorsMap, Sect, Sgm, -1, RainSum) ->
+	build_sector(Tail, SgmList, SectorsMap, Sect, Sgm, Sgm, RainSum);
+build_sector([{pitlane_entrance} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _Pit, _RainSum) ->
 	throw("multiple pitlane entrances");
-build_sector(S, {_Sect, _Sgm, _Pit, _RainSum}) ->
+build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _Pit, _RainSum) ->
 	throw({"invalid sector", S}).
-
--spec sector_to_segments(#segment{}, sgm_id(), sgm_id()) -> [#segment{}].
-sector_to_segments(Template, Start, Stop) when Start < Stop ->
-	[Template#segment{id = Start} | sector_to_segments(Template, Start + 1, Stop)];
-sector_to_segments(_Template, Start, Start) ->
-	[].
 
 -spec build_pit_area([#segment{}], sgm_id() | -1, [pos_integer()]) -> [#segment{}].
 build_pit_area(_List, -1, _TeamsList) ->
