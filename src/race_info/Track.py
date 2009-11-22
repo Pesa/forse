@@ -8,12 +8,17 @@ class Sector(object):
 
     def __init__(self):
         object.__init__(self)
+        self.phase = 0
 
     def __len__(self):
         return 0
 
-    def draw(self, painter):
+    def _draw(self, painter):
         raise NotImplementedError()
+
+    def draw(self, painter, phase):
+        if phase == self.phase:
+            self._draw(painter)
 
     def finalize(self, painter):
         pass
@@ -26,6 +31,7 @@ class BentSector(Sector):
 
     def __init__(self, length, radius):
         Sector.__init__(self)
+        self.phase = 1
         if length <= 0:
             raise ValueError("'length' must be a positive value.")
         self.length = length
@@ -43,7 +49,7 @@ class BentSector(Sector):
     def __len__(self):
         return self.length
 
-    def draw(self, painter):
+    def _draw(self, painter):
         painter.drawArc(self.boundingRect, self.startAngle, self.sign * self.angle * 16)
 
     def finalize(self, painter):
@@ -60,6 +66,7 @@ class StraightSector(Sector):
 
     def __init__(self, length):
         Sector.__init__(self)
+        self.phase = 1
         if length <= 0:
             raise ValueError("'length' must be a positive value.")
         self.length = length
@@ -67,7 +74,7 @@ class StraightSector(Sector):
     def __len__(self):
         return self.length
 
-    def draw(self, painter):
+    def _draw(self, painter):
         painter.drawLine(0, 0, 0, self.length)
 
     def finalize(self, painter):
@@ -81,8 +88,9 @@ class PitLaneEntrance(Sector):
 
     def __init__(self):
         Sector.__init__(self)
+        self.phase = 2
 
-    def draw(self, painter):
+    def _draw(self, painter):
         painter.save()
         painter.setPen(QPen(Qt.black, 5))
         painter.drawLine(-10, 0, 10, 0)
@@ -93,8 +101,9 @@ class PitLaneExit(Sector):
 
     def __init__(self):
         Sector.__init__(self)
+        self.phase = 2
 
-    def draw(self, painter):
+    def _draw(self, painter):
         painter.save()
         painter.setPen(QPen(Qt.black, 5))
         painter.drawLine(-10, 0, 10, 0)
@@ -105,9 +114,10 @@ class Intermediate(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
+        self.phase = 1
         self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
-    def draw(self, painter):
+    def _draw(self, painter):
         painter.setPen(self.pen)
 
 
@@ -117,12 +127,14 @@ class FinishLine(Sector):
         Sector.__init__(self)
         self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
-    def draw(self, painter):
-        painter.save()
-        painter.setPen(QPen(Qt.white, 5))
-        painter.drawLine(-10, 0, 10, 0)
-        painter.restore()
-        painter.setPen(self.pen)
+    def draw(self, painter, phase):
+        if phase == 1:
+            painter.setPen(self.pen)
+        elif phase == 2:
+            painter.save()
+            painter.setPen(QPen(Qt.white, 5))
+            painter.drawLine(-10, 0, 10, 0)
+            painter.restore()
 
 
 class Track(object):
@@ -166,8 +178,10 @@ class Track(object):
         painter.begin(trackPicture)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.rotate(90)
-        for s in self._sectors:
-            s.draw(painter)
-            s.finalize(painter)
+        # perform a double-pass rendering
+        for i in [1, 2]:
+            for s in self._sectors:
+                s.draw(painter, i)
+                s.finalize(painter)
         painter.end()
         return trackPicture
