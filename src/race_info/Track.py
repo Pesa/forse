@@ -92,7 +92,7 @@ class PitLaneEntrance(Sector):
 
     def _draw(self, painter):
         painter.save()
-        painter.setPen(QPen(Qt.black, 5))
+        painter.setPen(QPen(Qt.black, 10))
         painter.drawLine(-10, 0, 10, 0)
         painter.restore()
 
@@ -105,7 +105,7 @@ class PitLaneExit(Sector):
 
     def _draw(self, painter):
         painter.save()
-        painter.setPen(QPen(Qt.black, 5))
+        painter.setPen(QPen(Qt.black, 10))
         painter.drawLine(-10, 0, 10, 0)
         painter.restore()
 
@@ -132,8 +132,8 @@ class FinishLine(Sector):
             painter.setPen(self.pen)
         elif phase == 2:
             painter.save()
-            painter.setPen(QPen(Qt.white, 5))
-            painter.drawLine(-10, 0, 10, 0)
+            painter.setPen(QPen(Qt.white, 20))
+            painter.drawLine(-15, 0, 15, 0)
             painter.restore()
 
 
@@ -141,7 +141,7 @@ class Track(object):
 
     def __init__(self, sectors):
         object.__init__(self)
-        self._nextColor = 0
+        self._nextColor = 6
         self._sectors = [ self._buildSector(s) for s in sectors ]
 
     def _buildSector(self, sector):

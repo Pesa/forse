@@ -64,12 +64,13 @@ class TrackWidget(QWidget):
         if self._track:
             pic = self._track.draw()
             bounds = pic.boundingRect()
-            corner = bounds.topLeft()
-            scaling = min((self.width() - 20.0) / bounds.width(),
-                          (self.height() - 20.0) / bounds.height())
+            scaling = min(float(self.width()) / bounds.width(),
+                          float(self.height()) / bounds.height())
+            x = abs(bounds.x()) + (float(self.width()) / scaling - bounds.width()) / 2
+            y = abs(bounds.y()) + (float(self.height()) / scaling - bounds.height()) / 2
             painter = QPainter(self)
             painter.scale(scaling, scaling)
-            painter.drawPicture(-corner.x(), -corner.y(), pic)
+            painter.drawPicture(x, y, pic)
 
     def remote_handle(self, type, msg):
         if type.text != "init":
