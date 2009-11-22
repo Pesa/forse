@@ -21,12 +21,10 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph1, {_, _, Pit, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, -1, 0}, TrackConfig),
-		Ph2 = lists:flatten(Ph1),
-		utils:set_setting(sgm_number, length(Ph2)),
-		Ph3 = build_pit_area(Ph2, Pit, TeamsList),
-		Ph4 = set_chrono_lanes(Ph3),
-		SgmList = fill_starting_grid(lists:sort(CarsList), Ph4),
+		{Ph1, Pit, RainSum} = parse_config(TrackConfig),
+		Ph2 = build_pit_area(Ph1, Pit, TeamsList),
+		Ph3 = set_chrono_lanes(Ph2),
+		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3),
 		T = fun() ->
 					mnesia:write_lock_table(track),
 					lists:foreach(fun(Sgm) ->
@@ -55,6 +53,12 @@ init(TrackConfig, TeamsList, CarsList)
 		error : {badmatch, _} ->
 			{error, something_went_wrong}
 	end.
+
+-spec parse_config([{sector()}]) -> {[#segment{}], sgm_id() | -1, non_neg_integer()}.
+parse_config(Config) ->
+	{SgmList, {_, SgmNum, Pit, RainSum}} = lists:mapfoldl(fun build_sector/2, {0, 0, -1, 0}, Config),
+	utils:set_setting(sgm_number, SgmNum),
+	{lists:flatten(SgmList), Pit, RainSum}.
 
 -spec build_sector(sector(), {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}) ->
 			{[#segment{}], {non_neg_integer(), sgm_id(), sgm_id() | -1, non_neg_integer()}}.
