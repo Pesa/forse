@@ -55,7 +55,15 @@ init(TrackConfig, TeamsList, CarsList)
 -spec parse_config([{sector()}]) -> {[#segment{}], sgm_id() | -1, conflist()}.
 parse_config(TrackConfig) ->
 	{SgmList, SgmNum, SectorsMap, Pit, RainSum} = build_sector(TrackConfig, [], [], 0, 0, -1, 0),
-	utils:set_setting(sgm_number, SgmNum),
+	T = fun() ->
+				mnesia:write(#setting{key = sgm_number, value = SgmNum}),
+				Write = fun({K, V}) ->
+								Sector = utils:build_id_atom("sector_", K),
+								mnesia:write(#setting{key = Sector, value = V})
+						end,
+				lists:foreach(Write, SectorsMap)
+		end,
+	{atomic, _} = mnesia:sync_transaction(T),
 	Config = [{sectors, TrackConfig},
 			  {sectors_map, SectorsMap},
 			  {initial_rain_sum, RainSum}],
