@@ -2,7 +2,7 @@ import sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer
 from PyQt4 import QtGui
-from GraphicTrack import TrackWidget
+from TrackWidget import TrackWidget
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
