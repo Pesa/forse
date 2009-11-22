@@ -1,7 +1,7 @@
 import math
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QPointF, QRectF
-from PyQt4.QtGui import QBrush, QPainter, QPen, QPicture
+from PyQt4.QtGui import QPainter, QPen, QPicture
 
 
 class Sector(object):
@@ -105,7 +105,7 @@ class Intermediate(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
-        self.pen = QPen(QBrush(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
     def draw(self, painter):
         painter.setPen(self.pen)
@@ -115,7 +115,7 @@ class FinishLine(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
-        self.pen = QPen(QBrush(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
     def draw(self, painter):
         painter.save()
