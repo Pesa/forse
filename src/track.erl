@@ -21,8 +21,8 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph1, PitStart, _PitEnd, Config} = parse_config(TrackConfig),
-		Ph2 = build_pit_area(Ph1, PitStart, TeamsList),
+		{Ph1, PitStart, PitEnd, Config} = parse_config(TrackConfig),
+		Ph2 = build_pit_area(Ph1, PitStart, PitEnd, TeamsList),
 		Ph3 = set_chrono_lanes(Ph2),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3),
 		T = fun() ->
@@ -140,14 +140,17 @@ build_sector([{pitlane_exit} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _P
 build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum) ->
 	throw({"invalid sector", S}).
 
--spec build_pit_area([#segment{}], sgm_id() | -1, [pos_integer()]) -> [#segment{}].
-build_pit_area(_List, -1, _TeamsList) ->
+-spec build_pit_area([#segment{}], sgm_id() | -1, sgm_id() | -1, [pos_integer()]) ->
+		[#segment{}].
+build_pit_area(_SgmList, -1, _PitEnd, _TeamsList) ->
 	throw("missing pitlane entrance");
-build_pit_area(List, Index, TeamsList) ->
+build_pit_area(_SgmList, _PitStart, -1, _TeamsList) ->
+	throw("missing pitlane exit");
+build_pit_area(SgmList, PitStart, PitEnd, TeamsList) ->
 	PrePit = 40,
 	Pit = 10,
 	PostPit = 40,
-	{T1, N1} = set_sgm_type(pre_pitlane, Index, PrePit, List),
+	{T1, N1} = set_sgm_type(pre_pitlane, PitStart, PrePit, SgmList),
 	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
 	{T3, N3} = build_pitstop(N2, TeamsList, T2),
 	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
