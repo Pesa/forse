@@ -659,6 +659,9 @@ print_event(Dev, Event, Name) ->
 %%% ---------------------------------------------------
 %%% Terminate the server.
 %%% ---------------------------------------------------
+
+-spec terminate(term(), atom(), _, module(), term(), _) -> no_return().
+
 terminate(Reason, Name, Msg, Mod, State, Debug) ->
 	% TODO: togliere il callback terminate?
 	case catch Mod:terminate(Reason, State) of
