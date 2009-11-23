@@ -21,8 +21,8 @@
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
-		{Ph1, PitStart, PitEnd, Config} = parse_config(TrackConfig),
-		Ph2 = build_pit_area(Ph1, PitStart, PitEnd, TeamsList),
+		{Ph1, SgmNum, PitStart, PitEnd, Config} = parse_config(TrackConfig),
+		Ph2 = build_pit_area(Ph1, SgmNum, PitStart, PitEnd, TeamsList),
 		Ph3 = set_chrono_lanes(Ph2),
 		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3),
 		T = fun() ->
@@ -52,7 +52,8 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, something_went_wrong}
 	end.
 
--spec parse_config([{sector()}]) -> {[#segment{}], sgm_id() | -1, sgm_id() | -1, conflist()}.
+-spec parse_config([{sector()}]) ->
+		{[#segment{}], sgm_id(), sgm_id() | -1, sgm_id() | -1, conflist()}.
 parse_config(TrackConfig) ->
 	{SgmList, SgmNum, SectorsMap, PitStart, PitEnd, RainSum} =
 		build_sector(TrackConfig, [], [], 0, 0, -1, -1, 0),
@@ -68,7 +69,7 @@ parse_config(TrackConfig) ->
 	Config = [{sectors, TrackConfig},
 			  {sectors_map, SectorsMap},
 			  {initial_rain_sum, RainSum}],
-	{SgmList, PitStart, PitEnd, Config}.
+	{SgmList, SgmNum, PitStart, PitEnd, Config}.
 
 -spec build_sector([sector()], [#segment{}], [{non_neg_integer(), {sgm_id(), sgm_id()}}],
 				   non_neg_integer(), sgm_id(), sgm_id() | -1, sgm_id() | -1, non_neg_integer()) ->
@@ -140,19 +141,20 @@ build_sector([{pitlane_exit} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _P
 build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum) ->
 	throw({"invalid sector", S}).
 
--spec build_pit_area([#segment{}], sgm_id() | -1, sgm_id() | -1, [pos_integer()]) ->
-		[#segment{}].
-build_pit_area(_SgmList, -1, _PitEnd, _TeamsList) ->
+-spec build_pit_area([#segment{}], sgm_id(), sgm_id() | -1, sgm_id() | -1,
+					 [pos_integer()]) -> [#segment{}].
+build_pit_area(_SgmList, _SgmNum, -1, _PitEnd, _TeamsList) ->
 	throw("missing pitlane entrance");
-build_pit_area(_SgmList, _PitStart, -1, _TeamsList) ->
+build_pit_area(_SgmList, _SgmNum, _PitStart, -1, _TeamsList) ->
 	throw("missing pitlane exit");
-build_pit_area(SgmList, PitStart, PitEnd, TeamsList) ->
+build_pit_area(SgmList, SgmNum, PitStart, PitEnd, TeamsList) ->
+	PitAreaLen = SgmNum - PitStart + PitEnd,
 	PrePit = 40,
-	Pit = 10,
+	Pit = 20,
 	PostPit = 40,
 	{T1, N1} = set_sgm_type(pre_pitlane, PitStart, PrePit, SgmList),
 	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
-	{T3, N3} = build_pitstop(N2, TeamsList, T2),
+	{T3, N3} = build_pitstop(N2, TeamsList, T2, SgmNum),
 	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
 	{T5, _N5} = set_sgm_type(post_pitlane, N4, PostPit, T4),
 	T5.
@@ -160,19 +162,18 @@ build_pit_area(SgmList, PitStart, PitEnd, TeamsList) ->
 set_sgm_type(_Type, Start, 0, Sgms) ->
 	{Sgms, Start};
 set_sgm_type(Type, Start, Num, Sgms) ->
-	S = lists:keyfind(Start, #segment.id, Sgms),
-	#segment{type = T} = S,
+	{value, S, Rest} = lists:keytake(Start, #segment.id, Sgms),
 	Next = next_segment(Start),
-	if
-		T == intermediate;
-		T == finish_line ->
+	case S#segment.type of
+		intermediate ->
 			set_sgm_type(Type, Next, Num, Sgms);
-		T == normal ->
-			Temp = lists:keydelete(Start, #segment.id, Sgms),
+		finish_line ->
+			set_sgm_type(Type, Next, Num, Sgms);
+		normal ->
 			NewSgm = S#segment{type = Type,
 							   max_lane = max_lane(S#segment.max_lane, Type)},
-			set_sgm_type(Type, Next, Num - 1, [NewSgm | Temp]);
-		true ->
+			set_sgm_type(Type, Next, Num - 1, [NewSgm | Rest]);
+		_ ->
 			throw("track is too short")
 	end.
 
@@ -189,13 +190,9 @@ max_lane(Lane, Type) ->
 			Lane
 	end.
 
-build_pitstop(Start, TeamsList, SgmList) ->
-	SN = utils:get_setting(sgm_number),
-	build_pitstop_rec(Start, TeamsList, SgmList, SN).
-
-build_pitstop_rec(Start, [], SgmList, _SN) ->
+build_pitstop(Start, [], SgmList, _SN) ->
 	{SgmList, Start};
-build_pitstop_rec(Start, [TeamId | Tail], SgmList, SN) ->
+build_pitstop(Start, [TeamId | Tail], SgmList, SN) ->
 	{L1, N1} = set_sgm_type(pitstop, Start, 1, SgmList),
 	PitId = prev_segment(N1, SN),
 	T = fun() ->
@@ -204,7 +201,7 @@ build_pitstop_rec(Start, [TeamId | Tail], SgmList, SN) ->
 		end,
 	{atomic, ok} = mnesia:sync_transaction(T),
 	{L2, N2} = set_sgm_type(pitlane, N1, 1, L1),
-	build_pitstop_rec(N2, Tail, L2, SN).
+	build_pitstop(N2, Tail, L2, SN).
 
 set_chrono_lanes(List) ->
 	Pred = fun(S) ->
