@@ -38,7 +38,7 @@ get_setting(Key) ->
 set_setting(Key, Value) ->
 	S = #setting{key = Key, value = Value},
 	T = fun() ->
-				mnesia:write(setting, S, write)
+				mnesia:write(S)
 		end,
 	{atomic, ok} = mnesia:sync_transaction(T),
 	ok.
@@ -49,11 +49,10 @@ set_setting(Key, Value) ->
 
 mnesia_read(Tab, Key) ->
 	T = fun() ->
-				[R] = mnesia:read(Tab, Key),
-				R
+				mnesia:read(Tab, Key)
 		end,
-	{atomic, Res} = mnesia:transaction(T),
-	Res.
+	{atomic, [Result]} = mnesia:transaction(T),
+	Result.
 
 %% Returns true if a mnesia table named TableName
 %% exists, false otherwise.
