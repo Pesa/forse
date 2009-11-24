@@ -4,12 +4,12 @@
 
 %% External exports
 -export([start_link/0,
-		 subscribe/2,
+		 subscribe/2, subscribe/3,
 		 notify/1]).
 
 %% Backends exports
--export([notify_init/2,
-		 notify_update/2]).
+-export([notify_init/2, notify_init/3,
+		 notify_update/2, notify_update/3]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -41,10 +41,20 @@
 start_link() ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
--spec subscribe(atom(), #callback{}) -> {'error', Error :: atom()} | 'ok'.
+-spec subscribe(atom(), #callback{}) -> 'ok' | {'error', Error :: atom()}.
 
 subscribe(Service, Callback) when is_record(Callback, callback) ->
-	gen_server:call(?GLOBAL_NAME, {subscribe, Service, Callback}, infinity).
+	gen_server:call(?GLOBAL_NAME, {subscribe, Service, {Callback, []}}, infinity).
+
+-spec subscribe(atom(), #callback{}, [atom()]) -> 'ok' | {'error', Error :: atom()}.
+
+subscribe(Service, Callback, Options) when is_record(Callback, callback), is_list(Options) ->
+	case Options of
+		[] ->
+			ok;
+		_ ->
+			gen_server:call(?GLOBAL_NAME, {subscribe, Service, {Callback, Options}}, infinity)
+	end.
 
 -spec notify(any_notif()) -> 'ok'.
 
@@ -65,6 +75,7 @@ notify(Msg) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	% TODO mnesia:subscribe({table, track, detailed}),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -77,13 +88,13 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-
-handle_call({subscribe, Service, Callback}, _From, State) ->
+handle_call({subscribe, Service, {CB, Opts}}, _From, State) ->
 	case service_map(Service) of
 		not_found ->
-			{reply, {error, service_not_found}, State};
+			{reply, {error, 'service not found'}, State};
 		Backend ->
-			gen_server:cast(Backend, {subscribe, Callback}),
+			Subscriber = #subscriber{cb = CB, opts = Opts},
+			gen_server:cast(Backend, {subscribe, Subscriber}),
 			{reply, ok, State}
 	end;
 
@@ -125,6 +136,9 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_info({mnesia_table_event, _Event}, State) ->
+	% TODO
+	{noreply, State};
 handle_info(_Info, State) ->
 	{noreply, State}.
 
@@ -149,41 +163,68 @@ code_change(_OldVsn, State, _Extra) ->
 %% Functions exported to backends
 %% --------------------------------------------------------------------
 
--spec notify_init(term(), [#callback{}]) -> [#callback{}].
+-spec notify_init(term(), [#subscriber{}]) -> [#subscriber{}].
 
-notify_init(InitMsg, Callbacks) ->
-	do_notify({init, InitMsg}, Callbacks).
+notify_init(InitMsg, Subscribers) ->
+	do_notify({init, InitMsg}, Subscribers).
 
--spec notify_update(term(), [#callback{}]) -> [#callback{}].
+-spec notify_init(atom(), term(), [#subscriber{}]) -> [#subscriber{}].
 
-notify_update(UpdateMsg, Callbacks) ->
-	do_notify({update, UpdateMsg}, Callbacks).
+notify_init(Type, InitMsg, Subscribers) ->
+	do_notify(Type, {init, InitMsg}, Subscribers).
+
+-spec notify_update(term(), [#subscriber{}]) -> [#subscriber{}].
+
+notify_update(UpdateMsg, Subscribers) ->
+	do_notify({update, UpdateMsg}, Subscribers).
+
+-spec notify_update(atom(), term(), [#subscriber{}]) -> [#subscriber{}].
+
+notify_update(Type, UpdateMsg, Subscribers) ->
+	do_notify(Type, {update, UpdateMsg}, Subscribers).
 
 
 %% --------------------------------------------------------------------
 %% Internal functions
 %% --------------------------------------------------------------------
 
-% Applies each callback in Callbacks list, adding Msg as last argument.
-% Returns an updated callback list, without the ones that have failed.
--spec do_notify(term(), [#callback{}]) -> [#callback{}].
+-spec do_notify(term(), [#subscriber{}]) -> [#subscriber{}].
 
-do_notify(Msg, Callbacks) when is_list(Callbacks) ->
-	Fun = fun(#callback{mod = M, func = F, args = A} = CB, Acc) ->
-				  case catch apply(M, F, A ++ [Msg]) of
-					  {'EXIT', _} -> Acc;
-					  _ -> [CB | Acc]
+do_notify(Msg, Subscribers) when is_list(Subscribers) ->
+	lists:flatmap(fun(S) ->
+						  apply_callback(S, Msg)
+				  end, Subscribers).
+
+-spec do_notify(atom(), term(), [#subscriber{}]) -> [#subscriber{}].
+
+do_notify(MsgType, Msg, Subscribers) when is_atom(MsgType), is_list(Subscribers) ->
+	Fun = fun
+			 (#subscriber{opts = []} = S) ->
+				  apply_callback(S, Msg);
+			 (#subscriber{opts = Opts} = S) ->
+				  case lists:member(MsgType, Opts) of
+					  true -> apply_callback(S, Msg);
+					  false -> [S]
 				  end
 		  end,
-	lists:reverse(lists:foldl(Fun, [], Callbacks)).
+	lists:flatmap(Fun, Subscribers).
 
-% Casts Msg to each process in the Destinations list.
+-spec apply_callback(#subscriber{}, term()) -> [#subscriber{}].
+
+apply_callback(#subscriber{cb = CB} = S, Msg) ->
+	#callback{mod = M, func = F, args = A} = CB,
+	case catch apply(M, F, A ++ [Msg]) of
+		{'EXIT', _} -> [];
+		_ -> [S]
+	end.
+
+%% Casts Msg to each process in the Destinations list.
 -spec internal_dispatching(any_notif(), [atom()]) -> 'ok'.
 
 internal_dispatching(Msg, Destinations) when is_list(Destinations) ->
 	lists:foreach(fun(D) -> gen_server:cast(D, Msg) end, Destinations).
 
-% Mapping from services to dispatcher backends.
+%% Mapping from services to dispatcher backends.
 -spec service_map(atom()) -> atom().
 
 service_map(Service) ->

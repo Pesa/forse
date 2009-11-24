@@ -15,7 +15,7 @@
 
 -include("common.hrl").
 
--record(state, {observers = []}).
+-record(state, {subscribers	= []	:: [#subscriber{}]}).
 
 
 %% ====================================================================
@@ -63,9 +63,8 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
-	NewObs = State#state.observers ++ [Callback],
-	{noreply, State#state{observers = NewObs}};
+handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
+	{noreply, State#state{subscribers = [S | State#state.subscribers]}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif);
 							 is_record(Msg, pitstop_notif);
@@ -73,8 +72,8 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif);
 							 is_record(Msg, race_notif);
 							 is_record(Msg, retire_notif);
 							 is_record(Msg, weather_notif) ->
-	NewObs = event_dispatcher:notify_update(to_string(Msg), State#state.observers),
-	{noreply, State#state{observers = NewObs}}.
+	NewSubs = event_dispatcher:notify_update(to_string(Msg), State#state.subscribers),
+	{noreply, State#state{subscribers = NewSubs}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2

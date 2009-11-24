@@ -15,7 +15,7 @@
 
 -include("common.hrl").
 
--record(state, {observers	= []	:: [#callback{}],
+-record(state, {subscribers	= []	:: [#subscriber{}],
 				sectors				:: [sector()]}).
 
 
@@ -64,10 +64,9 @@ handle_call(_Request, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast({subscribe, Callback}, State) when is_record(Callback, callback) ->
-	NewCB = event_dispatcher:notify_init({sectors, State#state.sectors}, [Callback]),
-	NewObs = State#state.observers ++ NewCB,
-	{noreply, State#state{observers = NewObs}};
+handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
+	NewS = event_dispatcher:notify_init({sectors, State#state.sectors}, [S]),
+	{noreply, State#state{subscribers = NewS ++ State#state.subscribers}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO elaborare i dati ricevuti
@@ -75,9 +74,9 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
-	NewObs = event_dispatcher:notify_init({sectors, Sectors},
-										  State#state.observers),
-	{noreply, State#state{observers = NewObs,
+	NewSubs = event_dispatcher:notify_init({sectors, Sectors},
+										   State#state.subscribers),
+	{noreply, State#state{subscribers = NewSubs,
 						  sectors = Sectors}};
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	{noreply, State};
