@@ -67,6 +67,14 @@
 					 | {'requeue', Time :: number(), Callback :: #callback{}}.
 
 %% ------------------------------------------------------------
+%% subscriber
+%% cb: callback that must be used to notify the subscriber
+%% opts: list of backend-dependent subscription options
+%% ------------------------------------------------------------
+-record(subscriber, {cb		:: #callback{},
+					 opts	:: [atom()]}).
+
+%% ------------------------------------------------------------
 %% car_status
 %% fuel: amount of fuel left
 %% tyres_consumption: how much the tyres have been worn out (from 0.0 to 100.0)
