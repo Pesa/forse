@@ -6,8 +6,8 @@
 		 simulate/3,
 		 preelaborate/1,
 		 is_pre_pitlane/1,
-		 where_am_i/1,
-		 reachable_lanes/2]).
+		 reachable_lanes/2,
+		 where_am_i/1]).
 
 -include("db_schema.hrl").
 
@@ -83,8 +83,8 @@ build_sector([], SgmList, SectorsMap, _Sect, Sgm, PitS, PitE, RainSum) ->
 build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
-	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10,
-	   MinLane >= 1, MinLane >= MaxLane ->
+	   MinLane > 0, MinLane >= MaxLane, is_number(Incl),
+	   is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	S = #segment{type = normal,
 				 min_lane = MinLane,
 				 max_lane = MaxLane,
@@ -102,9 +102,9 @@ build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 build_sector([{Type, Len, Curv, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when (Type == left orelse Type == right), is_number(Len), Len > 0,
-	   is_integer(MinLane), is_integer(MaxLane), is_number(Curv), Curv > 0,
-	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10,
-	   MinLane >= 1, MinLane >= MaxLane ->
+	   is_integer(MinLane), is_integer(MaxLane), MinLane > 0, MinLane >= MaxLane,
+	   is_number(Curv), Curv > 0, is_number(Incl),
+	   is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	S = #segment{type = normal,
 				 min_lane = MinLane,
 				 max_lane = MaxLane,
@@ -180,7 +180,6 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 		_ ->
 			throw("track is too short")
 	end.
-
 
 build_pitstop(Start, [], SgmList, _SN) ->
 	{SgmList, Start};
@@ -561,6 +560,25 @@ is_pre_pitlane(Id) when is_integer(Id), Id >= 0 ->
 	Sgm#segment.type == pre_pitlane.
 
 
+%% Returns the list of lanes a car can reach when driving
+%% from the segment PrevSgm to the following one.
+-spec reachable_lanes(lane(), sgm_id()) -> [lane()].
+reachable_lanes(EnterL, PrevSgm)
+  when is_integer(EnterL), is_integer(PrevSgm), PrevSgm >= 0 ->
+	Sgm = utils:mnesia_read(track, next_segment(PrevSgm)),
+	MinLane = Sgm#segment.min_lane,
+	if
+		EnterL == -1 ->
+			[-2, -1, MinLane];
+		EnterL == -2 ->
+			[-2, -1];
+		EnterL =< MinLane ->
+			[-1, EnterL, EnterL + 1];
+		true ->
+			lists:seq(EnterL - 1, EnterL + 1)
+	end.
+
+
 %% Used by the first invocation of car:move/2 for each car
 %% in a race to find out their starting segment and lane.
 -spec where_am_i(car()) -> {sgm_id(), lane()}.
@@ -771,18 +789,3 @@ build_intermediate_map([H | T], I) ->
 	[{H#segment.id, I} | build_intermediate_map(T, I + 1)];
 build_intermediate_map([], _I) ->
 	[].
-
--spec reachable_lanes(integer(), integer) -> [integer()].
-reachable_lanes(EnterL, PrevSgm) when is_integer(PrevSgm), is_integer(EnterL) ->
-	Sgm = utils:mnesia_read(track, next_segment(PrevSgm)),
-	MinLane = Sgm#segment.min_lane,
-	if
-		EnterL == -1 ->
-			[-2, -1, MinLane];
-		EnterL == -2 ->
-			[-2, -1];
-		EnterL =< MinLane ->
-			[-1, EnterL, EnterL + 1];
-		true ->
-			lists:seq(EnterL - 1, EnterL + 1)
-	end.
