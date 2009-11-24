@@ -111,10 +111,13 @@ code_change(_OldVsn, State, _Extra) ->
 -spec to_string(any_notif()) -> string().
 
 to_string(#chrono_notif{car = C, lap = Lap, intermediate = Inter, time = T, max_speed = S}) ->
-	lists:concat(["Car ", C, " has gone through intermediate ", Inter, " of lap ", Lap,
-				  " in ", T, " seconds, with a maximum speed of ", S * 3.6, " Km/h."]);
+	lists:concat(["Car ", C, " has gone through intermediate ", Inter,
+				  " of lap ", Lap, " in ", utils:digits(T),
+				  " seconds, with a maximum speed of ",
+				  utils:digits(S * 3.6), " Km/h."]);
 to_string(#pitstop_notif{car = C, ops = #pitstop_ops{fuel = F, tyres = Ty}}) ->
-	lists:concat(["Pitstop for car ", C, ": ", F, " liters of fuel have been added and ",
+	lists:concat(["Pitstop for car ", C, ": ", utils:digits(F),
+				  " liters of fuel have been added and ",
 				  Ty, " tyres have been installed."]);
 to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
 	lists:concat(["Car ", Surpasser, " surpassed car ", Surpassed, "."]);
