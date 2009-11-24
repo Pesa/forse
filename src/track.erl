@@ -6,7 +6,8 @@
 		 simulate/3,
 		 preelaborate/1,
 		 is_pre_pitlane/1,
-		 where_am_i/1]).
+		 where_am_i/1,
+		 reachable_lanes/2]).
 
 -include("db_schema.hrl").
 
@@ -82,7 +83,8 @@ build_sector([], SgmList, SectorsMap, _Sect, Sgm, PitS, PitE, RainSum) ->
 build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
-	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
+	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10,
+	   MinLane >= 1, MinLane >= MaxLane ->
 	S = #segment{type = normal,
 				 min_lane = MinLane,
 				 max_lane = MaxLane,
@@ -90,17 +92,19 @@ build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 				 inclination = Incl,
 				 curvature = 0.0,
 				 rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Sgm - 1,
+	SgmNum = round(Len / ?SEGMENT_LENGTH),
+	Last = SgmNum + Sgm - 1,
 	NewSgms = [ S#segment{id = X} || X <- lists:seq(Sgm, Last) ],
 	NewMapping = {Sect, {Sgm, Last}},
 	build_sector(Tail, NewSgms ++ SgmList, [NewMapping | SectorsMap],
-				 Sect + 1, Last + 1, PitS, PitE, RainSum + Rain);
+				 Sect + 1, Last + 1, PitS, PitE, RainSum + SgmNum * Rain);
 
 build_sector([{Type, Len, Curv, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when (Type == left orelse Type == right), is_number(Len), Len > 0,
 	   is_integer(MinLane), is_integer(MaxLane), is_number(Curv), Curv > 0,
-	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10 ->
+	   is_number(Incl), is_integer(Rain), Rain >= 0, Rain =< 10,
+	   MinLane >= 1, MinLane >= MaxLane ->
 	S = #segment{type = normal,
 				 min_lane = MinLane,
 				 max_lane = MaxLane,
@@ -108,11 +112,12 @@ build_sector([{Type, Len, Curv, MinLane, MaxLane, Incl, Rain} | Tail],
 				 inclination = Incl,
 				 curvature = Curv,
 				 rain = Rain},
-	Last = round(Len / ?SEGMENT_LENGTH) + Sgm - 1,
+	SgmNum = round(Len / ?SEGMENT_LENGTH),
+	Last = SgmNum + Sgm - 1,
 	NewSgms = [ S#segment{id = X} || X <- lists:seq(Sgm, Last) ],
 	NewMapping = {Sect, {Sgm, Last}},
 	build_sector(Tail, NewSgms ++ SgmList, [NewMapping | SectorsMap],
-				 Sect + 1, Last + 1, PitS, PitE, RainSum + Rain);
+				 Sect + 1, Last + 1, PitS, PitE, RainSum + SgmNum * Rain);
 
 build_sector([{finish_line} | Tail], SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum) ->
 	S = #segment{id = Sgm,
@@ -170,25 +175,12 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 		finish_line ->
 			set_sgm_type(Type, Next, Num, Sgms);
 		normal ->
-			NewSgm = S#segment{type = Type,
-							   max_lane = max_lane(S#segment.max_lane, Type)},
+			NewSgm = S#segment{type = Type},
 			set_sgm_type(Type, Next, Num - 1, [NewSgm | Rest]);
 		_ ->
 			throw("track is too short")
 	end.
 
--spec max_lane(lane(), sgm_type()) -> lane().
-max_lane(Lane, Type) ->
-	if
-		Type == pre_pitlane;
-		Type == post_pitlane;
-		Type == pitlane ->
-			Lane + 1;
-		Type == pitstop ->
-			Lane + 2;
-		true ->
-			Lane
-	end.
 
 build_pitstop(Start, [], SgmList, _SN) ->
 	{SgmList, Start};
@@ -736,21 +728,12 @@ prev_segment(Id, _N) ->
 	Id - 1.
 
 -spec is_pit_area_lane(#segment{}, lane()) -> boolean().
-is_pit_area_lane(#segment{type = pitlane} = Sgm, Lane) ->
-	if
-		Sgm#segment.max_lane == Lane -> true;
-		true -> false
-	end;
-is_pit_area_lane(#segment{type = pitstop} = Sgm, Lane) ->
-	if
-		Sgm#segment.max_lane - 1 =< Lane -> true;
-		true -> false
-	end;
-is_pit_area_lane(#segment{type = pre_pitlane} = Sgm, Lane) ->
-	if
-		Sgm#segment.max_lane == Lane -> true;
-		true -> false
-	end;
+is_pit_area_lane(#segment{type = pitlane}, -1) ->
+	true;
+is_pit_area_lane(#segment{type = pitstop}, Lane) when Lane =< -1 ->
+	true;
+is_pit_area_lane(#segment{type = pre_pitlane}, -1) ->
+	true;
 is_pit_area_lane(Sgm, _Lane) when is_record(Sgm, segment) ->
 	false.
 
@@ -788,3 +771,18 @@ build_intermediate_map([H | T], I) ->
 	[{H#segment.id, I} | build_intermediate_map(T, I + 1)];
 build_intermediate_map([], _I) ->
 	[].
+
+-spec reachable_lanes(integer(), integer) -> [integer()].
+reachable_lanes(EnterL, PrevSgm) when is_integer(PrevSgm), is_integer(EnterL) ->
+	Sgm = utils:mnesia_read(track, next_segment(PrevSgm)),
+	MinLane = Sgm#segment.min_lane,
+	if
+		EnterL == -1 ->
+			[-2, -1, MinLane];
+		EnterL == -2 ->
+			[-2, -1];
+		EnterL =< MinLane ->
+			[-1, EnterL, EnterL + 1];
+		true ->
+			lists:seq(EnterL - 1, EnterL + 1)
+	end.

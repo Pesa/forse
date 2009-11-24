@@ -119,9 +119,7 @@ handle_call(move, _From, State) ->
 				  {Lane, track:simulate(State2, Lane, PitStop)}
 		  end,
 	EnterLane = State2#pilot.lane,
-	SimRes = lists:map(Sim, [EnterLane - 1,
-							 EnterLane,
-							 EnterLane + 1]),
+	SimRes = lists:map(Sim, track:reachable_lanes(EnterLane, State2#pilot.segment)),
 	
 	Pits = lists:keyfind(pits, 2, SimRes),
 	End = lists:keyfind(race_ended, 2, SimRes),
@@ -141,7 +139,7 @@ handle_call(move, _From, State) ->
 		Crash ->
 			ExitLane = EnterLane;
 		PrePits andalso PitStop ->
-			{ExitLane, _} = lists:max(Res);
+			{ExitLane, _} = lists:min(Res);
 		true ->
 			[{ExitLane, _} | _] = lists:keysort(2, Res)
 	end,
