@@ -13,10 +13,11 @@
 		 terminate/2,
 		 code_change/3]).
 
--include("common.hrl").
+-include("db_schema.hrl").
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
-				sectors				:: [sector()]}).
+				cars_pos	= []	:: [{car(), non_neg_integer()}],
+				sectors		= []	:: [sector()]}).
 
 
 %% ====================================================================
@@ -42,6 +43,7 @@ start_link() ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	mnesia:subscribe({table, track, detailed}),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -104,6 +106,26 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_info({mnesia_table_event, {write, track, NewSgm, OldSgms, _}}, State)
+  when is_record(NewSgm, segment) ->
+	OldQueue = case lists:keyfind(NewSgm#segment.id, #segment.id, OldSgms) of
+				   #segment{queued_cars = Q} -> Q;
+				   false -> []
+			   end,
+	Diff = NewSgm#segment.queued_cars -- OldQueue,
+	CP = State#state.cars_pos,
+	NewCP = case Diff of
+				[#car_position{car_id = CarId}] ->
+					case lists:keytake(CarId, 1, CP) of
+						{value, {_, Pos}, Rest} ->
+							[{CarId, Pos + NewSgm#segment.length} | Rest];
+						false ->
+							CP
+					end;
+				_ ->
+					CP
+			end,
+	{noreply, State#state{cars_pos = NewCP}};
 handle_info(_Info, State) ->
 	{noreply, State}.
 

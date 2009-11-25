@@ -75,7 +75,6 @@ notify(Msg) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	% TODO mnesia:subscribe({table, track, detailed}),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -136,9 +135,6 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_info({mnesia_table_event, _Event}, State) ->
-	% TODO
-	{noreply, State};
 handle_info(_Info, State) ->
 	{noreply, State}.
 
