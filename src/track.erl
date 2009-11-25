@@ -83,7 +83,7 @@ build_sector([], SgmList, SectorsMap, _Sect, Sgm, PitS, PitE, RainSum) ->
 build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when is_number(Len), Len > 0, is_integer(MinLane), is_integer(MaxLane),
-	   MinLane > 0, MinLane >= MaxLane, is_number(Incl),
+	   MinLane > 0, MinLane =< MaxLane, is_number(Incl),
 	   is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	S = #segment{type = normal,
 				 min_lane = MinLane,
@@ -102,7 +102,7 @@ build_sector([{straight, Len, MinLane, MaxLane, Incl, Rain} | Tail],
 build_sector([{Type, Len, Curv, MinLane, MaxLane, Incl, Rain} | Tail],
 			 SgmList, SectorsMap, Sect, Sgm, PitS, PitE, RainSum)
   when (Type == left orelse Type == right), is_number(Len), Len > 0,
-	   is_integer(MinLane), is_integer(MaxLane), MinLane > 0, MinLane >= MaxLane,
+	   is_integer(MinLane), is_integer(MaxLane), MinLane > 0, MinLane =< MaxLane,
 	   is_number(Curv), Curv > 0, is_number(Incl),
 	   is_integer(Rain), Rain >= 0, Rain =< 10 ->
 	S = #segment{type = normal,
