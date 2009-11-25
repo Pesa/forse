@@ -104,7 +104,6 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 								  car:invalidate_preelab(Id)
 						  end, Pilots),
 			% send the notification
-			?DBG({"weather changing"}),
 			event_dispatcher:notify(#weather_notif{changes = Changes});
 		{aborted, Reason} ->
 			?ERR({"failed to change weather", Reason})
