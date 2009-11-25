@@ -219,7 +219,8 @@ set_chrono_lanes_rec([H | T], List) ->
 fill_starting_grid(CarsList, SgmList) ->
 	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
 	SgmNumber = length(SgmList),
-	add_cars(CarsList, SgmList, prev_segment(Line, SgmNumber), 1, SgmNumber).
+	First = prev_segment(prev_segment(Line, SgmNumber), SgmNumber),
+	add_cars(CarsList, SgmList, First, 1, SgmNumber).
 
 -spec add_cars([car()], [#segment{}], sgm_id(), 1 | 2, pos_integer()) -> [#segment{}].
 add_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
