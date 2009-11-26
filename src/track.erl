@@ -247,17 +247,11 @@ add_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
 		Type == finish_lane ->
 			add_cars(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
 		true ->
-			% FIXME: non dovrebbe piu' servire una gestione speciale per pitlane/pitstop
-			X = if
-					Type == normal -> 0;
-					Type == pitstop -> 2;
-					true -> 1
-				end,
 			NextLP = case LanePos of
 						 1 -> 2;
 						 2 -> 1
 					 end,
-			NewSgm = place_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X, Sgm, LanePos),
+			NewSgm = place_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane, Sgm, LanePos),
 			NewList = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
 			add_cars(T, NewList, prev_segment(Index, SNum), NextLP, SNum)
 	end;
