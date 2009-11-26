@@ -122,22 +122,21 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
 	%%DEBUG FIXME: togliere quando non servira'
-	Delta = Amin - A,
-	if
-		A < 0.0 andalso Delta > 0.0 ->
-			?DBG({"DELTA", Delta});
-		true ->
-			ok
-	end,
+	%Delta = Amin - A,
+	%if
+	%	A < 0.0 andalso Delta > 0.0 ->
+	%		?DBG({"DELTA", Delta});
+	%	true ->
+	%		ok
+	%end,
 	SAmax = SkillCoeff * Amax,
 	Result = if
 				 A < (?ACCEL_TOLERANCE + SkillCoeff + 0.1) * Amin ->
-					 ?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff + 0.1, Speed, MaxSpeed}),
+					 %?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff + 0.1, Speed, MaxSpeed}),
 					 {fail, 'crash'};
 				 A > SAmax ->
-					 Sqrt = math:sqrt(4.0 * math:pow(Speed, 2) + 8.0 * SAmax * Space),
-					 X = -0.5 * (2.0 * Speed + sgn(Speed) * Sqrt),
-					 Eq = (-2.0 * Space) / X,
+					 Sqrt = math:sqrt(4 * math:pow(Speed, 2) + 8 * SAmax * Space),
+					 Eq = 2 * Space / (Speed + 0.5 * sgn(Speed) * Sqrt),
 					 {ok, Eq, SAmax};
 				 true ->
 					 {ok, T1, A}
@@ -187,10 +186,10 @@ friction_tab(wet, Rain) ->
 	% (0,0.7) (10,0.6)
 	-0.01 * Rain + 0.7.
 
-sgn(Num) when is_number(Num) ->
-	case Num >= 0 of
-		true ->
-			1;
-		false ->
-			-1
+%% Returns the sign of the argument N.
+-spec sgn(number()) -> 1 | -1.
+sgn(N) when is_number(N) ->
+	case N >= 0 of
+		true -> 1;
+		false -> -1
 	end.
