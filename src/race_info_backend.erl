@@ -67,8 +67,9 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	NewS = event_dispatcher:notify_init({sectors, State#state.sectors}, [S]),
-	{noreply, State#state{subscribers = NewS ++ State#state.subscribers}};
+	S1 = event_dispatcher:notify_init({sectors, State#state.sectors}, [S]),
+	S2 = event_dispatcher:notify_init({cars_pos, State#state.cars_pos}, S1),
+	{noreply, State#state{subscribers = S2 ++ State#state.subscribers}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO elaborare i dati ricevuti
@@ -76,9 +77,11 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
-	NewSubs = event_dispatcher:notify_init({sectors, Sectors},
-										   State#state.subscribers),
-	{noreply, State#state{subscribers = NewSubs,
+	Subs1 = event_dispatcher:notify_init({sectors, Sectors}, State#state.subscribers),
+	{starting_pos, CarsPos} = lists:keyfind(starting_pos, 1, Config),
+	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
+	{noreply, State#state{subscribers = Subs2,
+						  cars_pos = CarsPos,
 						  sectors = Sectors}};
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	{noreply, State};
