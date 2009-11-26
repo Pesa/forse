@@ -25,7 +25,7 @@ init(TrackConfig, TeamsList, CarsList)
 		{Ph1, SgmNum, PitStart, PitEnd, Config} = parse_config(TrackConfig),
 		Ph2 = build_pit_area(Ph1, SgmNum, PitStart, PitEnd, TeamsList),
 		Ph3 = set_chrono_lanes(Ph2),
-		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3),
+		SgmList = fill_starting_grid(lists:sort(CarsList), Ph3, SgmNum),
 		T = fun() ->
 					mnesia:write_lock_table(track),
 					lists:foreach(fun(Sgm) ->
@@ -43,8 +43,25 @@ init(TrackConfig, TeamsList, CarsList)
 		Map = build_intermediate_map(lists:filter(F, SgmList)),
 		utils:set_setting(intermediate_map, Map),
 		
+		% calculate the starting position of each car
+		SortedList = lists:keysort(#segment.id, SgmList),
+		FL = (lists:keyfind(finish_line, #segment.type, SortedList))#segment.id,
+		{Tail, Head} = lists:split(FL, SortedList),
+		G = fun(S, {Len, PosList}) ->
+					NewLen = Len + S#segment.length,
+					case S#segment.queued_cars of
+						[#car_position{car_id = CarId}] ->
+							{NewLen, [{CarId, NewLen} | PosList]};
+						_ ->
+							{NewLen, PosList}
+					end
+			end,
+		{_, StartPos} = lists:foldl(G, {0, []}, Head ++ Tail),
+		
+		% notify the final configuration
+		C = [{starting_pos, StartPos} | Config],
 		event_dispatcher:notify(#config_notif{app = track,
-											  config = Config})
+											  config = C})
 	catch
 		% TODO: gestione delle eccezioni
 		throw : E ->
@@ -54,7 +71,7 @@ init(TrackConfig, TeamsList, CarsList)
 	end.
 
 -spec parse_config([{sector()}]) ->
-		{[#segment{}], sgm_id(), sgm_id() | -1, sgm_id() | -1, conflist()}.
+		{[#segment{}], pos_integer(), sgm_id() | -1, sgm_id() | -1, conflist()}.
 parse_config(TrackConfig) ->
 	{SgmList, SgmNum, SectorsMap, PitStart, PitEnd, RainSum} =
 		build_sector(TrackConfig, [], [], 0, 0, -1, -1, 0),
@@ -146,7 +163,7 @@ build_sector([{pitlane_exit} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _P
 build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum) ->
 	throw({"invalid sector", S}).
 
--spec build_pit_area([#segment{}], sgm_id(), sgm_id() | -1, sgm_id() | -1,
+-spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1, sgm_id() | -1,
 					 [pos_integer()]) -> [#segment{}].
 build_pit_area(_SgmList, _SgmNum, -1, _PitEnd, _TeamsList) ->
 	throw("missing pitlane entrance");
@@ -215,34 +232,34 @@ set_chrono_lanes_rec([H | T], List) ->
 					max_lane = MaxLane},
 	set_chrono_lanes_rec(T, [Sgm | Temp]).
 
--spec fill_starting_grid([car()], [#segment{}]) -> [#segment{}].
-fill_starting_grid(CarsList, SgmList) ->
+-spec fill_starting_grid([car()], [#segment{}], pos_integer()) -> [#segment{}].
+fill_starting_grid(CarsList, SgmList, SgmNum) ->
 	Line = (lists:keyfind(finish_line, #segment.type, SgmList))#segment.id,
-	SgmNumber = length(SgmList),
-	First = prev_segment(prev_segment(Line, SgmNumber), SgmNumber),
-	add_cars(CarsList, SgmList, First, 1, SgmNumber).
+	First = prev_segment(prev_segment(Line, SgmNum), SgmNum),
+	add_cars(CarsList, SgmList, First, 1, SgmNum).
 
 -spec add_cars([car()], [#segment{}], sgm_id(), 1 | 2, pos_integer()) -> [#segment{}].
 add_cars([H | T] = IdList, SgmList, Index, LanePos, SNum) ->
 	Sgm = lists:keyfind(Index, #segment.id, SgmList),
 	Type = Sgm#segment.type,
-	NextLP = case LanePos of
-				 1 -> 2;
-				 2 -> 1
-			 end,
 	if
 		Type == intermediate;
 		Type == finish_lane ->
 			add_cars(IdList, SgmList, prev_segment(Index, SNum), LanePos, SNum);
 		true ->
+			% FIXME: non dovrebbe piu' servire una gestione speciale per pitlane/pitstop
 			X = if
 					Type == normal -> 0;
 					Type == pitstop -> 2;
 					true -> 1
 				end,
+			NextLP = case LanePos of
+						 1 -> 2;
+						 2 -> 1
+					 end,
 			NewSgm = place_car(H, Sgm#segment.min_lane, Sgm#segment.max_lane - X, Sgm, LanePos),
-			Temp = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
-			add_cars(T, Temp, prev_segment(Index, SNum), NextLP, SNum)
+			NewList = lists:keyreplace(Index, #segment.id, SgmList, NewSgm),
+			add_cars(T, NewList, prev_segment(Index, SNum), NextLP, SNum)
 	end;
 add_cars([], SgmList, _Index, _LanePos, _SNum) ->
 	SgmList.
@@ -256,10 +273,8 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 		true ->
 			Delta = (Lanes - 3) div 2,
 			L = case LanePos of
-					1 ->
-						MinLane + Delta;
-					2 ->
-						MaxLane - Delta
+					1 -> MinLane + Delta;
+					2 -> MaxLane - Delta
 				end,
 			CP = #car_position{car_id = CarId,
 							   enter_lane = L,
@@ -270,7 +285,6 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 
 %% Moves the car to the next segment.
 %% Pit: true if pilot wants to stop at the pits
-% FIXME: spostare car_pos in Pilot?
 -spec move(#pilot{}, lane(), boolean()) ->
 		{NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
@@ -325,7 +339,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
 												  reason = Reason}),
 			remove_car(SOld, Pilot#pilot.id),
-			?DBG({"Car ", Pilot#pilot.id, "crashed in segment", Sgm}),
+			?DBG({"car", Pilot#pilot.id, "crashed in segment", Sgm}),
 			fail;
 		{ok, Time, Speed} ->
 			NewCarPos = CarPos#car_position{speed = Speed,
@@ -442,7 +456,6 @@ simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) ->
 %% can reach in each segment of the track.
 -spec preelaborate(#pilot{}) -> 'ok'.
 preelaborate(Pilot) when is_record(Pilot, pilot) ->
-	%?DBG({"running pre-elaboration for pilot", Pilot#pilot.id}),
 	Car = utils:mnesia_read(car_type, Pilot#pilot.team),
 	CarStatus = Pilot#pilot.car_status,
 	Mass = Car#car_type.weight + Pilot#pilot.weight
