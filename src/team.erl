@@ -36,7 +36,7 @@
 %% rain_sum: sum of rain field of all the segments
 %% cars_stats: list of car_stats records
 -record(state, {fuel_limit	= 0.0	:: float(),
-				tyres_limit	= 50.0	:: float(), % TODO
+				tyres_limit	= 60.0	:: float(),
 				rain_sum			:: non_neg_integer(),
 				cars_stats	= []	:: [#car_stats{}]}).
 
