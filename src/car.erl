@@ -6,8 +6,8 @@
 -export([start_link/1,
 		 move/2,
 		 retire/1,
-		 force_pitstop/1,
 		 invalidate_preelab/1,
+		 force_pitstop/1,
 		 set_next_pitstop/2]).
 
 %% gen_server callbacks
@@ -48,15 +48,16 @@ retire(CarId) ->
 invalidate_preelab(CarId) ->
 	gen_server:call(?CAR_NAME(CarId), invalidate_preelab, infinity).
 
+-spec force_pitstop(car()) -> 'ok'.
+
+force_pitstop(CarId) ->
+	set_next_pitstop(CarId, #next_pitstop{lap = now}).
+
 -spec set_next_pitstop(car(), #next_pitstop{}) -> 'ok'.
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:cast(?CAR_NAME(CarId), PitStop).
 
--spec force_pitstop(car()) -> 'ok'.
-
-force_pitstop(CarId) ->
-	set_next_pitstop(CarId, #next_pitstop{lap = now}).
 
 %% ====================================================================
 %% Server functions
@@ -112,13 +113,24 @@ handle_call(move, _From, State) ->
 	State2 = if
 				 State1#pilot.run_preelab ->
 					 track:preelaborate(State1),
-					 ?DBG({"Car", Id, "Preelab exiting sgm", State1#pilot.segment}),
+					 %?DBG({"car", Id, "preelab exiting segment", State1#pilot.segment}),
 					 State1#pilot{run_preelab = false};
 				 true ->
 					 State1
 			 end,
+	
+	% check if we have to go to the pits
+	CurrentLap = State2#pilot.lap,
+	TotalLaps = utils:get_setting(total_laps),
 	NP = State2#pilot.next_pitstop,
-	PitStop = (NP /= -1 andalso NP =< State2#pilot.lap) orelse NP == now,
+	PitStop = if
+				  NP == now ->
+					  true;
+				  CurrentLap == TotalLaps ->
+					  false;
+				  true ->
+					  NP /= -1 andalso NP =< CurrentLap
+			  end,
 	
 	% simulation phase
 	Sim = fun(Lane) ->
