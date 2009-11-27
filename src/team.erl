@@ -107,7 +107,7 @@ init(Config) ->
 				   ({team_name, Name}, CT) ->
 						CT#car_type{team_name = Name};
 				   ({brake, Brake}, CT) ->
-						CT#car_type{brake = Brake};
+						CT#car_type{brake = -1 * Brake};
 				   ({power, Power}, CT) ->
 						CT#car_type{power = Power};
 				   ({weight, Weight}, CT) ->

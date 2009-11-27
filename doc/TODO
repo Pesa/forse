@@ -8,5 +8,3 @@
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
 - tuning delle macro costanti in config.hrl
-- la decelerazione dev'essere negativa
-	=> per ora workaround: nel file di conf si mette un valore negativo per brake
