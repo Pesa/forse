@@ -169,8 +169,14 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 					  CarStats#car_stats{last_ls = NewLLS, avg_consumption = Cons}
 			  end,
 	DelCS = lists:keydelete(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
-	NewState = State#state{cars_stats = [NCStats | DelCS]},
-	
+	% Dynamically changing fuel_limit
+	NewState = case NCStats#car_stats.avg_consumption of
+				   {undef, undef} ->
+					   State#state{cars_stats = [NCStats | DelCS]};
+				   {_, NewFuelCons} ->
+					   State#state{cars_stats = [NCStats | DelCS], fuel_limit = 2 * NewFuelCons}
+			   end,
+			
 	% Phase 2: calculate next pitstop %
 	
 	% check if it has an appropriate tyres type
@@ -217,11 +223,18 @@ handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
 	LapsLeft = utils:get_setting(total_laps) - Lap,
 	Fuel = CarStatus#car_status.fuel,
-	NeededFuel = LapsLeft * FuelC + State#state.fuel_limit,
-	AddF = case NeededFuel > ?TANK_DIM of
-			   true ->
+	NeededFuel = case FuelC of
+					 undef ->
+						 ?TANK_DIM;
+					 _ ->
+						 LapsLeft * FuelC + State#state.fuel_limit
+				 end,
+	AddF = if 
+			   NeededFuel >= ?TANK_DIM ->
 				   ?TANK_DIM - Fuel;
-			   false ->
+			   Fuel >= NeededFuel ->
+				   0.0;
+			   true ->
 				   NeededFuel - Fuel
 		   end,
 	Rest = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),

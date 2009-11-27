@@ -10,4 +10,3 @@
 - tuning delle macro costanti in config.hrl
 - la decelerazione dev'essere negativa
 	=> per ora workaround: nel file di conf si mette un valore negativo per brake
-- verso la fine della gara le auto fanno un rifornimento di benzina negativo!
