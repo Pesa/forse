@@ -6,6 +6,7 @@
 -export([start_link/1,
 		 move/2,
 		 retire/1,
+		 force_pitstop/1,
 		 invalidate_preelab/1,
 		 set_next_pitstop/2]).
 
@@ -51,6 +52,11 @@ invalidate_preelab(CarId) ->
 
 set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 	gen_server:cast(?CAR_NAME(CarId), PitStop).
+
+-spec force_pitstop(car()) -> 'ok'.
+
+force_pitstop(CarId) ->
+	set_next_pitstop(CarId, #next_pitstop{lap = now}).
 
 %% ====================================================================
 %% Server functions
@@ -111,8 +117,8 @@ handle_call(move, _From, State) ->
 				 true ->
 					 State1
 			 end,
-	PitStop = State2#pilot.next_pitstop /= -1 andalso
-				State2#pilot.next_pitstop =< State2#pilot.lap,
+	NP = State2#pilot.next_pitstop,
+	PitStop = (NP /= -1 andalso NP =< State2#pilot.lap) orelse NP == now,
 	
 	% simulation phase
 	Sim = fun(Lane) ->
@@ -177,7 +183,10 @@ handle_cast(#next_pitstop{lap = NewStop, stops_count = SC}, State) ->
 	Lap = State#pilot.lap,
 	OldStop = State#pilot.next_pitstop,
 	NewState = if
-				   State#pilot.pitstop_count /= SC ->
+				   NewStop == now ->
+					   State#pilot{next_pitstop = NewStop};
+				   State#pilot.pitstop_count /= SC;
+				   OldStop == now ->
 					   % the message is obsolete: ignore it
 					   %?DBG("ignoring obsolete next_pitstop message."),
 					   State;
