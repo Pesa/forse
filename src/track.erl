@@ -25,38 +25,8 @@ init(TrackConfig, TeamsList, CarsList)
 		{Ph1, SgmNum, PitStart, PitEnd, Config} = parse_config(TrackConfig),
 		Ph2 = set_chrono_lanes(Ph1, SgmNum),
 		Ph3 = fill_starting_grid(lists:sort(CarsList), Ph2, SgmNum),
-		
-		% calculate the starting position of each car and the pit area length
-		SortedList = lists:keysort(#segment.id, Ph3),
-		FL = (lists:keyfind(finish_line, #segment.type, SortedList))#segment.id,
-		{Tail, Head} = lists:split(FL, SortedList),
-		G = fun(S, {Len, PosList, PS1, PE1}) ->
-					NewLen = Len + S#segment.length,
-					{PS2, PE2} = case S#segment.id of
-									 PitStart ->
-										 {NewLen, PE1};
-									 PitEnd ->
-										 {PS1, NewLen};
-									 _ ->
-										 {PS1, PE1}
-								 end,
-					case S#segment.queued_cars of
-						[#car_position{car_id = CarId}] ->
-							{NewLen, [{CarId, NewLen} | PosList], PS2, PE2};
-						_ ->
-							{NewLen, PosList, PS2, PE2}
-					end
-			end,
-		{TrackLen, StartPos, PS, PE} = lists:foldl(G, {0, [], 0, 0}, Head ++ Tail),
-		PitAreaLen = if
-						 PE >= PS ->
-							 PE - PS;
-						 true ->
-							 PE - PS + TrackLen
-					 end,
-		
-		SgmList = build_pit_area(Ph3, SgmNum, PitStart, PitEnd,
-								 PitAreaLen div ?SEGMENT_LENGTH, TeamsList),
+		{StartPos, PitLen} = calculate_start_pos_and_pit_len(Ph3, PitStart, PitEnd),
+		SgmList = build_pit_area(Ph3, SgmNum, PitStart, PitLen div ?SEGMENT_LENGTH, TeamsList),
 		
 		T = fun() ->
 					mnesia:write_lock_table(track),
@@ -67,12 +37,7 @@ init(TrackConfig, TeamsList, CarsList)
 		{atomic, _} = mnesia:sync_transaction(T),
 		
 		% calculate and store intermediates' indexes
-		F = fun
-			   (#segment{type = intermediate}) -> true;
-			   (#segment{type = finish_line}) -> true;
-			   (_) -> false
-			end,
-		Map = build_intermediate_map(lists:filter(F, SgmList)),
+		Map = build_intermediate_map(lists:filter(fun is_chrono_sgm/1, SgmList)),
 		utils:set_setting(intermediate_map, Map),
 		
 		% notify the final configuration
@@ -180,13 +145,9 @@ build_sector([{pitlane_exit} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _P
 build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum) ->
 	throw({"invalid sector", S}).
 
--spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1, sgm_id() | -1,
+-spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1,
 					 non_neg_integer(), [pos_integer()]) -> [#segment{}].
-build_pit_area(_SgmList, _SgmNum, -1, _PitEnd, _PitLen, _TeamsList) ->
-	throw("missing pitlane entrance");
-build_pit_area(_SgmList, _SgmNum, _PitStart, -1, _PitLen, _TeamsList) ->
-	throw("missing pitlane exit");
-build_pit_area(SgmList, SgmNum, PitStart, _PitEnd, PitLen, TeamsList) ->
+build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
 	Pit = 20,
 	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
 	if
@@ -207,6 +168,75 @@ build_pit_area(SgmList, SgmNum, PitStart, _PitEnd, PitLen, TeamsList) ->
 	{T5, _} = set_sgm_type(post_pitlane, N4, PostPit, T4),
 	T5.
 
+set_chrono_lanes(List, SgmNum) ->
+	Chrono = lists:filter(fun is_chrono_sgm/1, List),
+	set_chrono_lanes(Chrono, List, SgmNum).
+
+set_chrono_lanes([], List, _SgmNum) ->
+	List;
+set_chrono_lanes([H | T], List, SgmNum) ->
+	Id = H#segment.id,
+	Pre = lists:keyfind(prev_segment(Id, SgmNum), #segment.id, List),
+	Post = lists:keyfind(next_segment(Id), #segment.id, List),
+	MaxLane = erlang:max(Pre#segment.max_lane, Post#segment.max_lane),
+	MinLane = erlang:min(Pre#segment.min_lane, Post#segment.min_lane),
+	NewSgm = H#segment{min_lane = MinLane,
+					   max_lane = MaxLane},
+	NewList = lists:keyreplace(Id, #segment.id, List, NewSgm),
+	set_chrono_lanes(T, NewList, SgmNum).
+
+%% Calculates the starting position of
+%% each car and the pit area length
+-spec calculate_start_pos_and_pit_len([#segment{}], sgm_id() | -1, sgm_id() | -1) ->
+		{conflist(), non_neg_integer()}.
+calculate_start_pos_and_pit_len(_SgmList, -1, _PitEnd) ->
+	throw("missing pitlane entrance");
+calculate_start_pos_and_pit_len(_SgmList, _PitStart, -1) ->
+	throw("missing pitlane exit");
+calculate_start_pos_and_pit_len(SgmList, PitStart, PitEnd) ->
+	SortedList = lists:keysort(#segment.id, SgmList),
+	FL = (lists:keyfind(finish_line, #segment.type, SortedList))#segment.id,
+	{Tail, Head} = lists:split(FL, SortedList),
+	G = fun(S, {Len, PosList, PS1, PE1}) ->
+				NewLen = Len + S#segment.length,
+				{PS2, PE2} = case S#segment.id of
+								 PitStart ->
+									 {NewLen, PE1};
+								 PitEnd ->
+									 {PS1, NewLen};
+								 _ ->
+									 {PS1, PE1}
+							 end,
+				case S#segment.queued_cars of
+					[#car_position{car_id = CarId}] ->
+						{NewLen, [{CarId, NewLen} | PosList], PS2, PE2};
+					_ ->
+						{NewLen, PosList, PS2, PE2}
+				end
+		end,
+	{TrackLen, StartPos, PS, PE} = lists:foldl(G, {0, [], 0, 0}, Head ++ Tail),
+	PitLen = if
+				 PE >= PS ->
+					 PE - PS;
+				 true ->
+					 PE - PS + TrackLen
+			 end,
+	{StartPos, PitLen}.
+
+build_pitstop(Start, [], SgmList, _SgmNum) ->
+	{SgmList, Start};
+build_pitstop(Start, [TeamId | Tail], SgmList, SgmNum) ->
+	{L1, N1} = set_sgm_type(pitlane, Start, 1, SgmList),
+	{L2, N2} = set_sgm_type(pitstop, N1, 1, L1),
+	{L3, N3} = set_sgm_type(pitlane, N2, 1, L2),
+	PitSgmId = prev_segment(N2, SgmNum),
+	T = fun() ->
+				[CT] = mnesia:wread({car_type, TeamId}),
+				mnesia:write(car_type, CT#car_type{pitstop_sgm = PitSgmId}, write)
+		end,
+	{atomic, ok} = mnesia:sync_transaction(T),
+	build_pitstop(N3, Tail, L3, SgmNum).
+
 set_sgm_type(_Type, Start, 0, Sgms) ->
 	{Sgms, Start};
 set_sgm_type(Type, Start, Num, Sgms) ->
@@ -223,41 +253,6 @@ set_sgm_type(Type, Start, Num, Sgms) ->
 		_ ->
 			throw("track is too short")
 	end.
-
-build_pitstop(Start, [], SgmList, _SgmNum) ->
-	{SgmList, Start};
-build_pitstop(Start, [TeamId | Tail], SgmList, SgmNum) ->
-	{L1, N1} = set_sgm_type(pitlane, Start, 1, SgmList),
-	{L2, N2} = set_sgm_type(pitstop, N1, 1, L1),
-	{L3, N3} = set_sgm_type(pitlane, N2, 1, L2),
-	PitSgmId = prev_segment(N2, SgmNum),
-	T = fun() ->
-				[CT] = mnesia:wread({car_type, TeamId}),
-				mnesia:write(car_type, CT#car_type{pitstop_sgm = PitSgmId}, write)
-		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
-	build_pitstop(N3, Tail, L3, SgmNum).
-
-set_chrono_lanes(List, SgmNum) ->
-	Pred = fun(S) ->
-				  T = S#segment.type,
-				  T == intermediate orelse T == finish_line
-		  end,
-	Chrono = lists:filter(Pred, List),
-	set_chrono_lanes(Chrono, List, SgmNum).
-
-set_chrono_lanes([], List, _SgmNum) ->
-	List;
-set_chrono_lanes([H | T], List, SgmNum) ->
-	Id = H#segment.id,
-	Pre = lists:keyfind(prev_segment(Id, SgmNum), #segment.id, List),
-	Post = lists:keyfind(next_segment(Id), #segment.id, List),
-	MaxLane = erlang:max(Pre#segment.max_lane, Post#segment.max_lane),
-	MinLane = erlang:min(Pre#segment.min_lane, Post#segment.min_lane),
-	NewSgm = H#segment{min_lane = MinLane,
-					   max_lane = MaxLane},
-	NewList = lists:keyreplace(Id, #segment.id, List, NewSgm),
-	set_chrono_lanes(T, NewList, SgmNum).
 
 -spec fill_starting_grid([car()], [#segment{}], pos_integer()) -> [#segment{}].
 fill_starting_grid(CarsList, SgmList, SgmNum) ->
@@ -779,6 +774,14 @@ prev_segment(0, N) ->
 	N - 1;
 prev_segment(Id, _N) ->
 	Id - 1.
+
+-spec is_chrono_sgm(#segment{}) -> boolean().
+is_chrono_sgm(#segment{type = intermediate}) ->
+	true;
+is_chrono_sgm(#segment{type = finish_line}) ->
+	true;
+is_chrono_sgm(Sgm) when is_record(Sgm, segment) ->
+	false.
 
 -spec is_pit_area_lane(#segment{}, lane()) -> boolean().
 is_pit_area_lane(#segment{type = pitlane}, -1) ->
