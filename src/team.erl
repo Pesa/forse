@@ -4,7 +4,6 @@
 
 %% External exports
 -export([start_link/1,
-		 force_pitstop/2,
 		 pitstop_operations/5,
 		 update/2]).
 
@@ -65,11 +64,6 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
--spec force_pitstop(pos_integer(), car()) -> 'ok'.
-
-force_pitstop(TeamId, CarId) ->
-	gen_server:call(?TEAM_NAME(TeamId), {force_pitstop, CarId}, infinity).
-
 -spec pitstop_operations(pos_integer(), car(), #car_status{}, non_neg_integer(),
 						 non_neg_integer()) -> #pitstop_ops{}.
 
@@ -127,15 +121,6 @@ init(Config) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({force_pitstop, CarId}, _From, State) ->
-	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
-	PSC = case CarStats of
-			  false -> 0;
-			  _ -> CarStats#car_stats.pitstop_count
-		  end,
-	car:set_next_pitstop(CarId, #next_pitstop{lap = 0, stops_count = PSC}),
-	{reply, ok, State};
-
 handle_call({chrono_update, Chrono}, _From, State) ->
 	
 	% Phase 1: update the status %
