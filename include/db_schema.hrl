@@ -65,7 +65,7 @@
 			   segment			= 0				:: sgm_id(),
 			   lane								:: lane(),
 			   max_speed		= 0.0			:: float(),
-			   next_pitstop		= -1			:: integer(),
+			   next_pitstop						:: pitstop_lap(),
 			   pitstop_count	= 0				:: non_neg_integer(),
 			   retire			= false			:: boolean(),
 			   run_preelab		= true			:: boolean()}).

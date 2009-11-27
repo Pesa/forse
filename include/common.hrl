@@ -26,6 +26,7 @@
 -type conf()			:: {Key :: atom(), Value :: term()}.
 -type conflist()		:: [conf()].
 -type lane()			:: pos_integer() | -1 | -2.
+-type pitstop_lap()		:: pos_integer() | 'now' | 'undefined'.
 -type race_event()		:: 'started' | 'paused' | 'resumed'
 						 | 'finished' | 'terminated'.
 -type rain_amount()		:: 0..10.
@@ -98,7 +99,7 @@
 %% stops_count: number of pit stops the car had done when this
 %%				message was sent, according to the team
 %% ------------------------------------------------------------
--record(next_pitstop, {lap			:: non_neg_integer(),
+-record(next_pitstop, {lap			:: pitstop_lap(),
 					   stops_count	:: non_neg_integer()}).
 
 %% ------------------------------------------------------------

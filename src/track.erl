@@ -344,7 +344,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			NewPilot = Pilot#pilot{segment = Sgm,
 								   lane = ExitLane,
 								   car_status = NewCarStatus,
-								   next_pitstop = -1,
+								   next_pitstop = undefined,
 								   pitstop_count = Pilot#pilot.pitstop_count + 1,
 								   run_preelab = true},
 			

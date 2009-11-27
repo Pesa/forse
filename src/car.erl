@@ -113,7 +113,6 @@ handle_call(move, _From, State) ->
 	State2 = if
 				 State1#pilot.run_preelab ->
 					 track:preelaborate(State1),
-					 %?DBG({"car", Id, "preelab exiting segment", State1#pilot.segment}),
 					 State1#pilot{run_preelab = false};
 				 true ->
 					 State1
@@ -122,14 +121,16 @@ handle_call(move, _From, State) ->
 	% check if we have to go to the pits
 	CurrentLap = State2#pilot.lap,
 	TotalLaps = utils:get_setting(total_laps),
-	NP = State2#pilot.next_pitstop,
+	NextPit = State2#pilot.next_pitstop,
 	PitStop = if
-				  NP == now ->
+				  NextPit == now ->
 					  true;
 				  CurrentLap == TotalLaps ->
 					  false;
+				  CurrentLap >= NextPit ->
+					  true;
 				  true ->
-					  NP /= -1 andalso NP =< CurrentLap
+					  false
 			  end,
 	
 	% simulation phase
@@ -195,14 +196,16 @@ handle_cast(#next_pitstop{lap = NewStop, stops_count = SC}, State) ->
 	Lap = State#pilot.lap,
 	OldStop = State#pilot.next_pitstop,
 	NewState = if
-				   NewStop == now ->
-					   State#pilot{next_pitstop = NewStop};
-				   State#pilot.pitstop_count /= SC;
 				   OldStop == now ->
-					   % the message is obsolete: ignore it
+					   %?DBG("ignoring next_pitstop message by user request."),
+					   State;
+				   NewStop == now ->
+					   %?DBG("forcing immediate pitstop by user request."),
+					   State#pilot{next_pitstop = now};
+				   State#pilot.pitstop_count /= SC;
 					   %?DBG("ignoring obsolete next_pitstop message."),
 					   State;
-				   OldStop == -1;
+				   OldStop == undefined;
 				   OldStop > Lap;
 				   NewStop > Lap ->
 					   %?DBG({"setting next_pitstop to", NewStop}),
