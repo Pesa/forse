@@ -1,6 +1,7 @@
 import sys, twotp
 from twotp.term import Atom
-from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import QTimer, pyqtSlot
+from PyQt4.QtGui import QApplication, QMainWindow
 from Ui_MainWindow import Ui_MainWindow
 
 
@@ -21,15 +22,16 @@ class NotificationHandler(object):
 			self._viewer.appendPlainText(self.printable(msg))
 
 
-class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
+class MainWindow(QMainWindow, Ui_MainWindow):
 
 	def __init__(self):
-		QtGui.QMainWindow.__init__(self)
+		QMainWindow.__init__(self)
 		self.setupUi(self)
 		self._cookie = twotp.readCookie()
 		self._nodeName = twotp.buildNodeName("pyfoo")
+		QTimer.singleShot(0, self.connect)
 
-	@QtCore.pyqtSlot(name="on_actionConnect_triggered")
+	@pyqtSlot(name="on_actionConnect_triggered")
 	def connect(self):
 		self.actionConnect.setEnabled(False)
 
@@ -65,7 +67,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
 
 if __name__ == "__main__":
-	app = QtGui.QApplication(sys.argv)
+	app = QApplication(sys.argv)
 	import qt4reactor
 	qt4reactor.install()
 	mainwin = MainWindow()

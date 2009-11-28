@@ -1,15 +1,15 @@
 import sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer
-from PyQt4 import QtGui
+from PyQt4.QtGui import QApplication, QMainWindow
 from TrackWidget import TrackWidget
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
-class RaceInfoWindow(QtGui.QMainWindow, Ui_RaceInfoWindow):
+class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
 
 	def __init__(self):
-		QtGui.QMainWindow.__init__(self)
+		QMainWindow.__init__(self)
 		self.setupUi(self)
 		self.setCentralWidget(TrackWidget(self))
 		self._cookie = twotp.readCookie()
@@ -48,7 +48,7 @@ class RaceInfoWindow(QtGui.QMainWindow, Ui_RaceInfoWindow):
 
 
 if __name__ == "__main__":
-	app = QtGui.QApplication(sys.argv)
+	app = QApplication(sys.argv)
 	import qt4reactor
 	qt4reactor.install()
 	mainwin = RaceInfoWindow()
