@@ -115,7 +115,7 @@ class Intermediate(Sector):
     def __init__(self, color):
         Sector.__init__(self)
         self.phase = 1
-        self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(color, 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
     def _draw(self, painter):
         painter.setPen(self.pen)
@@ -125,7 +125,7 @@ class FinishLine(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
-        self.pen = QPen(Qt.GlobalColor(color), 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(color, 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
     def draw(self, painter, phase):
         if phase == 1:
@@ -141,8 +141,12 @@ class Track(object):
 
     def __init__(self, sectors):
         object.__init__(self)
+        self._cachedPic = None
         self._nextColor = 6
         self._sectors = [ self._buildSector(s) for s in sectors ]
+        self._totalLength = 0
+        for s in self._sectors:
+            self._totalLength += len(s)
 
     def _buildSector(self, sector):
         if len(sector) == 1:
@@ -170,18 +174,46 @@ class Track(object):
     def _getNextColor(self):
         c = self._nextColor + 7
         self._nextColor = (self._nextColor + 1) % 12
-        return c
+        return Qt.GlobalColor(c)
 
-    def draw(self):
-        trackPicture = QPicture()
+    def _renderTrack(self):
+        if not self._cachedPic:
+            self._cachedPic = QPicture()
+            painter = QPainter()
+            painter.begin(self._cachedPic)
+            painter.rotate(90)
+            # perform a double-pass rendering
+            for i in [1, 2]:
+                painter.save()
+                for s in self._sectors:
+                    s.draw(painter, i)
+                    s.finalize(painter)
+                painter.restore()
+            painter.end()
+        return self._cachedPic
+
+    def draw(self, cars):
+        if not cars:
+            return self._renderTrack()
+        pic = QPicture()
         painter = QPainter()
-        painter.begin(trackPicture)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.rotate(90)
-        # perform a double-pass rendering
-        for i in [1, 2]:
-            for s in self._sectors:
-                s.draw(painter, i)
-                s.finalize(painter)
+        painter.begin(pic)
+        self._renderTrack().play(painter)
+        currentPos = 0
+        remaining = cars[:]
+        for s in self._sectors:
+            todo = remaining
+            remaining = []
+            for car in todo:
+                relativePos = car.position % self._totalLength - currentPos
+                if relativePos < len(s):
+                    painter.save()
+                    s.translate(painter, relativePos)
+                    car.draw(painter)
+                    painter.restore()
+                else:
+                    remaining.append(car)
+            s.finalize(painter)
+            currentPos += len(s)
         painter.end()
-        return trackPicture
+        return pic
