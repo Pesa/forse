@@ -200,19 +200,15 @@ class Track(object):
         painter.begin(pic)
         self._renderTrack().play(painter)
         currentPos = 0
-        remaining = cars[:]
         for s in self._sectors:
-            todo = remaining
-            remaining = []
-            for car in todo:
+            for car in cars[:]:
                 relativePos = car.position % self._totalLength - currentPos
                 if relativePos < len(s):
                     painter.save()
                     s.translate(painter, relativePos)
                     car.draw(painter)
                     painter.restore()
-                else:
-                    remaining.append(car)
+                    cars.remove(car)
             s.finalize(painter)
             currentPos += len(s)
         painter.end()
