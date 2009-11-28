@@ -117,18 +117,23 @@ handle_info({mnesia_table_event, {write, track, NewSgm, OldSgms, _}}, State)
 			   end,
 	Diff = NewSgm#segment.queued_cars -- OldQueue,
 	CP = State#state.cars_pos,
-	NewCP = case Diff of
-				[#car_position{car_id = CarId}] ->
-					case lists:keytake(CarId, 1, CP) of
-						{value, {_, Pos}, Rest} ->
-							[{CarId, Pos + NewSgm#segment.length} | Rest];
-						false ->
-							CP
-					end;
-				_ ->
-					CP
-			end,
-	{noreply, State#state{cars_pos = NewCP}};
+	Subs = State#state.subscribers,
+	{NewCP, NewSubs} = case Diff of
+						   [#car_position{car_id = CarId}] ->
+							   case lists:keytake(CarId, 1, CP) of
+								   {value, {_, Pos}, Rest} ->
+									   NewPos = Pos + NewSgm#segment.length,
+									   Msg = {car_pos, CarId, NewPos},
+									   {[{CarId, NewPos} | Rest],
+										event_dispatcher:notify_update(Msg, Subs)};
+								   false ->
+									   {CP, Subs}
+							   end;
+						   _ ->
+							   {CP, Subs}
+					   end,
+	{noreply, State#state{cars_pos = NewCP,
+						  subscribers = NewSubs}};
 handle_info(_Info, State) ->
 	{noreply, State}.
 
