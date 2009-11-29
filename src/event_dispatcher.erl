@@ -187,31 +187,41 @@ notify_update(Type, UpdateMsg, Subscribers) ->
 -spec do_notify(term(), [#subscriber{}]) -> [#subscriber{}].
 
 do_notify(Msg, Subscribers) when is_list(Subscribers) ->
-	lists:flatmap(fun(S) ->
-						  apply_callback(S, Msg)
-				  end, Subscribers).
+	lists:filter(fun(#subscriber{cb = CB}) ->
+						 apply_callback(CB, Msg)
+				 end, Subscribers).
 
 -spec do_notify(atom(), term(), [#subscriber{}]) -> [#subscriber{}].
 
-do_notify(MsgType, Msg, Subscribers) when is_atom(MsgType), is_list(Subscribers) ->
-	Fun = fun
-			 (#subscriber{opts = []} = S) ->
-				  apply_callback(S, Msg);
-			 (#subscriber{opts = Opts} = S) ->
-				  case lists:member(MsgType, Opts) of
-					  true -> apply_callback(S, Msg);
-					  false -> [S]
-				  end
-		  end,
-	lists:flatmap(Fun, Subscribers).
+do_notify(MsgType, Msg, Subscribers) when is_atom(MsgType),
+										  is_list(Subscribers) ->
+	F = fun(#subscriber{cb = CB, opts = Opts}) ->
+				Member = lists:member(MsgType, Opts),
+				if
+					Opts == [];
+					Member ->
+						apply_callback(CB, Msg);
+					true ->
+						true
+				end
+		end,
+	lists:filter(F, Subscribers).
 
--spec apply_callback(#subscriber{}, term()) -> [#subscriber{}].
+-spec apply_callback(#callback{}, term()) -> boolean().
 
-apply_callback(#subscriber{cb = CB} = S, Msg) ->
-	#callback{mod = M, func = F, args = A} = CB,
+apply_callback(#callback{mod = M, func = F, args = A} = CB, Msg) ->
 	case catch apply(M, F, A ++ [Msg]) of
-		{'EXIT', _} -> [];
-		_ -> [S]
+		{'EXIT', _} ->
+			false;
+		{badrpc, _} ->
+			false;
+		ok ->
+			true;
+		null ->
+			true;
+		Else ->
+			?WARN({CB, "returned unexpected value", Else}),
+			false
 	end.
 
 %% Casts Msg to each process in the Destinations list.
