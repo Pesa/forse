@@ -8,17 +8,18 @@ class Sector(object):
 
     def __init__(self):
         object.__init__(self)
-        self.phase = 0
+        self.length = 0
+        self.width = 10
 
     def __len__(self):
-        return 0
-
-    def _draw(self, painter):
-        raise NotImplementedError()
+        return self.length
 
     def draw(self, painter, phase):
-        if phase == self.phase:
-            self._draw(painter)
+        try:
+            drawFunc = getattr(self, "_draw_phase_" + str(phase))
+            drawFunc(painter)
+        except AttributeError:
+            pass
 
     def finalize(self, painter):
         pass
@@ -31,7 +32,6 @@ class BentSector(Sector):
 
     def __init__(self, length, radius):
         Sector.__init__(self)
-        self.phase = 1
         if length <= 0:
             raise ValueError("'length' must be a positive value.")
         self.length = length
@@ -46,10 +46,7 @@ class BentSector(Sector):
         self.finalPoint = QPointF(self.sign * self.radius * (1 - math.cos(math.radians(self.angle))),
                                   self.radius * math.sin(math.radians(self.angle)))
 
-    def __len__(self):
-        return self.length
-
-    def _draw(self, painter):
+    def _draw_phase_1(self, painter):
         painter.drawArc(self.boundingRect, self.startAngle, self.sign * self.angle * 16)
 
     def finalize(self, painter):
@@ -66,15 +63,11 @@ class StraightSector(Sector):
 
     def __init__(self, length):
         Sector.__init__(self)
-        self.phase = 1
         if length <= 0:
             raise ValueError("'length' must be a positive value.")
         self.length = length
 
-    def __len__(self):
-        return self.length
-
-    def _draw(self, painter):
+    def _draw_phase_1(self, painter):
         painter.drawLine(0, 0, 0, self.length)
 
     def finalize(self, painter):
@@ -88,9 +81,8 @@ class PitLaneEntrance(Sector):
 
     def __init__(self):
         Sector.__init__(self)
-        self.phase = 2
 
-    def _draw(self, painter):
+    def _draw_phase_2(self, painter):
         painter.save()
         painter.setPen(QPen(Qt.black, 10))
         painter.drawLine(-10, 0, 10, 0)
@@ -101,9 +93,8 @@ class PitLaneExit(Sector):
 
     def __init__(self):
         Sector.__init__(self)
-        self.phase = 2
 
-    def _draw(self, painter):
+    def _draw_phase_2(self, painter):
         painter.save()
         painter.setPen(QPen(Qt.black, 10))
         painter.drawLine(-10, 0, 10, 0)
@@ -114,10 +105,9 @@ class Intermediate(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
-        self.phase = 1
-        self.pen = QPen(color, 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(color, self.width, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
-    def _draw(self, painter):
+    def _draw_phase_1(self, painter):
         painter.setPen(self.pen)
 
 
@@ -125,16 +115,16 @@ class FinishLine(Sector):
 
     def __init__(self, color):
         Sector.__init__(self)
-        self.pen = QPen(color, 10, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
+        self.pen = QPen(color, self.width, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
 
-    def draw(self, painter, phase):
-        if phase == 1:
-            painter.setPen(self.pen)
-        elif phase == 2:
-            painter.save()
-            painter.setPen(QPen(Qt.white, 20))
-            painter.drawLine(-15, 0, 15, 0)
-            painter.restore()
+    def _draw_phase_1(self, painter):
+        painter.setPen(self.pen)
+
+    def _draw_phase_2(self, painter):
+        painter.save()
+        painter.setPen(QPen(Qt.white, 20))
+        painter.drawLine(-15, 0, 15, 0)
+        painter.restore()
 
 
 class Track(object):
@@ -183,10 +173,10 @@ class Track(object):
             painter.begin(self._cachedPic)
             painter.rotate(90)
             # perform a double-pass rendering
-            for i in [1, 2]:
+            for k in [1, 2]:
                 painter.save()
                 for s in self._sectors:
-                    s.draw(painter, i)
+                    s.draw(painter, k)
                     s.finalize(painter)
                 painter.restore()
             painter.end()
