@@ -1,3 +1,4 @@
+from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QWidget, QPainter
 from Car import Car
 from Track import Track
@@ -9,6 +10,8 @@ class TrackWidget(QWidget):
         QWidget.__init__(self, parent)
         self._cars = {}
         self._track = None
+        self._timer = QTimer()
+        self._timer.timeout.connect(self.update)
 
     def paintEvent(self, _event):
         if not self._track:
@@ -27,15 +30,21 @@ class TrackWidget(QWidget):
     def remote_handle(self, type, msg):
         if type.text == "init":
             key, value = msg
-            if key.text == "sectors":
-                self._track = Track(value)
-                self.update()
-            elif key.text == "cars_pos":
+            if key.text == "cars_pos":
                 for id, pos in value:
                     self._cars[id] = Car(id, pos)
+                self.update()
+            elif key.text == "race_state":
+                if value.text == "started" or value.text == "resumed":
+                    print "starting timer"
+                    self._timer.start(50)
+                else:
+                    print "stopping timer"
+                    self._timer.stop()
+            elif key.text == "sectors":
+                self._track = Track(value)
                 self.update()
         elif type.text == "update":
             a, b, c = msg
             if a.text == "car_pos":
                 self._cars[b].position = c
-                self.update()

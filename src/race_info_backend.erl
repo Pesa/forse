@@ -17,6 +17,7 @@
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
 				cars_pos	= []	:: [{car(), non_neg_integer()}],
+				race_state			:: race_event(),
 				sectors		= []	:: [sector()]}).
 
 
@@ -69,7 +70,8 @@ handle_call(_Request, _From, State) ->
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	S1 = event_dispatcher:notify_init({sectors, State#state.sectors}, [S]),
 	S2 = event_dispatcher:notify_init({cars_pos, State#state.cars_pos}, S1),
-	{noreply, State#state{subscribers = S2 ++ State#state.subscribers}};
+	S3 = event_dispatcher:notify_init({race_state, State#state.race_state}, S2),
+	{noreply, State#state{subscribers = S3 ++ State#state.subscribers}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO elaborare i dati ricevuti
@@ -90,9 +92,10 @@ handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	%TODO elaborare i dati ricevuti
 	{noreply, State};
 
-handle_cast(Msg, State) when is_record(Msg, race_notif) ->
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
+handle_cast(#race_notif{event = Ev}, State) ->
+	NewSubs = event_dispatcher:notify_init({race_state, Ev}, State#state.subscribers),
+	{noreply, State#state{subscribers = NewSubs,
+						  race_state = Ev}};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	%TODO elaborare i dati ricevuti
