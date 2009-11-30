@@ -13,7 +13,7 @@
 
 %% Coefficient of friction of new slick tyres when rain == 0.
 %% Source: http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
--define(FRICTION_BASE, 0.8).
+-define(FRICTION_BASE, 2.4).
 
 %% Base fuel consumption per segment (in liters).
 -define(FUEL_PER_SGM, 0.0042).
