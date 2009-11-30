@@ -36,10 +36,8 @@ class TrackWidget(QWidget):
                 self.update()
             elif key.text == "race_state":
                 if value.text == "started" or value.text == "resumed":
-                    print "starting timer"
                     self._timer.start(50)
                 else:
-                    print "stopping timer"
                     self._timer.stop()
             elif key.text == "sectors":
                 self._track = Track(value)
