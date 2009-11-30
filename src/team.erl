@@ -93,21 +93,28 @@ update(TeamId, {update, Chrono}) when is_record(Chrono, chrono_notif) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init(Config) ->
-	CarType = lists:foldl(
-				fun({id, Id}, CT) ->
-						CB = #callback{mod = ?MODULE, func = update, args = [Id]},
-						event_dispatcher:subscribe(team, CB),
-						CT#car_type{id = Id};
-				   ({team_name, Name}, CT) ->
-						CT#car_type{team_name = Name};
-				   ({brake, Brake}, CT) ->
-						CT#car_type{brake = -1 * Brake};
-				   ({power, Power}, CT) ->
-						CT#car_type{power = Power};
-				   ({weight, Weight}, CT) ->
-						CT#car_type{weight = Weight};
-				   (_, CT) -> CT
-				end, #car_type{}, Config),
+	Parse = fun
+			   ({id, Id}, CT)
+				 when is_integer(Id), Id > 0 ->
+					CB = #callback{mod = ?MODULE, func = update, args = [Id]},
+					event_dispatcher:subscribe(team, CB),
+					CT#car_type{id = Id};
+			   ({team_name, Name}, CT)
+				 when is_list(Name) ->
+					CT#car_type{team_name = Name};
+			   ({brake, Brake}, CT)
+				 when is_number(Brake), Brake > 0 ->
+					CT#car_type{brake = -1 * Brake};
+			   ({power, Power}, CT)
+				 when is_number(Power), Power > 0 ->
+					CT#car_type{power = Power};
+			   ({weight, Weight}, CT)
+				 when is_number(Weight), Weight > 0 ->
+					CT#car_type{weight = Weight};
+			   (_, _CT) ->
+					throw("team configuration error")
+			end,
+	CarType = lists:foldl(Parse, #car_type{}, Config),
 	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(CarType) end),
 	{ok, #state{}}.
 

@@ -72,25 +72,34 @@ set_next_pitstop(CarId, PitStop) when is_record(PitStop, next_pitstop) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init(Config) ->
-	State = lists:foldl(
-			  fun({id, Id}, P) ->
-					  P#pilot{id = Id};
-				 ({name, Name}, P) ->
-					  P#pilot{name = Name};
-				 ({skill, Skill}, P) ->
-					  P#pilot{skill = Skill};
-				 ({weight, Weight}, P) ->
-					  P#pilot{weight = Weight};
-				 ({tyres, Tyres}, P) ->
-					  CS = P#pilot.car_status,
-					  P#pilot{car_status = CS#car_status{tyres_type = Tyres}};
-				 ({fuel, Fuel}, P) ->
-					  CS = P#pilot.car_status,
-					  P#pilot{car_status = CS#car_status{fuel = Fuel}};
-				 ({team, Team}, P) ->
-					  P#pilot{team = Team};
-				 (_, P) -> P
-			  end, #pilot{}, Config),
+	Parse = fun
+			   ({id, Id}, P)
+				 when is_integer(Id), Id > 0 ->
+					P#pilot{id = Id};
+			   ({name, Name}, P)
+				 when is_list(Name) ->
+					P#pilot{name = Name};
+			   ({skill, Skill}, P)
+				 when is_integer(Skill), Skill >= 1, Skill =< 10 ->
+					P#pilot{skill = Skill};
+			   ({weight, Weight}, P)
+				 when is_number(Weight), Weight > 0 ->
+					P#pilot{weight = Weight};
+			   ({team, Team}, P)
+				 when is_integer(Team), Team > 0 ->
+					P#pilot{team = Team};
+			   ({fuel, Fuel}, P)
+				 when is_number(Fuel), Fuel > 0 ->
+					CS = P#pilot.car_status,
+					P#pilot{car_status = CS#car_status{fuel = Fuel}};
+			   ({tyres, Tyres}, P)
+				 when Tyres == slick; Tyres == intermediate; Tyres == wet ->
+					CS = P#pilot.car_status,
+					P#pilot{car_status = CS#car_status{tyres_type = Tyres}};
+			   (_, _P) ->
+					throw("car configuration error")
+			end,
+	State = lists:foldl(Parse, #pilot{}, Config),
 	% FIXME: remove the following line when switching to ft_gen_server
 	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(State) end),
 	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
