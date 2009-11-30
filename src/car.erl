@@ -81,6 +81,12 @@ init(Config) ->
 					  P#pilot{skill = Skill};
 				 ({weight, Weight}, P) ->
 					  P#pilot{weight = Weight};
+				 ({tyres_type, Tyres}, P) ->
+					  CS = P#pilot.car_status,
+					  P#pilot{car_status = CS#car_status{tyres_type = Tyres}};
+				 ({fuel, Fuel}, P) ->
+					  CS = P#pilot.car_status,
+					  P#pilot{car_status = CS#car_status{fuel = Fuel}};
 				 ({team, Team}, P) ->
 					  P#pilot{team = Team};
 				 (_, P) -> P

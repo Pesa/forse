@@ -33,18 +33,20 @@
 \chapter{Requisiti}
 \begin{enumerate}
     \item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
-    \item Il sistema si evolve in modo deterministico.
+    \item La simulazione evolve in modo deterministico.
     \item Il circuito è suddiviso in segmenti ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
     \begin{itemize}
         \item[--] tipo di segmento (rettilineo, curvilineo, entrata e uscita dai box, intermedio cronometrico, traguardo);
         \item[--] lunghezza e larghezza del segmento;
         \item[--] se il segmento è una curva, direzione (destra o sinistra) e raggio di curvatura;
         \item[--] pendenza del suolo;
-        \item[--] tempo atmosferico e temperatura iniziali;
+        \item[--] tempo atmosferico iniziale;
         \item[--] eventuali variazioni del tempo atmosferico e della temperatura nel corso della gara.
     \end{itemize}
     \item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
     \begin{itemize}
+	\item[--] numero identificativo;
+	\item[--] nome;
         \item[--] una scuderia di appartenenza;
         \item[--] esperienza/bravura;
         \item[--] peso;
@@ -52,18 +54,17 @@
     \end{itemize}
     \item Parametri di configurazione delle auto:
     \begin{itemize}
-        \item[--] quantità di carburante iniziale;
         \item[--] capienza del serbatoio;
+	\item[--] quantità di carburante presente nel serbatoio a inizio gara;
         \item[--] tipo di pneumatici montato ad inizio gara (da asciutto, intermedio, da bagnato);
         \item[--] potenza del motore;
-        \item[--] efficienza dei freni;
+        \item[--] potenza dei freni;
         \item[--] peso a secco.
     \end{itemize}
     \item Parametri di configurazione di una competizione:
     \begin{itemize}
-        \item[--] durata delle qualifiche;
         \item[--] numero totale di giri da effettuare nella gara;
-        \item[--] durata massima della gara.
+	\item[--] ordine di partenza dei piloti nella griglia di partenza;
     \end{itemize}
     \item Sistema di controllo (\textit{logging}):
     \begin{itemize}
