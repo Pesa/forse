@@ -68,10 +68,11 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	S1 = event_dispatcher:notify_init({sectors, State#state.sectors}, [S]),
-	S2 = event_dispatcher:notify_init({cars_pos, State#state.cars_pos}, S1),
-	S3 = event_dispatcher:notify_init({race_state, State#state.race_state}, S2),
-	{noreply, State#state{subscribers = S3 ++ State#state.subscribers}};
+	List = [{sectors, State#state.sectors},
+			{cars_pos, State#state.cars_pos},
+			{race_state, State#state.race_state}],
+	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
+	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	%TODO elaborare i dati ricevuti

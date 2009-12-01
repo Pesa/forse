@@ -65,8 +65,9 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	NewS = event_dispatcher:notify_init({rain_sum, State#state.rain_sum}, [S]),
-	{noreply, State#state{subscribers = NewS ++ State#state.subscribers}};
+	List = [{rain_sum, State#state.rain_sum}],
+	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
+	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	NewSubs = event_dispatcher:notify_update(Msg, State#state.subscribers),

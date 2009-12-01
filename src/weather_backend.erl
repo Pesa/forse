@@ -64,7 +64,8 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	{noreply, State#state{subscribers = [S | State#state.subscribers]}};
+	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, []),
+	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	%TODO elaborare i dati ricevuti

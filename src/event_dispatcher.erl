@@ -8,7 +8,8 @@
 		 notify/1]).
 
 %% Backends exports
--export([notify_init/2, notify_init/3,
+-export([add_subscriber/3,
+		 notify_init/2, notify_init/3,
 		 notify_update/2, notify_update/3]).
 
 %% gen_server callbacks
@@ -158,6 +159,25 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %% Functions exported to backends
 %% --------------------------------------------------------------------
+
+-spec add_subscriber(#subscriber{}, [#subscriber{}], conflist()) -> [#subscriber{}].
+
+add_subscriber(S, Subscribers, SyncData)
+  when is_record(S, subscriber), is_list(Subscribers), is_list(SyncData) ->
+	Sync = fun(_Elem, []) ->
+				   [];
+			  (Elem, Acc) ->
+				   notify_init(Elem, Acc)
+		   end,
+	case lists:foldl(Sync, [S], SyncData) of
+		[] ->
+			Subscribers;
+		[NewS] ->
+			case lists:member(NewS, Subscribers) of
+				true -> Subscribers;
+				false -> [NewS | Subscribers]
+			end
+	end.
 
 -spec notify_init(term(), [#subscriber{}]) -> [#subscriber{}].
 
