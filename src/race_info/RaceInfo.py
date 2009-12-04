@@ -2,7 +2,7 @@ import sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QApplication, QMainWindow
-from TrackWidget import TrackWidget
+from TrackView import TrackView
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
@@ -11,7 +11,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
 	def __init__(self):
 		QMainWindow.__init__(self)
 		self.setupUi(self)
-		self.setCentralWidget(TrackWidget(self))
+		self.setCentralWidget(TrackView(self))
 		self._cookie = twotp.readCookie()
 		self._nodeName = twotp.buildNodeName("pyinfo")
 		QTimer.singleShot(0, self.connect)
