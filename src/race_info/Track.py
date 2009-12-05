@@ -6,7 +6,7 @@ from PyQt4.QtGui import QPainterPath, QPainterPathStroker, QPen
 
 
 trackWidth = 16
-pitWidth = 8
+pitWidth = 12
 pitDistance = -3 * trackWidth
 pitPen = QPen(Qt.darkGray, pitWidth, Qt.SolidLine, Qt.FlatCap)
 
@@ -47,8 +47,15 @@ class Sector(QGraphicsItem):
     def finalState(self):
         return self.initPos, 0.0
 
-    def paint(self, painter, option, widget):
-        pass
+    def paint(self, painter, _option, _widget):
+        if self.pitLane:
+            painter.setPen(pitPen)
+            try:
+                painter.drawPath(self.pitPath)
+            except AttributeError:
+                pass
+        painter.setPen(self.pen)
+        painter.drawPath(self.path)
 
     def shape(self):
         try:
@@ -92,13 +99,6 @@ class BentSector(Sector):
     def finalState(self):
         return self.mapToParent(self.path.currentPosition()), -self.angle
 
-    def paint(self, painter, _option, _widget):
-        if self.pitLane:
-            painter.setPen(pitPen)
-            painter.drawPath(self.pitPath)
-        painter.setPen(self.pen)
-        painter.drawPath(self.path)
-
 #    def translate(self, painter, position):
 #        relativeAngle = math.radians(180.0 * position / (math.pi * self.radius))
 #        painter.translate(self.sign * self.radius * (1 - math.cos(relativeAngle)),
@@ -127,13 +127,6 @@ class StraightSector(Sector):
     def finalState(self):
         return self.mapToParent(self.path.currentPosition()), 0.0
 
-    def paint(self, painter, _option, _widget):
-        if self.pitLane:
-            painter.setPen(pitPen)
-            painter.drawPath(self.pitPath)
-        painter.setPen(self.pen)
-        painter.drawPath(self.path)
-
 #    def translate(self, painter, position):
 #        painter.translate(0, position)
 
@@ -148,10 +141,6 @@ class PitLaneAccess(Sector):
         self.pen = QPen(pitPen)
         self.pen.setCapStyle(Qt.SquareCap)
         self.stroke = strokeWithPen(self.path, self.pen)
-
-    def paint(self, painter, _option, _widget):
-        painter.setPen(self.pen)
-        painter.drawPath(self.path)
 
 
 class PitLaneEntrance(PitLaneAccess):
@@ -171,20 +160,46 @@ class Intermediate(Sector):
     def __init__(self, parent, pos, angle, color):
         Sector.__init__(self, parent, pos, angle, color)
 
+    def paint(self, _painter, _option, _widget):
+        pass
 
-class FinishLine(Intermediate):
+
+class FinishLine(Sector):
 
     def __init__(self, parent, pos, angle, color):
-        Intermediate.__init__(self, parent, pos, angle, color)
+        Sector.__init__(self, parent, pos, angle, color)
         self.setZValue(3)
-        self.path = QPainterPath(QPointF(-20, 0))
-        self.path.lineTo(20, 0)
-        self.pen = QPen(Qt.white, 20)
-        self.stroke = strokeWithPen(self.path, self.pen)
+        self.blackPen = QPen(Qt.black, trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
+        self.whitePen = QPen(Qt.white, trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
+        self._createPaths(trackWidth * 3)
+
+    def _createPaths(self, width):
+        step = trackWidth / 2
+        halfstep = step / 2
+        start = step * 3
+        n = width / step
+        self.blackPath = QPainterPath()
+        for i in range(0, n):
+            sign = 1 if i % 2 == 1 else - 1
+            self.blackPath.moveTo(start - step * i, sign * halfstep)
+            self.blackPath.lineTo(start - step * (i + 1), sign * halfstep)
+        self.whitePath = QPainterPath()
+        for i in range(0, n):
+            sign = 1 if i % 2 == 0 else - 1
+            self.whitePath.moveTo(start - step * i, sign * halfstep)
+            self.whitePath.lineTo(start - step * (i + 1), sign * halfstep)
+        self.stroke = strokeWithPen(self.blackPath, self.blackPen)
+        self.stroke += strokeWithPen(self.whitePath, self.whitePen)
+
+    def enablePitLane(self):
+        Sector.enablePitLane(self)
+        self._createPaths(trackWidth * 3 + abs(pitDistance))
 
     def paint(self, painter, _option, _widget):
-        painter.setPen(self.pen)
-        painter.drawPath(self.path)
+        painter.setPen(self.blackPen)
+        painter.drawPath(self.blackPath)
+        painter.setPen(self.whitePen)
+        painter.drawPath(self.whitePath)
 
 
 class Track(QGraphicsItemGroup):
