@@ -9,9 +9,11 @@ class TrackView(QGraphicsView):
 
     def __init__(self, parent=None):
         self._scene = QGraphicsScene()
+        self._scene.setItemIndexMethod(QGraphicsScene.NoIndex)
         QGraphicsView.__init__(self, self._scene, parent)
         self.setCacheMode(QGraphicsView.CacheBackground)
         self.setRenderHint(QPainter.Antialiasing)
+        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
         self.setBackgroundBrush(Qt.lightGray)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -36,7 +38,7 @@ class TrackView(QGraphicsView):
                     self._scene.addItem(car)
             elif key.text == "race_state":
                 if value.text == "started" or value.text == "resumed":
-                    self._timer.start(40)
+                    self._timer.start(30)
                 else:
                     self._timer.stop()
             elif key.text == "sectors":
