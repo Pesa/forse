@@ -24,7 +24,7 @@ class Sector(QGraphicsItem):
 
     def __init__(self, parent, pos, angle, color):
         QGraphicsItem.__init__(self, parent)
-        #self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
+        self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         self.initPos = pos
         self.length = 0
         self.pitLane = False
@@ -40,6 +40,13 @@ class Sector(QGraphicsItem):
             return self.stroke.boundingRect()
         except AttributeError:
             return QRectF()
+
+    def calculateCarPos(self, pos, _pit):
+        try:
+            percent = float(pos) / self.length
+            return self.mapToScene(self.path.pointAtPercent(percent))
+        except AttributeError:
+            return self.mapToScene(0, 0)
 
     def enablePitLane(self):
         self.pitLane = True
@@ -62,9 +69,6 @@ class Sector(QGraphicsItem):
             return self.stroke
         except AttributeError:
             return QPainterPath()
-
-#    def translate(self, painter, position):
-#        pass
 
 
 class BentSector(Sector):
@@ -99,11 +103,6 @@ class BentSector(Sector):
     def finalState(self):
         return self.mapToParent(self.path.currentPosition()), -self.angle
 
-#    def translate(self, painter, position):
-#        relativeAngle = math.radians(180.0 * position / (math.pi * self.radius))
-#        painter.translate(self.sign * self.radius * (1 - math.cos(relativeAngle)),
-#                          self.radius * math.sin(relativeAngle))
-
 
 class StraightSector(Sector):
 
@@ -126,9 +125,6 @@ class StraightSector(Sector):
 
     def finalState(self):
         return self.mapToParent(self.path.currentPosition()), 0.0
-
-#    def translate(self, painter, position):
-#        painter.translate(0, position)
 
 
 class PitLaneAccess(Sector):
@@ -236,7 +232,7 @@ class Track(QGraphicsItemGroup):
 
     def _sectorsToItems(self, sectors, pos, angle, color, items):
         if not sectors:
-            self._processPitLane(items, False)
+            self._processPitLane(items[:], False)
             return items
         sector = sectors.pop(0)
         item = None
@@ -269,24 +265,11 @@ class Track(QGraphicsItemGroup):
         return self._sectorsToItems(sectors, newpos, (angle + newangle) % 360,
                                     color, items)
 
-#    def draw(self, cars):
-#        if not cars:
-#            return self._renderTrack()
-#        pic = QPicture()
-#        painter = QPainter()
-#        painter.begin(pic)
-#        self._renderTrack().play(painter)
-#        currentPos = 0
-#        for s in self._sectors:
-#            for car in cars[:]:
-#                relativePos = car.position % self._totalLength - currentPos
-#                if relativePos < len(s):
-#                    painter.save()
-#                    s.translate(painter, relativePos)
-#                    car.draw(painter)
-#                    painter.restore()
-#                    cars.remove(car)
-#            s.finalize(painter)
-#            currentPos += len(s)
-#        painter.end()
-#        return pic
+    def calculateCarPos(self, pos, pit):
+        normalized = pos % self._totalLength
+        current = 0
+        for s in self._sectors:
+            relative = normalized - current
+            if relative < len(s):
+                return s.calculateCarPos(relative, pit)
+            current += len(s)
