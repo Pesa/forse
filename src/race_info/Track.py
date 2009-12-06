@@ -151,15 +151,6 @@ class PitLaneExit(PitLaneAccess):
         PitLaneAccess.__init__(self, parent, pos, angle, color)
 
 
-class Intermediate(Sector):
-
-    def __init__(self, parent, pos, angle, color):
-        Sector.__init__(self, parent, pos, angle, color)
-
-    def paint(self, _painter, _option, _widget):
-        pass
-
-
 class FinishLine(Sector):
 
     def __init__(self, parent, pos, angle, color):
@@ -242,7 +233,6 @@ class Track(QGraphicsItemGroup):
                 item = FinishLine(self, pos, angle, color)
                 color = self._getNextColor()
             elif type.text == "intermediate":
-                item = Intermediate(self, pos, angle, color)
                 color = self._getNextColor()
             elif type.text == "pitlane_entrance":
                 item = PitLaneEntrance(self, pos, angle, color)
@@ -258,12 +248,11 @@ class Track(QGraphicsItemGroup):
                 item = BentSector(self, pos, angle, color, length, curv)
             elif type.text == "right":
                 item = BentSector(self, pos, angle, color, length, -curv)
-        if item is None:
-            raise ValueError("invalid sector " + str(sector))
-        newpos, newangle = item.finalState()
-        items.append(item)
-        return self._sectorsToItems(sectors, newpos, (angle + newangle) % 360,
-                                    color, items)
+        if item is not None:
+            pos, newangle = item.finalState()
+            angle = (angle + newangle) % 360
+            items.append(item)
+        return self._sectorsToItems(sectors, pos, angle, color, items)
 
     def calculateCarPos(self, pos, pit):
         normalized = pos % self._totalLength
