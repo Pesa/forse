@@ -162,14 +162,14 @@ code_change(_OldVsn, State, _Extra) ->
 
 -spec add_subscriber(#subscriber{}, [#subscriber{}], conflist()) -> [#subscriber{}].
 
-add_subscriber(S, Subscribers, SyncData)
-  when is_record(S, subscriber), is_list(Subscribers), is_list(SyncData) ->
+add_subscriber(S, Subscribers, DataToSync)
+  when is_record(S, subscriber), is_list(Subscribers), is_list(DataToSync) ->
 	Sync = fun(_Elem, []) ->
 				   [];
 			  (Elem, Acc) ->
 				   notify_init(Elem, Acc)
 		   end,
-	case lists:foldl(Sync, [S], SyncData) of
+	case lists:foldl(Sync, [S], DataToSync) of
 		[] ->
 			Subscribers;
 		[NewS] ->

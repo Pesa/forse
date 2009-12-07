@@ -1,8 +1,20 @@
+from twotp import Atom
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QGraphicsScene, QGraphicsView, QPainter
 from Car import Car
 from Track import Track
+
+
+def atomToBool(atom):
+    if not isinstance(atom, Atom):
+        raise TypeError(str(atom) + " is not an atom.")
+    if atom.text == "true":
+        return True
+    elif atom.text == "false":
+        return False
+    else:
+        raise ValueError(str(atom) + " is not a valid boolean value.")
 
 
 class TrackView(QGraphicsView):
@@ -32,8 +44,8 @@ class TrackView(QGraphicsView):
         if type.text == "init":
             key, value = msg
             if key.text == "cars_pos":
-                for id, pos in value:
-                    car = Car(self._track, id, pos)
+                for id, pos, pit in value:
+                    car = Car(self._track, id, pos, atomToBool(pit))
                     self._cars[id] = car
                     self._scene.addItem(car)
             elif key.text == "race_state":
@@ -46,6 +58,7 @@ class TrackView(QGraphicsView):
                 self._scene.addItem(self._track)
                 self._refitScene()
         elif type.text == "update":
-            key, id, pos = msg
+            key, value = msg
             if key.text == "car_pos":
-                self._cars[id].position = pos
+                id, pos, pit = value
+                self._cars[id].updatePos(pos, atomToBool(pit))

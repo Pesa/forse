@@ -16,7 +16,7 @@
 -include("db_schema.hrl").
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
-				cars_pos	= []	:: [{car(), non_neg_integer()}],
+				cars_pos	= []	:: [{Id :: car(), Pos :: non_neg_integer(), Pit :: boolean()}],
 				race_state			:: race_event(),
 				sectors		= []	:: [sector()]}).
 
@@ -81,7 +81,10 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
 	Subs1 = event_dispatcher:notify_init({sectors, Sectors}, State#state.subscribers),
-	{starting_pos, CarsPos} = lists:keyfind(starting_pos, 1, Config),
+	{starting_pos, StartPos} = lists:keyfind(starting_pos, 1, Config),
+	CarsPos = lists:map(fun({CarId, Pos}) ->
+								{CarId, Pos, false}
+						end, StartPos),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
 						  cars_pos = CarsPos,
@@ -120,23 +123,24 @@ handle_info({mnesia_table_event, {write, track, NewSgm, OldSgms, _}}, State)
 				   false -> []
 			   end,
 	Diff = NewSgm#segment.queued_cars -- OldQueue,
-	CP = State#state.cars_pos,
+	CPs = State#state.cars_pos,
 	Subs = State#state.subscribers,
-	{NewCP, NewSubs} = case Diff of
-						   [#car_position{car_id = CarId}] ->
-							   case lists:keytake(CarId, 1, CP) of
-								   {value, {_, Pos}, Rest} ->
-									   NewPos = Pos + NewSgm#segment.length,
-									   Msg = {car_pos, CarId, NewPos},
-									   {[{CarId, NewPos} | Rest],
-										event_dispatcher:notify_update(Msg, Subs)};
-								   false ->
-									   {CP, Subs}
-							   end;
-						   _ ->
-							   {CP, Subs}
-					   end,
-	{noreply, State#state{cars_pos = NewCP,
+	{NewCPs, NewSubs} = case Diff of
+							[#car_position{car_id = CarId,
+										   exit_lane = Lane}] ->
+								case lists:keytake(CarId, 1, CPs) of
+									{value, {_, Pos, _}, Rest} ->
+										NewPos = Pos + NewSgm#segment.length,
+										NewCP = {CarId, NewPos, Lane < 0},
+										{[NewCP | Rest],
+										 event_dispatcher:notify_update({car_pos, NewCP}, Subs)};
+									false ->
+										{CPs, Subs}
+								end;
+							_ ->
+								{CPs, Subs}
+						end,
+	{noreply, State#state{cars_pos = NewCPs,
 						  subscribers = NewSubs}};
 handle_info(_Info, State) ->
 	{noreply, State}.
