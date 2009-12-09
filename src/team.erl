@@ -163,7 +163,7 @@ handle_call({chrono_update, Chrono}, _From, State) ->
 	DelCS = lists:keydelete(Chrono#chrono_notif.car, #car_stats.car_id, State#state.cars_stats),
 	% dynamically adapt fuel_limit
 	NewState = case NCStats#car_stats.avg_consumption of
-				   {undef, undef} ->
+				   {_, undef} ->
 					   State#state{cars_stats = [NCStats | DelCS]};
 				   {_, NewFuelCons} ->
 					   State#state{cars_stats = [NCStats | DelCS],
