@@ -43,11 +43,10 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 								Type == pitlane);
 		% Deny lane changes in chrono segments
 		Time andalso ExitLane /= EnterLane;
-		%abs(ExitLane - EnterLane) > 1; TODO
-		% Deny access to pit area when not in need of a pitstop
+		% Deny access to the pit lane when not in need of a pitstop
 		Type == pre_pitlane andalso ExitLane == -1 andalso not Pit;
 		% Separate pit area from main track
-		(Type == pitlane orelse Type == pitstop)
+		(Type == pitlane orelse Type == post_pitlane orelse Type == pitstop)
 			andalso EnterLane > 0 andalso ExitLane < 0;
 		% pre/post pitlane rules
 		(Type == pre_pitlane orelse Type == post_pitlane)

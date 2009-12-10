@@ -8,3 +8,4 @@
 - il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track e bootstrap_server
 - tuning delle macro costanti in config.hrl
+- migliorare la Reason restituita quando access:check_move fallisce
