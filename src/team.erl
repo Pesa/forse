@@ -97,7 +97,7 @@ init(Config) ->
 			   ({id, Id}, CT)
 				 when is_integer(Id), Id > 0 ->
 					CB = #callback{mod = ?MODULE, func = update, args = [Id]},
-					event_dispatcher:subscribe(team, CB),
+					ok = event_dispatcher:subscribe(team, CB),
 					CT#car_type{id = Id};
 			   ({team_name, Name}, CT)
 				 when is_list(Name) ->
