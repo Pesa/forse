@@ -31,13 +31,14 @@
 
 -define(default_timeout, 5000).
 
--type emgr_name() :: {'local', atom()} | {'global', term()}.
-
--type start_ret() :: {'ok', pid()} | 'ignore' | {'error', term()}.
-
--type opts_flag() :: 'trace' | 'log' | 'statistics' | 'debug' | {'logfile', string()}.
-
--type options()   :: [{'debug', [opts_flag()]}].
+-type emgr_name()	:: {'local', atom()} | {'global', term()}.
+-type start_ret()	:: {'ok', pid()} | 'ignore' | {'error', term()}.
+-type debug_flag()	:: 'trace' | 'log' | 'statistics' | 'debug'
+					 | {'logfile', string()}.
+-type option()		:: {'timeout', timeout()}
+					 | {'debug', [debug_flag()]}
+					 | {'spawn_opt', [proc_lib:spawn_option()]}.
+-type options()		:: [option()].
 
 
 %%-----------------------------------------------------------------
@@ -47,7 +48,7 @@
 %%    GenMod = atom(), callback module implementing the 'real' fsm
 %%    Name = {local, atom()} | {global, term()}
 %%    Args = term(), init arguments (to Mod:init/1)
-%%    Options = [{debug, [Flag]}]
+%%    Options = [{timeout, Timeout} | {debug, [Flag]} | {spawn_opt, OptionList}]
 %%      Flag = trace | log | {logfile, File} | statistics | debug
 %%          (debug == log && statistics)
 %% Returns: {ok, Pid} | ignore |{error, Reason} |
