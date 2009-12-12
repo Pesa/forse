@@ -22,10 +22,9 @@
 
 -include("common.hrl").
 
--type timer_ref() :: any().
 -type workqueue() :: [{time(), #callback{}}].
 
--record(timing, {timer			:: timer_ref(),
+-record(timing, {timer			:: reference(),
 				 start	= 0.0	:: time(),
 				 expiry			:: time()}).
 -record(state, {running			= false		:: boolean(),
@@ -270,7 +269,7 @@ recalculate_timer(#timing{timer = Timer, expiry = Expiry} = Timing, [{NextTime, 
 	end.
 
 % Starts a timer which fires after SleepAmount seconds.
--spec start_timer(time()) -> timer_ref().
+-spec start_timer(time()) -> reference().
 
 start_timer(SleepAmount) ->
 	erlang:start_timer(erlang:max(0, round(SleepAmount * 1000)), self(), wakeup).
