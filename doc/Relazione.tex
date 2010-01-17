@@ -29,19 +29,35 @@
 \tableofcontents
 
 \clearpage
+\chapter{Introduzione}
+La presente relazione, assieme al software \textsl{FORSE}, è stata realizzata come prova d'esame per il corso "Sistemi Concorrenti e Distribuiti".
+
+I requisiti considerati in fase di progettazione sono stati ricavati da quelli proposti dal docente (\url{http://www.math.unipd.it/~tullio/SCD/2008/Progetto.html})
+secondo le clausole di partecipazione di livello 3.
+
+\textsl{Formula One Race Simulation Engine} è realizzato utilizzando i linguaggi \textsl{Erlang} e \textsl{Python}. Per la distribuzione dell'applicazione abbiamo
+usato il protocollo di distribuzione Erlang, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{Twotp} per il linguaggio
+\textsl{Python}.
+Per la creazione di interfacce grafiche è stata utilizzata la libreria \textsl{Qt4}.
+
+Nelle fasi di progettazione e realizzazione del prototipo è stata posta maggiore attenzione riguardo le tematiche inerenti distribuzione e concorrenza, nozioni
+centrali del corso, a scapito della parte riguardante la correttezza della simulazione da un punto di vista fisico. Abbiamo comunque cercato di includere
+gli elementi essenziali della dinamica di una gara automobilistica anche se con notevoli semplificazioni.
+
+INSERIRE OVERVIEW DELLA RELAZIONE
 
 \chapter{Requisiti}
 \begin{enumerate}
     \item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
     \item La simulazione evolve in modo deterministico.
-    \item Il circuito è suddiviso in segmenti ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
+    \item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
     \begin{itemize}
-        \item[--] tipo di segmento (rettilineo, curvilineo, entrata e uscita dai box, intermedio cronometrico, traguardo);
+        \item[--] tipo di settore (rettilineo, curvilineo, entrata e uscita dai box, intermedio cronometrico, traguardo);
         \item[--] lunghezza e larghezza del segmento;
-        \item[--] se il segmento è una curva, direzione (destra o sinistra) e raggio di curvatura;
+        \item[--] se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
         \item[--] pendenza del suolo;
         \item[--] tempo atmosferico iniziale;
-        \item[--] eventuali variazioni del tempo atmosferico e della temperatura nel corso della gara.
+        \item[--] eventuali variazioni del tempo atmosferico nel corso della gara.
     \end{itemize}
     \item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
     \begin{itemize}
@@ -74,33 +90,63 @@
     \end{itemize}
 \end{enumerate}
 
-\chapter{\textit{Brainstorming}}
-Finora abbiamo preso in considerazione tre potenziali soluzioni.
+%\chapter{\textit{Brainstorming}}
+%Finora abbiamo preso in considerazione tre potenziali soluzioni.
 
-\section*{Soluzione 1}
-Vetture $\Rightarrow$ entità attive \\
-Segmenti del tracciato $\Rightarrow$ entità passive \\
+%\section*{Soluzione 1}
+%Vetture $\Rightarrow$ entità attive \\
+%Segmenti del tracciato $\Rightarrow$ entità passive \\
 
-Per spostarsi da un segmento $S_1$ ad un altro segmento $S_2$ adiacente e successivo a $S_1$, una vettura deve assicurarsi che almeno una corsia di $S_2$ raggiungibile da $S_1$ sia libera, quindi dovrà già essere entrata nella regione protetta di una corsia di $S_2$. Il passaggio sarà completo quando la vettura esce dalla regione protetta di $S_1$ (e questo è un problema non banale). L'entità ``segmento'' espone solo un canale tipato. Le vetture dovranno fornire il numero della corsia da cui provengono e la logica che realizza i sorpassi è implementata nei segmenti effettuando una \texttt{requeue} presso la corsia appropriata.
+%Per spostarsi da un segmento $S_1$ ad un altro segmento $S_2$ adiacente e successivo a $S_1$, una vettura deve assicurarsi che almeno una corsia di $S_2$ raggiungibile da $S_1$ sia libera, quindi dovrà già essere entrata nella regione protetta di una corsia di $S_2$. Il passaggio sarà completo quando la vettura esce dalla regione protetta di $S_1$ (e questo è un problema non banale). L'entità ``segmento'' espone solo un canale tipato. Le vetture dovranno fornire il numero della corsia da cui provengono e la logica che realizza i sorpassi è implementata nei segmenti effettuando una \texttt{requeue} presso la corsia appropriata.
 
-\section*{Soluzione 2}
-Segmenti del tracciato $\Rightarrow$ entità attive \\
-Vetture $\Rightarrow$ oggetti che vengono scambiati come parametri \\
+%\section*{Soluzione 2}
+%Segmenti del tracciato $\Rightarrow$ entità attive \\
+%Vetture $\Rightarrow$ oggetti che vengono scambiati come parametri \\
 
-Ciascuna corsia di ciascun segmento è internamente suddivisa in tanti piccoli pezzi, ciascuno dei quali è dotato di una coda contenente le vetture in transito, ordinate per tempo di percorrenza crescente. L'entità ``segmento'' è in ascolto su un canale tipato asincrono, in attesa che il segmento precedente gli invii una nuova vettura. L'attesa prevede un \textit{timeout} pari al minimo tempo di percorrenza di tutte le vettura già accodate su ogni sottosegmento di ogni corsia. Non appena scade il \textit{timeout}, tutte le vetture con tempo di percorrenza pari al \textit{timeout} vengono fatte avanzare al sottosegmento successivo oppure inviate al segmento successivo. Come gestire canali e sorpassi? Usare un \textit{thread pool} per le vetture?
+%Ciascuna corsia di ciascun segmento è internamente suddivisa in tanti piccoli pezzi, ciascuno dei quali è dotato di una coda contenente le vetture in transito, ordinate per tempo di percorrenza crescente. L'entità ``segmento'' è in ascolto su un canale tipato asincrono, in attesa che il segmento precedente gli invii una nuova vettura. L'attesa prevede un \textit{timeout} pari al minimo tempo di percorrenza di tutte le vettura già accodate su ogni sottosegmento di ogni corsia. Non appena scade il \textit{timeout}, tutte le vetture con tempo di percorrenza pari al \textit{timeout} vengono fatte avanzare al sottosegmento successivo oppure inviate al segmento successivo. Come gestire canali e sorpassi? Usare un \textit{thread pool} per le vetture?
 
-\section*{Soluzione 3}
-Vetture $\Rightarrow$ entità attive \\
-Segmenti del tracciato $\Rightarrow$ entità passive \\
+%\section*{Soluzione 3}
+%Vetture $\Rightarrow$ entità attive \\
+%Segmenti del tracciato $\Rightarrow$ entità passive \\
 
-Dopo aver calcolato il tempo di uscita della vettura dal segmento $S_i$, esso verrà immediatamente comunicato al segmento $S_{i+1}$ che lo inserirà in un'apposita struttura dati. I canali di ingresso in un settore hanno delle guardie che permettono l'accesso alle vetture solo nell'ordine prestabilito.
+%Dopo aver calcolato il tempo di uscita della vettura dal segmento $S_i$, esso verrà immediatamente comunicato al segmento $S_{i+1}$ che lo inserirà in un'apposita struttura dati. I canali di ingresso in un settore hanno delle guardie che permettono l'accesso alle vetture solo nell'ordine prestabilito.
 
 \chapter{Architettura del sistema}
-\section{Alternative}
+Diagramma con l'architettura del sistema ad alto livello e parte introduttiva, serve una descrizione funzionale delle varie parti mettendo in rilievo
+come l'utente possa interagire con il sistema. 
+\section{Scheduler}
+\section{Track}
+\section{Car}
+\section{Team}
+\section{Event Dispatcher}
+\section{Weather}
+\section{Observers FIXME}
+Scegliere un titolo migliore per la sezione e descrivere gli observers una volta decisi e implementati.
+\section{Avvio e Terminazione}
+Infrastruttura e meccanismi di avvio e terminazione del sistema.
+\section{Alternative?}
+Eventualmente cassare questa sezione
 
 \chapter{Dettagli di progettazione}
-\section{Correttezza}
+\section{Tecnologie utilizzate}
+Breve descizioni dei principi base ed eventuali problemi riscontrati.
+\section{Dinamiche della competizione}
+\subsection{Partenza}
+Descrizione della logica che gestisce la partenza delle auto all'avvio della competizione.
+\subsection{Percorrenza di un Segmento}
+Descrizione dell'algoritmo
+\subsection{Intermedi Cronometrici}
+\subsection{Pit Lane}
+Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.
+\subsection{Arrivo}
+Termiazione dei processi car
+\subsection{Interazione con l'Utente}
 
+\section{Distribuzione}
+Cosa può essere eseguito in modo distribuito, implicazioni della distribuzione di tali componenti, name server...
+\section{Correttezza Temporale}
+Considerazioni sulla correttezza del tempo di percorrenza, controllo della concorrenza, algoritmo di sorpasso.
+Rallentamento della simulazione non influenza i tempi di gara (scheduler).
 \appendix
 
 \chapter{Glossario}
