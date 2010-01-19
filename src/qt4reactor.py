@@ -70,7 +70,7 @@ class TwistedSocketNotifier(QSocketNotifier):
 		self.fn = self.watcher = None
 		self.deleteLater()
 
-	def read(self, sock):
+	def read(self, _sock):
 		w = self.watcher
 		#self.setEnabled(False)
 		def _read():
@@ -87,7 +87,7 @@ class TwistedSocketNotifier(QSocketNotifier):
 		log.callWithLogger(w, _read)
 		self.reactor.reactorInvocation()
 
-	def write(self, sock):
+	def write(self, _sock):
 		w = self.watcher
 		self.setEnabled(False)
 		def _write():
