@@ -84,7 +84,7 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{starting_pos, StartPos} = lists:keyfind(starting_pos, 1, Config),
 	CarsPos = lists:map(fun({CarId, Pos}) ->
 								{CarId, Pos, false}
-						end, StartPos),
+						end, lists:reverse(lists:keysort(2, StartPos))),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
 						  cars_pos = CarsPos,
