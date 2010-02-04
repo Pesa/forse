@@ -93,7 +93,7 @@ handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
-	%TODO elaborare i dati ricevuti
+	% TODO: serve questa notifica? probabilmente no...
 	{noreply, State};
 
 handle_cast(#race_notif{event = Ev}, State) ->
