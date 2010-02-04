@@ -205,7 +205,7 @@ Car è un'entità attiva e rappresenta nel contesto del progetto un'auto che par
 \item livello di usura dei pneumatici,
 \item posizione nel circuito.
 \end{itemize}
-All'inizio della competizione car deve prenotarsi presso lo scheduler e stare poi in attesa del permesso di muoversi sulla pista dato dello scheduler.
+Prima dell'inizio della competizione car deve prenotarsi presso lo scheduler e stare poi in attesa del permesso di muoversi sulla pista dato dello scheduler.
 Questa componente ha il compito di decidere quale traiettoria adottare per percorrere un segmento e deve farlo basandosi sullo stato dell'auto, sulle direttive dei team e dell'utente e sulle informazioni fornite da track.
 \subsection*{Interfaccia Fornita}
 L'autorizzazione a muoversi sul circuito di gara viene data a questa componente dallo scheduler attraverso l'invocazione del metodo \fun{move}. L'esecuzione di questo metodo è divisa in due fasi:
@@ -330,7 +330,8 @@ Eventualmente cassare questa sezione
 Breve descizioni dei principi base ed eventuali problemi riscontrati.
 \section{Dinamiche della competizione}
 \subsection{Partenza}
-Descrizione della logica che gestisce la partenza delle auto all'avvio della competizione.
+Prima che l'utente dia il via alla competizione tutte le auto devono essersi registrate presso lo scheduler indicando come tempo di prenotazione 0.
+E' importante precisare che in questa situazione l'ordine in cui lo scheduler fa eseguire i processi car non influenza l'esito della gara infatti alla partenza le auto sono tutte su segmenti diversi e di conseguenza non conocorrono tra di loro per l'accesso ad uno stesso segmento. Ne deriva quindi che sebbene l'ordine di esecuzione alla partenza possa essere considerato casuale (dipende dall'ordine di registrazione presso una componente distribuita del sistema), questo non va ad influenzare i tempi di percorrenza dei segmenti da parte delle auto e non influisce quindi con il risultato della gara.
 \subsection{Percorrenza di un Segmento}
 Descrizione dell'algoritmo
 \subsection{Intermedi Cronometrici}
