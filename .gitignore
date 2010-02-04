@@ -2,6 +2,7 @@
 .project
 .pydevproject
 .settings/
+doc/diagrammi/*.pdf
 doc/*.aux
 doc/*.lof
 doc/*.log
