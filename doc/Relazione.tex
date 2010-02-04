@@ -5,9 +5,7 @@
 \usepackage{tabularx}
 \usepackage{graphicx}
 \usepackage{epstopdf}
-\usepackage{lscape}
-\usepackage{float}
-
+\usepackage{pdflscape}
 
 \hypersetup{
 	breaklinks,
@@ -15,9 +13,7 @@
 	linkcolor=blue,
 	pdftitle={Relazione},
 	pdfsubject={Relazione sul progetto di Sistemi Concorrenti e Distribuiti},
-	pdfauthor={Daniele Battaglia \& Davide Pesavento},
-	pdfcreator={TeXLive-2008},
-	pdfproducer={TeXLive-2008}
+	pdfauthor={Daniele Battaglia \& Davide Pesavento}
 }
 
 \title{Relazione sul progetto}
@@ -27,6 +23,7 @@
 
 \newcommand{\term}[2]{\textbf{#1} & #2 \\}
 \newcommand{\fun}[1]{\texttt{#1}}
+
 \begin{document}
 
 \maketitle
@@ -34,6 +31,7 @@
 \tableofcontents
 
 \clearpage
+
 \chapter{Introduzione}
 La presente relazione, assieme al software \textsl{FORSE}, è stata realizzata come prova d'esame per il corso "Sistemi Concorrenti e Distribuiti".
 
@@ -98,6 +96,7 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
     \end{itemize}
 \end{enumerate}
 
+
 %\chapter{\textit{Brainstorming}}
 %Finora abbiamo preso in considerazione tre potenziali soluzioni.
 
@@ -118,18 +117,18 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
 %Segmenti del tracciato $\Rightarrow$ entità passive \\
 
 %Dopo aver calcolato il tempo di uscita della vettura dal segmento $S_i$, esso verrà immediatamente comunicato al segmento $S_{i+1}$ che lo inserirà in un'apposita struttura dati. I canali di ingresso in un settore hanno delle guardie che permettono l'accesso alle vetture solo nell'ordine prestabilito.
+
+
 \chapter{Problemi}
+
 
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
-
 \begin{landscape}
-\begin{figure}[hfp]
-  \begin{center}
-  \includegraphics[scale=0.35]{diagrammi/Arch.eps}
-  \caption{Architettura di sistema}
-  \label{archittettura}
-  \end{center}
+\begin{figure}
+\includegraphics[height=.25\paperheight]{diagrammi/Arch}
+\caption{Architettura di sistema}
+\label{fig:architettura}
 \end{figure}
 \end{landscape}
 
@@ -144,10 +143,9 @@ Per poter soddisfare le caratteristiche sopra indicate è risultato naturale imp
 Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione del sistema.
 \subsection*{Interfaccia Fornita}
 Lo scheduler deve fornire un metodo \fun{queue\_work} che permette alle altre entità attive di effettuare la procedura di booking precedentemente descritta.
-Il metodo \fun{set\_speedup} serve a regolare la velocità con cui evolve la simulazione, mentre i metodi \fun{start\_simulation} e \fun{pause\_simulation} servono rispettivamente ad avviare e fermare momentaneamente la simulazione. 
+Il metodo \fun{set\_speedup} serve a regolare la velocità con cui evolve la simulazione, mentre i metodi \fun{start\_simulation} e \fun{pause\_simulation} servono rispettivamente ad avviare e fermare momentaneamente la simulazione.
 \subsection*{Interfaccia Richiesta}
 Nessuna.
-
 
 \section{Track}
 La componente track è stata pensata per incapsulare i dati relativi al circuito di gara e le regole di percorrenza del medesimo. Dal punto di vista progettuale track è sicuramente un'entità reattiva, in particolare una risorsa protetta con agente di controllo passivo.
