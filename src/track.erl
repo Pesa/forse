@@ -42,8 +42,7 @@ init(TrackConfig, TeamsList, CarsList)
 		
 		% notify the final configuration
 		C = [{starting_pos, StartPos} | Config],
-		event_dispatcher:notify(#config_notif{app = track,
-											  config = C})
+		event_dispatcher:notify(#config_notif{app = ?MODULE, config = C})
 	catch
 		% TODO: gestione delle eccezioni
 		throw : E ->

@@ -99,12 +99,13 @@ init(Config) ->
 			   (_, _P) ->
 					throw("car configuration error")
 			end,
-	State = lists:foldl(Parse, #pilot{}, Config),
+	Pilot = lists:foldl(Parse, #pilot{}, Config),
 	% FIXME: remove the following line when switching to ft_gen_server
-	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(State) end),
+	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(Pilot) end),
 	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
-									  args = [State#pilot.id]}),
-	{ok, State}.
+									  args = [Pilot#pilot.id]}),
+	event_dispatcher:notify(#config_notif{app = ?MODULE, config = Pilot}),
+	{ok, Pilot}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
