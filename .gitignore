@@ -2,7 +2,6 @@
 .project
 .pydevproject
 .settings/
-doc/diagrammi/*.pdf
 doc/*.aux
 doc/*.lof
 doc/*.log
@@ -10,6 +9,7 @@ doc/*.lot
 doc/*.out
 doc/*.pdf
 doc/*.toc
+doc/diagrammi/*.eps
 ebin/*.beam
 forse_rc.py
 src/*/Ui_*.py
