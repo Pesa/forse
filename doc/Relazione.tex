@@ -336,7 +336,36 @@ La disposizione iniziale delle auto sulla pista avviene similmente a quanto ripo
 \label{fig:startGrid}
 \end{figure}
 \subsection{Percorrenza di un Segmento}
-Descrizione dell'algoritmo
+Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
+\begin{itemize}
+\item Corsia di ingresso,
+\item Velocità di ingresso,
+\item Tempo di ingresso,
+\item Conformazione e stato del segmento,
+\item Caratteristiche e stato dell'auto,
+\item Informazioni su altre auto che stanno percorrendo quel segmento.
+\end{itemize}
+Grazie alle informazioni sopra elencate e indicando in quale corsia il pilota vuole trovarsi all'uscita del segmento è possibile calcolare il tempo e la velocità di uscita dell'auto. Sono principalmente due i gruppi di fattori che influenzano questo calcolo: in primo luogo l'auto e le caratteristiche della pista, poi la presenza di altre auto nello stesso segmento e l'interazione che queste auto possono avere.
+
+Iniziando ad analizzare il primo gruppo di fattori risulta evidente che vi è una velocità massima che un'auto può mantenere in un segmento per evitare di uscire di pista, in particolare nei segmenti curvilinei la forza di attrito deve essere sufficiente a contrastare la forza centrifuga.
+Visto che la forza d'attrito dipende anche dalle caratteristiche e dallo stato dell'auto è evidente che tale velocità massima può essere diversa per ogni auto.
+Un altro vincolo alla velocità è dato dal regolamento di gara per quanto riguarda la percorrenza della pitlane, tuttavia questo vincolo non riguarda l'intero segmento ma solo una determinata corsia e va a influire solo sulle auto che stanno per rientarare ai box per effettuare una sosta.
+
+I segmenti appena elencati non sono tuttavia gli unici ad avere un limite alla velocità alla quale possono essere percorsi, basta pensare alle azioni che i piloti effettuano prima di intraprendere una curva nella realtà per capire che un segmento curvilineo impone vincoli alla velocità di percorrenza anche a sui segmenti che lo precedono. E' quindi corretto affermare che ogni segmento della pista ha un limite di velocità, sia esso diretto o indiretto. Il numero di segmenti che impone limiti di velocità diretti può cambiare in base al fatto che il pilota voglia o meno effetuare una sosta ai box e di conseguenza cambieranno anche i limiti indiretti. Per questo motivo abbiamo deciso di modellare questo fatto associando ad ogni segmento due limiti di velocità.
+
+%Scrivere della preelaborazione e del fatto che viene ricalcolata poichè cambiano i parametri dell'auto.
+% TODO continuare
+Al fine di rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione facendo dipendere accelerazione e decelazione massime di un'auto sia dalle caratteristiche dell'auto che da quelle della pista.
+In particolare l'accelerazione/decelerazione che un auto può erogare in un determinato segmento dipende da:
+\begin{itemize}
+\item Potenza del motore/dei freni,
+\item Peso dell'auto a secco,
+\item Peso del pilota,
+\item Peso del carburante,
+\item Stato di usura e tipo dei pneumatici,
+\item Condizioni atmosferiche,
+\item Inclinazione della pista.
+\end{itemize}
 \subsection{Intermedi Cronometrici}
 \subsection{Pit Lane}
 Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.
