@@ -353,9 +353,16 @@ Un altro vincolo alla velocità è dato dal regolamento di gara per quanto rigua
 
 I segmenti appena elencati non sono tuttavia gli unici ad avere un limite alla velocità alla quale possono essere percorsi, basta pensare alle azioni che i piloti effettuano prima di intraprendere una curva nella realtà per capire che un segmento curvilineo impone vincoli alla velocità di percorrenza anche a sui segmenti che lo precedono. E' quindi corretto affermare che ogni segmento della pista ha un limite di velocità, sia esso diretto o indiretto. Il numero di segmenti che impone limiti di velocità diretti può cambiare in base al fatto che il pilota voglia o meno effetuare una sosta ai box e di conseguenza cambieranno anche i limiti indiretti. Per questo motivo abbiamo deciso di modellare questo fatto associando ad ogni segmento due limiti di velocità.
 
-%Scrivere della preelaborazione e del fatto che viene ricalcolata poichè cambiano i parametri dell'auto.
-% TODO continuare
-Al fine di rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione facendo dipendere accelerazione e decelazione massime di un'auto sia dalle caratteristiche dell'auto che da quelle della pista.
+La fase in cui vengono calcolati i due limiti di velocità per ogni segmento della pista è detta fase di preelaborazione e viene effettuata da un'auto:
+\begin{enumerate}
+\item All'inizio della gara,
+\item Ogni volta che passa per il traguardo,
+\item Dopo ogni sosta ai box,
+\item Dopo ogni cambio delle condizioni atmosferiche.
+\end{enumerate}
+Il calcolo al punto 1 avviene poiché non è possibile per un'auto effettuare una mossa senza avere una tabella di preelaborazione, al punto 2 per avere una stima più accurata dei valori necessari che consideri il livello di carburante e usura pneumatici attuale e ai punti 3 e 4 poiché in corrisponedenza di tali eventi può cambiare di molto l'attrito pneumatici/pista e invalidare quindi la preelaborazione precedente.
+
+Nel calcolo dei limiti di velocità indiretti è molto importante la decelerazione massima che un'auto può avere per rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione facendo dipendere accelerazione e decelazione massime di un'auto sia dalle caratteristiche dell'auto che da quelle della pista.
 In particolare l'accelerazione/decelerazione che un auto può erogare in un determinato segmento dipende da:
 \begin{itemize}
 \item Potenza del motore/dei freni,
@@ -366,6 +373,44 @@ In particolare l'accelerazione/decelerazione che un auto può erogare in un dete
 \item Condizioni atmosferiche,
 \item Inclinazione della pista.
 \end{itemize}
+
+Passiamo ora a descrivere le operazioni che il processo car effettua nel momento in cui lo scheduler gli consente di eseguire una mossa.
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/Simulation}
+\caption{Fase di Simulazione}
+\label{fig:simulation}
+\end{figure}
+Come si può vedere in figura \ref{fig:simulation}, la prima operazione che viene effettuata è l'eventuale ricalcolo della tabella di preelaborazione, successivamente viene controllato se è prevista una sosta ai box per il giro corrente e poi si passa alla fase di simulazione.
+Nella fase di simulazione car richiede a track quali sono le corsie raggiungibili nel segmento che sta per percorrere e successivamente di simulare l'esito dello spostamento per ogni corsia che l'auto può raggiungere.
+La fase di simulazione, implementata con l'invocazione di track:simulate, può ritornare diversi risultati a car:
+\begin{itemize}
+\item race\_ended: l'auto nella mossa precedente ha superato il traguardo nell'ultimo giro e ha quindi terminato la sua gara,
+\item fail: l'auto non può effettuare la mossa richiesta poiché:
+  \begin{itemize}
+  \item ha esaurito il carburante;
+  \item i pneumatici sono esplosi per l'eccessiva usura,
+  \item i team hanno ordinato il ritiro dell'auto dalla competizione,
+  \item non è possibile usare la corsia richiesta poiché il regolamento lo vieta,
+  \item si sta cercando di entrare nella pitlane senza aver segnalato la sosta,
+  \item la corsia che si vuole usare è già occupata e la capacità di frenata dell'auto non è sufficiente ad accodarsi all'auto che la precede,
+  \item l'auto non è in grado di mantenersi in pista a causa della velocità eccessiva.
+  \end{itemize}
+\item pits: l'auto effettuerà una sosta ai box,
+\item Time: il tempo in cui l'auto uscirà da quel segmento calcolato come tempo di ingresso più tempo di percorrenza.
+\end{itemize}
+Una volta ottenuti i risultati della simulazione la logica di car decide quale sia la corsia migliore per effettuare lo spostamento, in particolare l'auto sceglierà la corsia la cui simulazione ritorna il valore (in ordine di priorità):
+\begin{itemize}
+\item race\_ended,
+\item pits,
+\item il valore Time minore,
+\item fail.
+\end{itemize}
+
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/Move}
+\caption{Fase di Spostamento}
+\label{fig:move}
+\end{figure}
 \subsection{Intermedi Cronometrici}
 \subsection{Pit Lane}
 Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.
@@ -382,6 +427,7 @@ Rallentamento della simulazione non influenza i tempi di gara (scheduler).
 
 \begin{tabularx}{\textwidth}{lX}
 \term{Intermedio cronometrico}{}
+\term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con pitstop) per ogni segmento della pista.}
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
 \term{Speedup}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}

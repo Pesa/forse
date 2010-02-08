@@ -1,0 +1,126 @@
+format 70
+
+classinstance 128003 class_ref 128003 // scheduler
+  name ""   xyz 8 4 2005 life_line_z 2000
+classinstance 128131 class_ref 128131 // car
+  name ""   xyz 163 6 2005 life_line_z 2000
+classinstance 128259 class_ref 128259 // track
+  name ""   xyz 280 6 2005 life_line_z 2000
+fragment 128771 "opt"
+  color green form "run_preelab == true" xyzwh 57 82 1995 266 101
+end
+textcanvas 129283 "[run_preelab == true]"
+  xyzwh 58 106 2000 122 17
+fragment 129923 "loop"
+  color yellow xyzwh 87 284 1990 442 214
+end
+textcanvas 130051 "[foreach X in LaneList]"
+  xyzwh 97 317 2005 69 42
+classinstance 130563 class_ref 128387 // access
+  name ""   xyz 395 6 2005 life_line_z 2000
+classinstance 130691 class_ref 128515 // physics
+  name ""   xyz 467 6 2005 life_line_z 2000
+fragment 131587 "opt"
+  color lightgreen xyzwh 209 371 1995 307 79
+end
+textcanvas 131715 "[Allow == true]"
+  xyzwh 212 397 2000 86 17
+durationcanvas 128387 classinstance_ref 128003 // :scheduler
+  xyzwh 38 53 2010 11 584
+end
+durationcanvas 128515 classinstance_ref 128131 // :car
+  xyzwh 182 61 2010 11 540
+end
+durationcanvas 128899 classinstance_ref 128259 // :track
+  xyzwh 299 107 2010 11 47
+end
+durationcanvas 129411 classinstance_ref 128259 // :track
+  xyzwh 299 213 2010 11 48
+end
+durationcanvas 130179 classinstance_ref 128259 // :track
+  xyzwh 299 308 2010 11 173
+end
+durationcanvas 130819 classinstance_ref 130563 // :access
+  xyzwh 418 330 2010 11 36
+end
+durationcanvas 131203 classinstance_ref 130691 // :physics
+  xyzwh 492 393 2010 11 44
+end
+durationcanvas 131843 classinstance_ref 128259 // :track
+  xyzwh 299 533 2010 11 59
+end
+msg 128643 synchronous
+  from durationcanvas_ref 128387
+  to durationcanvas_ref 128515
+  yz 61 2015 explicitmsg "move"
+  show_full_operations_definition default drawing_language default
+  label_xy 76 44
+msg 129027 synchronous
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 128899
+  yz 109 2015 explicitmsg "preelaborate"
+  show_full_operations_definition default drawing_language default
+  label_xy 201 92
+msg 129539 synchronous
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 129411
+  yz 214 2015 explicitmsg "reachable_lanes"
+  show_full_operations_definition default drawing_language default
+  label_xy 196 197
+msg 129795 return
+  from durationcanvas_ref 129411
+  to durationcanvas_ref 128515
+  yz 245 2015 explicitmsg "LaneList"
+  show_full_operations_definition default drawing_language default
+  label_xy 218 228
+msg 130307 synchronous
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 130179
+  yz 308 2015 explicitmsg "simulate(X)"
+  show_full_operations_definition yes drawing_language default
+  label_xy 218 291
+msg 130435 return
+  from durationcanvas_ref 130179
+  to durationcanvas_ref 128515
+  yz 465 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+msg 130947 synchronous
+  from durationcanvas_ref 130179
+  to durationcanvas_ref 130819
+  yz 332 2015 explicitmsg "check_move(X)"
+  show_full_operations_definition default drawing_language default
+  label_xy 322 316
+msg 131075 return
+  from durationcanvas_ref 130819
+  to durationcanvas_ref 130179
+  yz 355 2020 explicitmsg "Allow"
+  show_full_operations_definition default drawing_language default
+  label_xy 351 342
+msg 131331 synchronous
+  from durationcanvas_ref 130179
+  to durationcanvas_ref 131203
+  yz 395 2015 explicitmsg "simulate(X)"
+  show_full_operations_definition default drawing_language default
+  label_xy 339 382
+msg 131459 return
+  from durationcanvas_ref 131203
+  to durationcanvas_ref 130179
+  yz 426 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+msg 131971 synchronous
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 131843
+  yz 533 2015 explicitmsg "move (BestLane)"
+  show_full_operations_definition default drawing_language default
+  label_xy 196 516
+msg 132099 return
+  from durationcanvas_ref 131843
+  to durationcanvas_ref 128515
+  yz 576 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+msg 132227 return
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 128387
+  yz 589 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+end
