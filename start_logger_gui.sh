@@ -1,3 +1,4 @@
 #!/bin/sh
 
-PYTHONPATH=".:src/" python src/logger/Logger.py
+export FORSE_NS="${1:-foo}"
+PYTHONPATH=".:src/forse" python src/forse/logger/Main.py

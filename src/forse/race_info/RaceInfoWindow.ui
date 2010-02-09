@@ -145,7 +145,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../forse.qrc"/>
+  <include location="../../../forse.qrc"/>
  </resources>
  <connections/>
 </ui>

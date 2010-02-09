@@ -12,7 +12,7 @@ doc/*.toc
 doc/diagrammi/*.eps
 ebin/*.beam
 forse_rc.py
-src/*/Ui_*.py
+src/*/*/Ui_*.py
 *~
 *.pyc
 *.pyo

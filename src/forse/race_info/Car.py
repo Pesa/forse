@@ -2,7 +2,11 @@ from PyQt4.Qt import Qt
 from PyQt4.QtCore import QRectF
 from PyQt4.QtGui import QGraphicsItem, QGraphicsColorizeEffect, QFont, QPen
 
+
+__all__ = ['Car']
+
 carSize = 32
+
 
 class Car(QGraphicsItem):
 

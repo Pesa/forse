@@ -5,6 +5,8 @@ from PyQt4.QtGui import QGraphicsItem, QGraphicsItemGroup
 from PyQt4.QtGui import QPainterPath, QPainterPathStroker, QPen
 
 
+__all__ = ['Track']
+
 trackWidth = 16
 pitWidth = 12
 pitDistance = -3 * trackWidth
