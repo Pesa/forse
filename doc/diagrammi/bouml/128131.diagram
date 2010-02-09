@@ -1,166 +1,194 @@
 format 70
 
 classinstance 128003 class_ref 128131 // car
-  name ""   xyz 9 4 2000 life_line_z 2000
+  name "car_n"   xyz 2 4 2000 life_line_z 2000
 classinstance 128131 class_ref 128259 // track
-  name ""   xyz 136 5 2000 life_line_z 2000
+  name ""   xyz 135 4 2000 life_line_z 2000
 classinstance 128259 class_ref 128387 // access
-  name ""   xyz 275 5 2000 life_line_z 2000
+  name ""   xyz 262 4 2000 life_line_z 2000
 classinstance 128387 class_ref 128515 // physics
-  name ""   xyz 354 5 2000 life_line_z 2000
+  name ""   xyz 327 4 2000 life_line_z 2000
 fragment 129283 "opt"
-  color yellow xyzwh 46 149 1955 533 551
+  color yellow xyzwh 44 109 1930 533 597
 end
 textcanvas 129411 "[Allow == true]"
-  xyzwh 61 177 2025 86 17
+  xyzwh 58 137 2025 86 17
 fragment 129923 "opt"
-  color lightblue xyzwh 61 247 1990 512 82
+  color lightblue xyzwh 58 168 1990 512 82
 end
 classinstance 130051 class_ref 128643 // team
-  name ""   xyz 436 5 2005 life_line_z 2000
+  name "team_m"   xyz 392 4 2005 life_line_z 2000
 classinstance 130179 class_ref 128771 // event_dispatcher
-  name ""   xyz 494 5 2005 life_line_z 2000
+  name ""   xyz 488 4 2005 life_line_z 2000
 textcanvas 130307 "[Res == race_ended]"
-  xyzwh 68 273 2005 77 42
+  xyzwh 63 195 2005 77 42
 fragment 130691 "opt"
-  color lightblue xyzwh 61 342 1980 511 158
+  color lightblue xyzwh 57 258 1945 513 199
 end
 textcanvas 130819 "[Res == pits]"
-  xyzwh 65 367 2000 85 16
+  xyzwh 63 287 2000 85 16
 fragment 131843 "opt"
-  color lightblue xyzwh 62 526 1960 511 166
+  color lightblue xyzwh 57 464 1935 512 233
 end
 textcanvas 131971 "[Res is Time]"
-  xyzwh 75 552 2000 85 17
+  xyzwh 103 464 2000 46 40
 fragment 132355 "opt"
-  color verylightorange xyzwh 67 581 1965 498 93
+  color verylightorange xyzwh 61 587 1965 498 92
 end
 textcanvas 132483 "[Segment is intermediate or finish line]"
-  xyzwh 71 609 2000 86 63
+  xyzwh 64 616 2000 86 63
 fragment 132867 "opt"
-  color yellow xyzwh 47 719 1995 532 96
+  color yellow xyzwh 45 711 1995 532 100
 end
 textcanvas 132995 "[Allow == false or Res == fail]"
-  xyzwh 54 743 2000 97 46
-durationcanvas 128515 classinstance_ref 128003 // :car
-  xyzwh 28 49 2010 11 850
+  xyzwh 51 735 2000 97 46
+fragment 134019 "opt"
+  color verylightorange xyzwh 62 353 1950 494 60
+end
+textcanvas 134147 "[Car surpassed someone]"
+  xyzwh 66 375 2000 92 38
+fragment 134531 "opt"
+  color verylightorange xyzwh 61 509 1950 496 69
+end
+textcanvas 134659 "[Car surpassed someone]"
+  xyzwh 66 533 2000 92 38
+durationcanvas 128515 classinstance_ref 128003 // car_n:car
+  xyzwh 29 51 2010 11 825
 end
 durationcanvas 128643 classinstance_ref 128131 // :track
-  xyzwh 155 55 2010 11 812
+  xyzwh 154 52 2010 11 795
   overlappingdurationcanvas 130435
-    xyzwh 161 275 2020 11 29
+    xyzwh 160 196 2020 11 29
   end
   overlappingdurationcanvas 131331
-    xyzwh 161 418 2020 11 25
+    xyzwh 160 336 2020 11 42
   end
   overlappingdurationcanvas 132099
-    xyzwh 161 552 2020 11 25
+    xyzwh 160 487 2020 11 60
   end
   overlappingdurationcanvas 133123
-    xyzwh 161 740 2020 11 25
+    xyzwh 160 736 2020 11 25
   end
 end
 durationcanvas 128899 classinstance_ref 128259 // :access
-  xyzwh 298 82 2010 11 51
+  xyzwh 285 62 2010 11 38
 end
 durationcanvas 129539 classinstance_ref 128387 // :physics
-  xyzwh 379 179 2010 11 45
+  xyzwh 352 128 2010 11 33
 end
-durationcanvas 130947 classinstance_ref 130051 // :team
-  xyzwh 455 359 2010 11 46
+durationcanvas 130947 classinstance_ref 130051 // team_m:team
+  xyzwh 432 273 2010 11 42
 end
 durationcanvas 131587 classinstance_ref 130179 // :event_dispatcher
-  xyzwh 546 464 2010 11 25
+  xyzwh 540 425 2010 11 25
 end
 durationcanvas 132611 classinstance_ref 130179 // :event_dispatcher
-  xyzwh 546 605 2010 11 25
+  xyzwh 540 611 2010 11 25
 end
 durationcanvas 133379 classinstance_ref 130179 // :event_dispatcher
-  xyzwh 546 772 2010 11 25
+  xyzwh 540 768 2010 11 25
+end
+durationcanvas 133763 classinstance_ref 130179 // :event_dispatcher
+  xyzwh 540 367 2010 11 26
+end
+durationcanvas 134275 classinstance_ref 130179 // :event_dispatcher
+  xyzwh 540 536 2010 11 26
 end
 msg 128771 synchronous
   from durationcanvas_ref 128515
   to durationcanvas_ref 128643
-  yz 59 2015 explicitmsg "move(Lane)"
+  yz 54 2015 explicitmsg "move(Lane)"
   show_full_operations_definition default drawing_language default
-  label_xy 59 43
+  label_xy 60 38
 msg 129027 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 128899
-  yz 95 2015 explicitmsg "check_move(Lane)"
+  yz 62 2015 explicitmsg "check_move(Lane)"
   show_full_operations_definition default drawing_language default
-  label_xy 172 78
+  label_xy 171 45
 msg 129155 return
   from durationcanvas_ref 128899
   to durationcanvas_ref 128643
-  yz 122 2015 explicitmsg "Allow"
+  yz 89 2015 explicitmsg "Allow"
   show_full_operations_definition default drawing_language default
-  label_xy 212 105
+  label_xy 211 72
 msg 129667 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 129539
-  yz 179 2015 explicitmsg "simulate(Lane)"
+  yz 128 2015 explicitmsg "simulate(Lane)"
   show_full_operations_definition default drawing_language default
-  label_xy 195 165
+  label_xy 193 114
 msg 129795 return
   from durationcanvas_ref 129539
   to durationcanvas_ref 128643
-  yz 213 2015 explicitmsg "Res"
+  yz 150 2015 explicitmsg "Res"
   show_full_operations_definition default drawing_language default
-  label_xy 260 196
+  label_xy 258 133
 reflexivemsg 130563 synchronous
   to durationcanvas_ref 130435
-  yz 275 2025 explicitmsg "remove_car"
+  yz 196 2025 explicitmsg "remove_car"
   show_full_operations_definition default drawing_language default
-  label_xy 177 259
+  label_xy 173 180
 msg 131075 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 130947
-  yz 365 2015 explicitmsg "pitstop_operations"
+  yz 275 2015 explicitmsg "pitstop_operations"
   show_full_operations_definition default drawing_language default
-  label_xy 186 353
+  label_xy 173 262
 msg 131203 return
   from durationcanvas_ref 130947
   to durationcanvas_ref 128643
-  yz 394 2015 explicitmsg "Ops"
+  yz 304 2015 explicitmsg "Ops"
   show_full_operations_definition default drawing_language default
-  label_xy 257 378
+  label_xy 253 288
 reflexivemsg 131459 synchronous
   to durationcanvas_ref 131331
-  yz 418 2025 explicitmsg "move_car"
+  yz 336 2025 explicitmsg "move_car"
   show_full_operations_definition default drawing_language default
-  label_xy 173 400
+  label_xy 169 318
 msg 131715 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 131587
-  yz 470 2015 explicitmsg "pitstop_notif(Ops)"
+  yz 426 2015 explicitmsg "pitstop_notif(Ops)"
   show_full_operations_definition default drawing_language default
-  label_xy 186 453
+  label_xy 180 415
 reflexivemsg 132227 synchronous
   to durationcanvas_ref 132099
-  yz 552 2025 explicitmsg "move_car"
+  yz 487 2025 explicitmsg "move_car"
   show_full_operations_definition default drawing_language default
-  label_xy 174 533
+  label_xy 172 468
 msg 132739 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 132611
-  yz 606 2015 explicitmsg "chrono_notif"
+  yz 612 2015 explicitmsg "chrono_notif"
   show_full_operations_definition default drawing_language default
-  label_xy 195 591
+  label_xy 189 597
 reflexivemsg 133251 synchronous
   to durationcanvas_ref 133123
-  yz 740 2025 explicitmsg "remove_car"
+  yz 736 2025 explicitmsg "remove_car"
   show_full_operations_definition default drawing_language default
-  label_xy 174 721
+  label_xy 170 717
 msg 133507 synchronous
   from durationcanvas_ref 128643
   to durationcanvas_ref 133379
-  yz 772 2015 explicitmsg "retire_notif"
+  yz 768 2015 explicitmsg "retire_notif"
   show_full_operations_definition default drawing_language default
-  label_xy 213 756
+  label_xy 209 752
 msg 133635 return
   from durationcanvas_ref 128643
   to durationcanvas_ref 128515
-  yz 855 2015 unspecifiedmsg
+  yz 836 2015 unspecifiedmsg
   show_full_operations_definition default drawing_language default
+msg 133891 synchronous
+  from durationcanvas_ref 131331
+  to durationcanvas_ref 133763
+  yz 367 2025 explicitmsg "surpass_notif"
+  show_full_operations_definition default drawing_language default
+  label_xy 181 355
+msg 134403 synchronous
+  from durationcanvas_ref 132099
+  to durationcanvas_ref 134275
+  yz 536 2030 explicitmsg "surpass_notif"
+  show_full_operations_definition default drawing_language default
+  label_xy 179 523
 end

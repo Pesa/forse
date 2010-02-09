@@ -411,6 +411,59 @@ Una volta ottenuti i risultati della simulazione la logica di car decide quale s
 \caption{Fase di Spostamento}
 \label{fig:move}
 \end{figure}
+
+Una volta scelta la corsia migliore car effettua lo spostamento sulla pista grazie all'invocazione track:move (figura \ref{fig:move}) e resta in attesa del risultato che può essere o il tempo di uscita dal segmento che si sta percorrendo oppure race\_ended oppure fail. Nel primo caso l'auto provvederà a prenotarsi presso lo scheduler indicando il tempo di uscita, negli altri casi car non effetturà alcuna prenotazione.
+
+La fase di spostamento nella prima parte è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita anche nel caso in cui si tratti di una sosta ai box. Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso il dispatcher.
+Il metodo move\_car è particolamente importante ai fini della simulazione poiché serve a individuare eventuali sorpassi e notificarli.
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=0.5\textwidth]{diagrammi/Surpass}
+\caption{Interazione tra auto nello stesso segmento}
+\label{fig:surpass}
+\end{figure}
+\end{center}
+La figura \ref{fig:surpass} rappresenta le situazioni che si possono creare nel momento in cui un'auto percorre un segmento di pista in cui è presente un altra auto.
+
+Nel momento in cui l'auto A effettua il suo turno sono noti:
+\begin{itemize}
+\item $T_{en_B}^{n+1}$: il tempo di ingresso di B nel segmento $n+1$,
+\item $T_{ex_B}^{n+1}$: il tempo di uscita di B dal segmento $n+1$,
+\item $L_{en_B}^{n+1}$: la corsia di ingresso di B nel segmento $n+1$,
+\item $L_{ex_B}^{n+1}$: la corsia di uscita di B dal segmento $n+1$,
+\item $T_{en_A}^{n+1}$: il tempo di ingresso di A nel segmento $n+1$,
+\item $L_{en_A}^{n+1}$: la corsia di ingresso di A nel segmento $n+1$,
+\item $L_{ex_A}^{n+1}$: la corsia di uscita di A dal segmento $n+1$ (scelta dall'auto quindi si può considerare fissata).
+\end{itemize}
+L'algoritmo deve quindi calcolare $T_{ex_A}^{n+1}$.
+$T_{lc}$ è il tempo che un'auto impega a spostarsi da una corsia ad una adiacente è considerato fisso ed uguale per tutte le auto, ogni auto può spostarsi di una sola corsia per ogni segmento e, per semplificare la simulazione, si assume che lo spostamento venga effettuato solamente all'ingresso del segmento.
+Come precodizione si ha inoltre che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ poiché B si è spostata in quel segmento prima di A e che $T_{en_A}^{n+1} \leq T_{ex_B}^{n+1}$ altrimenti lo scheduler eleggerebbe B per l'esecuzione.
+
+Per poter calcolare il tempo di uscita di A dal segmento $n+1$ è necessario prima valutare se B interferisce con la mossa di A.
+Considerando la situazione (a) di figura \ref{fig:surpass} possiamo distinguere due casi:
+\begin{enumerate}
+\item $L_{ex_A}^{n+1} = m+2$: non vi è alcuna interferenza da parte di B poiché la corsia $m+2$ è libera,
+\item $L_{ex_A}^{n+1} = m+1$:
+  \begin{enumerate}
+  \item $L_{en_B}^{n+1} = m+2$: A sta seguendo esattamente la stessa traiettoria che ha seguito B per percorrere il segmento $n+1$ ed è quindi corretto che a l'auto A si accodi a B e non possa superarla,
+  \item $L_{en_B}^{n+1} = m+1$: A cerca di inserirsi davanti a B tagliandole la strada tuttavia, visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$, vale anche che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1} + T_{lc}$ e non è quindi possibile che A si posizioni davanti a B.
+  \item $L_{en_B}^{n+1} = m$: A e B si spostano entrambe sulla stessa corsia $m+1$ provenendo da corsie differenti ma visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ allora vale anche $T_{en_B}^{n+1} + T_{lc} \leq T_{en_A}^{n+1} + T_{lc}$ e di conseguenza A può solo accodarsi a B.
+  \end{enumerate}
+\end{enumerate}
+
+Per quanto riguarda la situazione (b) di figura \ref{fig:surpass} vi sono due casi:
+\begin{enumerate}
+\item $L_{ex_A}^{n+1} = m+2$ o $L_{ex_A}^{n+1} = m$: non vi è alcuna interferenza da parte di B poiché le corsie sono libere,
+\item $L_{ex_A}^{n+1} = m+1$:
+  \begin{enumerate}
+  \item $L_{en_B}^{n+1} = m+1$: A si accoda a B (vedi caso 1(a) della situazione (a)),
+  \item $L_{en_B}^{n+1} = m+2$ o $L_{en_B}^{n+1} = m$: A cerca di inserirsi davanti a B prima che questa le ha tagli la strada e se $T_{en_B}^{n+1} + T_{lc} < T_{en_A}^{n+1}$ vuol dire che non ci riesce e deve quindi accodarsi a B, altrimenti vuol dire che riesce a rimanere in testa e non viene quindi influenzata dalla presenza di B.
+  \end{enumerate}
+\end{enumerate}
+
+Nei casi in cui non vi è interferenza da parte di B nella mossa di A, $T_{ex_A}^{n+1}$ viene calcolato solo sulla base delle caretteristiche dell'auto e della pista.
+Nei casi in cui A deve accodarsi a B viene aggiunto il vincolo che $T_{ex_A}^{n+1} > T_{ex_B}^{n+1}$ e calcolata la velocità di uscita di conseguenza.
 \subsection{Intermedi Cronometrici}
 \subsection{Pit Lane}
 Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.

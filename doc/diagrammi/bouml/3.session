@@ -1,7 +1,7 @@
-window_sizes 1366 718 320 1040 635 0
+window_sizes 1366 718 200 1160 635 0
 diagrams
   active  sequencediagram_ref 128131 // track:move
-    1040 635 100 4 0 0
+    1160 635 100 4 0 0
 end
 show_stereotypes
 selected class_ref 128387 // access
