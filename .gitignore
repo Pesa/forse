@@ -2,6 +2,11 @@
 .project
 .pydevproject
 .settings/
+autom4te.cache/
+config.log
+config.status
+configure
+Makefile
 doc/*.aux
 doc/*.lof
 doc/*.log
@@ -12,7 +17,7 @@ doc/*.toc
 doc/diagrammi/*.eps
 ebin/*.beam
 forse_rc.py
-src/*/*/Ui_*.py
+src/forse/*/Ui_*.py
 *~
 *.pyc
 *.pyo

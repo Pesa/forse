@@ -1,0 +1,26 @@
+ERLC = @ERLC@
+ERL = @ERL@
+ERLCFLAGS = -D debug @ERLCFLAGS@
+
+BINDIR = ebin
+INCDIR = include
+SRCDIR = src
+
+ERL_HEADERS := $(wildcard $(INCDIR)/*.hrl)
+ERL_SOURCES := $(wildcard $(SRCDIR)/*.erl)
+
+.SUFFIXES: .beam .erl
+
+$(BINDIR)/%.beam: $(SRCDIR)/%.erl $(ERL_HEADERS)
+	$(ERLC) -I $(INCDIR) $(ERLCFLAGS) -b beam -o $(BINDIR) $<
+
+all: $(addprefix $(BINDIR)/,$(notdir $(ERL_SOURCES:.erl=.beam)))
+
+clean:
+	rm -f $(BINDIR)/*.beam
+
+distclean: clean
+	rm -f Makefile config.status config.log
+	rm -rf autom4te.cache
+
+.PHONY: all clean distclean
