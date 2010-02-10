@@ -415,7 +415,13 @@ Una volta ottenuti i risultati della simulazione la logica di car decide quale s
 Una volta scelta la corsia migliore car effettua lo spostamento sulla pista grazie all'invocazione track:move (figura \ref{fig:move}) e resta in attesa del risultato che può essere o il tempo di uscita dal segmento che si sta percorrendo oppure race\_ended oppure fail. Nel primo caso l'auto provvederà a prenotarsi presso lo scheduler indicando il tempo di uscita, negli altri casi car non effetturà alcuna prenotazione.
 
 La fase di spostamento nella prima parte è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita anche nel caso in cui si tratti di una sosta ai box. Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso il dispatcher.
-Il metodo move\_car è particolamente importante ai fini della simulazione poiché serve a individuare eventuali sorpassi e notificarli.
+
+Il metodo move\_car è particolamente importante ai fini della simulazione poiché serve a individuare eventuali sorpassi avvenuti all'interno del segmento e notificarli. Individuare le auto sorpassate a seguito della mossa che un'auto (chiamiamola A) sta effettuando è semplice: detto $T_{en_X}$ il tempo di ingresso di un'auto X nel segmento e $T_{ex_X}$ il suo tempo di uscita, l'insieme delle auto $\mathcal{S}$ sorpassate da A in quel segmento sarà:
+\begin{center}
+$\mathcal{S} = \{ X \; | \; T_{en_X} \leq T_{en_A} \; \wedge \; T_{ex_X} > T_{ex_A}\}$
+\end{center}
+Oltre a ciò deve anche calcolare i consumi dell'auto derivanti dall'aver percorso quel segmento.
+Il consumo di carburante è pari a una quantità fissa per segmento moltiplicata per un coefficiente derivante dall'inclinazione della pista in quel punto, mentre il consumo dei pneumatici dipende dalla curvatura del segmento, dal tipo di pneumatici usati e dalle condizioni atmosferiche.
 
 \begin{center}
 \begin{figure}
@@ -464,7 +470,24 @@ Per quanto riguarda la situazione (b) di figura \ref{fig:surpass} vi sono due ca
 
 Nei casi in cui non vi è interferenza da parte di B nella mossa di A, $T_{ex_A}^{n+1}$ viene calcolato solo sulla base delle caretteristiche dell'auto e della pista.
 Nei casi in cui A deve accodarsi a B viene aggiunto il vincolo che $T_{ex_A}^{n+1} > T_{ex_B}^{n+1}$ e calcolata la velocità di uscita di conseguenza.
+
 \subsection{Intermedi Cronometrici}
+Gli intermedi cronometrici e il traguardo sono dei particolari segmenti a lunghezza zero, dal punto di vista di car sono trattati esattamente come tutti gli altri segmenti in quanto è compito di track nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero non è necessario effettuare il calcolo del tempo di percorrenza infatti per questo tipo di segmenti vale, detto $n+1$ l'indice di tale segmento:
+\begin{itemize}
+\item $L_{ex_A}^{n} = L_{ex_A}^{n+1}$: imposto dal modulo access poiché non è possibile cambiare corsia in un segmento di lunghezza nulla,
+\item $T_{ex_A}^{n} = T_{en_A}^{n+1} = T_{ex_A}^{n+1}$: poiché il tempo impegato a percorrere un tratto di lunghezza nulla è nullo,
+\item la velocità di uscita dal segmento $n+1$ è uguale alla velocità di ingresso nel medesimo segmento,
+\item non possono avvenire sorpassi all'interno di tale segmento,
+\item il percorrere tale segmento non causa consumo né di carburante né di pneumatici.
+\end{itemize}
+Come si può notare in figura \ref{fig:move} in corrispondenza del transito di un'auto attraverso un intermedio cronometrico viene emessa da track una chrono\_notif verso il dispatcher. Questo tipo di messaggio contiene:
+\begin{itemize}
+\item ID dell'auto,
+\item ID dell'intermedio e numero del giro,
+\item tempo di gara in cui l'auto attraversa l'intermedio,
+\item velocità massima raggiunta dall'auto dopo l'intermedio precedente,
+\item stato carburante e pneumatici dell'auto.
+\end{itemize}
 \subsection{Pit Lane}
 Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.
 \subsection{Arrivo}
