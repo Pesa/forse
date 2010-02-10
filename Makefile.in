@@ -2,6 +2,8 @@ ERLC = @ERLC@
 ERL = @ERL@
 ERLCFLAGS = -D debug @ERLCFLAGS@
 
+PYUIC ?= pyuic4
+
 BINDIR = ebin
 INCDIR = include
 SRCDIR = src
@@ -9,10 +11,23 @@ SRCDIR = src
 ERL_HEADERS := $(wildcard $(INCDIR)/*.hrl)
 ERL_SOURCES := $(wildcard $(SRCDIR)/*.erl)
 
-.SUFFIXES: .beam .erl
+ifeq ($(V),1)
+Q =
+NQ = @:
+else
+Q = @
+NQ = @echo
+endif
+
+.SUFFIXES: .beam .erl .py .ui
 
 $(BINDIR)/%.beam: $(SRCDIR)/%.erl $(ERL_HEADERS)
-	$(ERLC) -I $(INCDIR) $(ERLCFLAGS) -b beam -o $(BINDIR) $<
+	$(NQ) "compiling" $<
+	$(Q) $(ERLC) -I $(INCDIR) $(ERLCFLAGS) -b beam -o $(BINDIR) $<
+
+Ui_%.py: %.ui
+	$(NQ) "generating" $@ "from" $<
+	$(Q) $(PYUIC) -o $@ $<
 
 all: $(addprefix $(BINDIR)/,$(notdir $(ERL_SOURCES:.erl=.beam)))
 
@@ -20,7 +35,7 @@ clean:
 	rm -f $(BINDIR)/*.beam
 
 distclean: clean
-	rm -f Makefile config.status config.log
+	rm -f aclocal.m4 config.log config.status Makefile
 	rm -rf autom4te.cache
 
 .PHONY: all clean distclean

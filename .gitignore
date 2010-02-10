@@ -3,6 +3,7 @@
 .pydevproject
 .settings/
 autom4te.cache/
+aclocal.m4
 config.log
 config.status
 configure
