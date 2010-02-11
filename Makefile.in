@@ -25,9 +25,11 @@ RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
 ifeq ($(V),1)
 Q =
 NQ = @:
+MAKE := $(MAKE)
 else
 Q = @
 NQ = @echo
+MAKE := $(MAKE) --no-print-directory
 endif
 
 first: all
@@ -48,13 +50,20 @@ Ui_%.py: %.ui
 
 all: $(ERL_OBJS) $(FORMS_OBJS) $(RESOURCES_OBJS)
 
+relazione:
+	$(Q) cd doc/ && $(MAKE)
+
 clean:
-	rm -f $(ERL_OBJS)
-	rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
-	rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
+	$(NQ) "cleaning up ..."
+	$(Q) rm -f *~
+	$(Q) rm -f $(ERL_OBJS)
+	$(Q) rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
+	$(Q) rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
+	$(Q) cd doc/ && $(MAKE) clean
+	$(NQ) "cleanup done"
 
 distclean: clean
-	rm -f aclocal.m4 config.log config.status Makefile
-	rm -rf autom4te.cache
+	$(Q) rm -f aclocal.m4 config.log config.status Makefile
+	$(Q) rm -rf autom4te.cache
 
-.PHONY: all clean distclean first
+.PHONY: all clean distclean first relazione
