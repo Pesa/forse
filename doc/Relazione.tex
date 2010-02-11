@@ -489,7 +489,42 @@ Come si può notare in figura \ref{fig:move} in corrispondenza del transito di u
 \item stato carburante e pneumatici dell'auto.
 \end{itemize}
 \subsection{Pit Lane}
-Descrizione dell'implementazione delle regole di accesso ai box, struttura della pista e algoritmo di sosta e rifornimento dell'auto.
+\begin{center}
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/PitLane}
+\caption{Rappresentazione della zona dei box}
+\label{fig:pitLane}
+\end{figure}
+\end{center}
+
+La sezione di pista indicata dall'utente come zona box attraverso l'impostazione di pitlane\_entrance e pitlane\_exit nel file di configurazione viene rappresentata dalla componente track come mostra la figura \ref{fig:pitLane}. Le corsie con indice maggiore o uguale a n sono quelle indicate dall'utente nel file di configurazione mentre le corsie -1 e -2 sono generate in modo automatico in fase di costruzione della pista.
+
+Per ogni team che partecipa alla simulazione viene risevata una zona box diversa della pista (indicata in figura come team area) formata da due segmenti di tipo pitlane e uno di tipo pitstop. Per poter effettuare il rifornimento un'auto deve trovarsi nella corsia di indice -2 del segmento pitstop associato alla sua scuderia.
+
+I segmenti di tipo pre\_pitlane, post\_pitlane, pitlane e pitstop sono soggetti a regole di percorrenza aggiuntive definite nel modulo access:
+\begin{itemize}
+\item pre\_pitlane: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n,
+\item post\_pitlane: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa,
+\item pitlane: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa,
+\item pitstop: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa, inoltre un'auto non può accedere alla corsia -2 dei segmenti pitstop appartenenti ad altre scuderie.
+\end{itemize}
+
+Il regolamento delle gare di formula uno impone un limite di velocità nella corsia dei box, nel caso della simulazione questo limite è applicato nelle corsie di indice -1 e -2 dei segmenti di tipo pitlane e pitstop ed è imposto alle auto nel calcolo della velocità massima eseguito in fase di preelaborazione come precedentemente descritto.
+La corsia aggiuntiva nei segmenti di tipo pre\_pitlane e post\_pitlane serve a rappresentare rispettivamente la corsia di decelerazione e la corsia di accelerazione e non sono quindi soggette a particolari limiti di velocità imposti dal regolamento.
+
+\subsection{Rifornimento}
+Per poter effettuare le operazioni di rifornimento e cambio pneumatici un'auto deve trovarsi a percorrere il segmento pitstop associato alla sua scuderia nella corsia di indice -2. Quando car effettua uno spostamento in tale posizione (vedi \fun{track:move}) è la componente track che si incarica di effettuare la chiamata alla componente team associata all'auto per richiedere quali operazioni siano da effettuare sull'auto durante la sosta.
+
+Track invia quindi lo stato carburante e pneumatici dell'auto al team il quale risponde con un messaggio contenente quanto carburante aggiungere e quale tipo di pneumatici montare in caso di cambio gomme, il tutto tramite l'invocazione del metodo \fun{pitstop\_operations} di team.
+
+Le componenti team sono in grado di calcolare questi valori sulla base dei dati ottenuti tramite il dispatcher e derivanti dalle crono\_notif, grazie a questo meccanismo team riesce a calcolare il consumo di carburante e gomme medio sul giro per ogni auto e ad adottare quindi una strategia di rifornimento ragionevole.
+Il tempo necessario ad effettuare le operazioni è calcolato da track in base alle operazioni da effettuare.
+
+Visto che ogni scuderia può rifornire una sola auto alla volta il tempo di uscita dell'auto A è calcolato come segue:
+\begin{center}
+$T_{ex_A} = max(T_{en_A}, T_{ex_B}) + T_{ops}$
+\end{center}
+dove B è l'auto accodata nello stesso segmento e in corsia -2 con tempo di uscita maggiore (ovvero l'auto che eventuamente precede A nella sosta ai box) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
 \subsection{Arrivo}
 Termiazione dei processi car
 \subsection{Interazione con l'Utente}
