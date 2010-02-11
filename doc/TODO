@@ -1,6 +1,5 @@
 - fare GUI per il bootstrap_server
 - fare GUI e backends per weather, race_info e teams
-- GUI debug_log: generalizzare le parti hard-coded
 - TODO/FIXME nel codice
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
