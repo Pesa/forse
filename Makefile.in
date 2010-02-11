@@ -2,6 +2,7 @@ ERLC = @ERLC@
 ERL = @ERL@
 ERLCFLAGS = -D debug @ERLCFLAGS@
 
+PYRCC ?= pyrcc4
 PYUIC ?= pyuic4
 
 BINDIR = ebin
@@ -10,6 +11,10 @@ SRCDIR = src
 
 ERL_HEADERS := $(wildcard $(INCDIR)/*.hrl)
 ERL_SOURCES := $(wildcard $(SRCDIR)/*.erl)
+FORMS :=
+RESOURCES := forse.qrc
+
+##########################################
 
 ifeq ($(V),1)
 Q =
@@ -19,20 +24,30 @@ Q = @
 NQ = @echo
 endif
 
-.SUFFIXES: .beam .erl .py .ui
+ERL_OBJS := $(patsubst $(SRCDIR)/%.erl,$(BINDIR)/%.beam,$(ERL_SOURCES))
+FORMS_OBJS := $(patsubst %.ui,Ui_%.py,$(FORMS))
+RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
+
+.SUFFIXES: .beam .erl .py .qrc .ui
 
 $(BINDIR)/%.beam: $(SRCDIR)/%.erl $(ERL_HEADERS)
 	$(NQ) "compiling" $<
 	$(Q) $(ERLC) -I $(INCDIR) $(ERLCFLAGS) -b beam -o $(BINDIR) $<
 
+%_rc.py: %.qrc
+	$(NQ) "generating" $@ "from" $<
+	$(Q) $(PYRCC) -py2 -o $@ $<
+
 Ui_%.py: %.ui
 	$(NQ) "generating" $@ "from" $<
 	$(Q) $(PYUIC) -o $@ $<
 
-all: $(addprefix $(BINDIR)/,$(notdir $(ERL_SOURCES:.erl=.beam)))
+all: $(ERL_OBJS) $(FORMS_OBJS) $(RESOURCES_OBJS)
 
 clean:
-	rm -f $(BINDIR)/*.beam
+	rm -f $(ERL_OBJS)
+	rm -f $(FORMS_OBJS) $(FORMS_OBJS)c $(FORMS_OBJS)o
+	rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS)c $(RESOURCES_OBJS)o
 
 distclean: clean
 	rm -f aclocal.m4 config.log config.status Makefile
