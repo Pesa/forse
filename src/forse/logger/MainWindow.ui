@@ -14,7 +14,7 @@
    <string>Debug Log</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../../../forse.qrc">
+   <iconset resource="../icons.qrc">
     <normaloff>:/icons/debug-log.png</normaloff>:/icons/debug-log.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -31,7 +31,7 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <resources>
-  <include location="../../../forse.qrc"/>
+  <include location="../icons.qrc"/>
  </resources>
  <connections/>
 </ui>

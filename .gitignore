@@ -17,7 +17,7 @@ doc/*.pdf
 doc/*.toc
 doc/diagrammi/*.eps
 ebin/*.beam
-forse_rc.py
+src/forse/icons_rc.py
 src/forse/*/Ui_*.py
 *~
 *.pyc

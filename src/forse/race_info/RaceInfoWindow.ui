@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Race Info</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../icons.qrc">
+    <normaloff>:/icons/race-info.png</normaloff>:/icons/race-info.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout_3">
     <item>
@@ -145,7 +149,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../../forse.qrc"/>
+  <include location="../icons.qrc"/>
  </resources>
  <connections/>
 </ui>

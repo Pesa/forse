@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/" >
-    <file>icons/debug-log.png</file>
-    <file>icons/arrow-down.png</file>
-    <file>icons/arrow-up.png</file>
-    <file>icons/clear.png</file>
-    <file>icons/connect.png</file>
-  </qresource>
-</RCC>
