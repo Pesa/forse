@@ -2,8 +2,8 @@ ERLC = @ERLC@
 ERL = @ERL@
 ERLCFLAGS = -D debug @ERLCFLAGS@
 
-PYRCC ?= pyrcc4
-PYUIC ?= pyuic4
+PYRCC = @PYRCC@
+PYUIC = @PYUIC@
 
 BINDIR = ebin
 INCDIR = include
@@ -12,7 +12,13 @@ SRCDIR = src
 ERL_HEADERS := $(wildcard $(INCDIR)/*.hrl)
 ERL_SOURCES := $(wildcard $(SRCDIR)/*.erl)
 FORMS :=
-RESOURCES := forse.qrc
+RESOURCES := src/forse/icons.qrc
+
+##########################################
+
+ERL_OBJS := $(patsubst $(SRCDIR)/%.erl,$(BINDIR)/%.beam,$(ERL_SOURCES))
+FORMS_OBJS := $(patsubst %.ui,Ui_%.py,$(FORMS))
+RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
 
 ##########################################
 
@@ -24,9 +30,7 @@ Q = @
 NQ = @echo
 endif
 
-ERL_OBJS := $(patsubst $(SRCDIR)/%.erl,$(BINDIR)/%.beam,$(ERL_SOURCES))
-FORMS_OBJS := $(patsubst %.ui,Ui_%.py,$(FORMS))
-RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
+first: all
 
 .SUFFIXES: .beam .erl .py .qrc .ui
 
@@ -46,11 +50,11 @@ all: $(ERL_OBJS) $(FORMS_OBJS) $(RESOURCES_OBJS)
 
 clean:
 	rm -f $(ERL_OBJS)
-	rm -f $(FORMS_OBJS) $(FORMS_OBJS)c $(FORMS_OBJS)o
-	rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS)c $(RESOURCES_OBJS)o
+	rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
+	rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
 
 distclean: clean
 	rm -f aclocal.m4 config.log config.status Makefile
 	rm -rf autom4te.cache
 
-.PHONY: all clean distclean
+.PHONY: all clean distclean first
