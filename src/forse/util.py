@@ -20,16 +20,21 @@ def atomToBool(atom):
         raise ValueError(str(atom) + " is not a valid boolean value.")
 
 
-class ProxyHandler(object):
+class _ProxyHandler(object):
 
     def __init__(self):
         object.__init__(self)
-        self._handlers = {}
+        self.__handlers = {}
 
-    def remote_handle_msg(self, type, msg):
+    def addHandler(self, tag, method):
+        if tag not in self.__handlers:
+            self.__handlers[tag] = []
+        self.__handlers[tag].append(method)
+
+    def remote_handleMessage(self, type, msg):
         try:
             key, value = msg
-            for h in self._handlers[type.text, key.text]:
+            for h in self.__handlers[type.text, key.text]:
                 h(value)
         except KeyError:
             print "No handlers registered for", type.text, "message:", msg
@@ -46,7 +51,7 @@ class NodeApplication(QApplication):
         self.__cookie = twotp.readCookie()
         self.__nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
         self.__process = twotp.Process(self.__nodeName, self.__cookie)
-        self.__proxy = ProxyHandler()
+        self.__proxy = _ProxyHandler()
         self.__retryDelay = 1
         QTimer.singleShot(0, self.__startup)
 
@@ -60,7 +65,7 @@ class NodeApplication(QApplication):
         return sha256(str(random())).hexdigest()[:length]
 
     def __nodeCB(self, result):
-        args = [Atom(self.__nodeName), Atom(self.__appName), Atom("handle_msg")]
+        args = [Atom(self.__nodeName), Atom(self.__appName), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), args
         d = self.__process.callRemote(result.text, "event_dispatcher", "subscribe",
                                       Atom(self.__appName), callback)
@@ -106,6 +111,4 @@ class NodeApplication(QApplication):
 
     def registerMsgHandlers(self, handlers):
         for tag, method in handlers.iteritems():
-            if tag not in self.__proxy._handlers:
-                self.__proxy._handlers[tag] = []
-            self.__proxy._handlers[tag].append(method)
+            self.__proxy.addHandler(tag, method)
