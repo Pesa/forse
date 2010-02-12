@@ -525,6 +525,39 @@ Visto che ogni scuderia può rifornire una sola auto alla volta il tempo di usci
 $T_{ex_A} = max(T_{en_A}, T_{ex_B}) + T_{ops}$
 \end{center}
 dove B è l'auto accodata nello stesso segmento e in corsia -2 con tempo di uscita maggiore (ovvero l'auto che eventuamente precede A nella sosta ai box) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
+
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/NextPitstop}
+\caption{Algoritmo set\_next\_pitstop di car}
+\label{fig:nextPitstop}
+\end{figure}
+\end{center}
+
+Un'auto si reca ai pitstop in risposta a due eventi distinti:
+\begin{itemize}
+\item su richiesta dell'utente e con effetto immediato,
+\item su richiesta dei team, in base ai dati ottenuti nel corso della competizione, indicando il giro a cui l'auto deve recarsi ai box.
+\end{itemize}
+
+Entrambe queste richieste devono passare dalla componente team che si incarica di comunicare con l'auto attraverso l'invio di un messaggio di tipo next\_pitstop in modo asincrono per evitare possibili situazioni di deadlock. Il fatto che il messaggio sia asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento pitstop di una scuderia vi sia un segmento di tipo intermediate e supponiamo anche che l'auto A di tale scuderia stia percorrendo la pitlane per effettuare una sosta.
+E' possibile che si verifichi la seguente sequenza di eventi:
+\begin{enumerate}
+\item A percorre il segmento intermediate e viene inviata una chrono\_notif al dispatcher,
+\item A percorre il segmento successivo ed effettua la sosta ai pitstop,
+\item la chrono\_notif arriva al team di A, il quale in base ai dati ricevuti sullo stato dell'auto (ormai obsoleti a causa del pitstop) decide per esempio di posticipare al giro successivo la sosta ai box,
+\item A riceve il messaggio e obbedisce al team rientrando ai box nel giro successivo, effettuando quindi una sosta probabilmente inutile.
+\end{enumerate}
+
+La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che car e team mantengano un contatore dei pitstop effettuati dall'auto fino a quel momento e che team nel messaggio next\_pitstop inserisca anche il valore di tale contatore. Di conseguenza nel momento in cui l'auto riceve il messaggio può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorare il messaggio.
+
+Lato car l'algoritmo che gestisce l'arrivo di messaggi next\_pitstop è quello rappresentato in figura \ref{fig:nextPitstop}.
+
+Il parametro \fun{new\_stop} presente nel messaggio next\_pitstop può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare pitstop successivo se la sosta è richiesta dalla logica di team. Come si può notare dalla figura viene dato maggior peso alle decisioni dell'utente ignorando i messaggi dei team che potrebbero interferire.
+
+Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero e \fun{undefined}. Il valore undefined serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai team o dall'utente.
+
 \subsection{Arrivo}
 Termiazione dei processi car
 \subsection{Interazione con l'Utente}

@@ -1,6 +1,6 @@
 format 70
 "bouml"
-  revision 3
+  revision 4
   modified_by 3 "daniele"
 
 
@@ -31,7 +31,7 @@ format 70
   show_infonote yes drawing_language uml show_stereotype_properties no
   
   class_color yellow duration_color transparent continuation_color gray note_color blue fragment_color transparent subject_color transparent usecase_color yellow package_color transparent component_color green artifact_color green deploymentnode_color gray state_color yellow stateaction_color transparent activity_color transparent activityregion_color transparent activitypartition_color transparent activityaction_color transparent parameterpin_color white 
-  font_size 10
+  font_size 12
   diagram_format A4
 
   mark_for_import
@@ -137,6 +137,102 @@ format 70
       idl_decl ""
       explicit_switch_type ""
       
+    end
+
+    activity 128003 "pitstop protocol"
+      activitydiagram 134659 "next_pitstop"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations no shadow no
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activitynode 128259 initial ""
+	flow 128259 "<flow>"
+	  on pin_ref 128387 // {new_stop, stops_count}
+	end
+      end
+
+      activityaction 128131 "Get current_lap, stops_done and next_stop from car status"
+	opaque_action
+	pin 128387 "{new_stop, stops_count}" explicit_type ""
+	  unordered is_control
+	  in
+	end
+
+	flow 128387 "<flow>"
+	  on activitynode_ref 128387 // decision
+	end
+      end
+
+      activityaction 128259 "Ignore message"
+	opaque_action
+	flow 129795 "<flow>"
+	  on activitynode_ref 128899 // merge
+	end
+      end
+
+      activitynode 128387 decision ""
+	flow 128515 "<flow>"
+	  on activityaction_ref 128259 // activity action Ignore message
+	end
+
+	flow 128643 "<flow>"
+	  on activitynode_ref 128515 // decision
+	end
+      end
+
+      activitynode 128515 decision ""
+	flow 128771 "<flow>"
+	  on activityaction_ref 128387 // activity action Set next_stop = now in car status
+	end
+
+	flow 128899 "<flow>"
+	  on activitynode_ref 128643 // decision
+	end
+      end
+
+      activityaction 128387 "Set next_stop = now in car status"
+	opaque_action
+	flow 129539 "<flow>"
+	  on activitynode_ref 128899 // merge
+	end
+      end
+
+      activitynode 128643 decision ""
+	flow 129027 "<flow>"
+	  on activityaction_ref 128259 // activity action Ignore message
+	end
+
+	flow 129155 "<flow>"
+	  on activitynode_ref 128771 // decision
+	end
+      end
+
+      activitynode 128771 decision ""
+	flow 129283 "<flow>"
+	  on activityaction_ref 128515 // activity action Set next_stop = new_stop in car status
+	end
+
+	flow 129411 "<flow>"
+	  on activityaction_ref 128259 // activity action Ignore message
+	end
+      end
+
+      activityaction 128515 "Set next_stop = new_stop in car status"
+	opaque_action
+	flow 129667 "<flow>"
+	  on activitynode_ref 128899 // merge
+	end
+      end
+
+      activitynode 128899 merge ""
+	flow 129923 "<flow>"
+	  on activitynode_ref 129027 // activity_final
+	end
+      end
+
+      activitynode 129027 activity_final ""
+      end
     end
   end
 end
