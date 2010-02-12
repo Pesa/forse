@@ -2,8 +2,7 @@ ERLC = @ERLC@
 ERL = @ERL@
 ERLCFLAGS = -D debug @ERLCFLAGS@
 
-PYRCC = @PYRCC@
-PYUIC = @PYUIC@
+SUBDIRS = src/forse
 
 BINDIR = ebin
 INCDIR = include
@@ -11,59 +10,52 @@ SRCDIR = src
 
 ERL_HEADERS := $(wildcard $(INCDIR)/*.hrl)
 ERL_SOURCES := $(wildcard $(SRCDIR)/*.erl)
-FORMS :=
-RESOURCES := src/forse/icons.qrc
-
-##########################################
-
 ERL_OBJS := $(patsubst $(SRCDIR)/%.erl,$(BINDIR)/%.beam,$(ERL_SOURCES))
-FORMS_OBJS := $(patsubst %.ui,Ui_%.py,$(FORMS))
-RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
 
 ##########################################
 
 ifeq ($(V),1)
-Q =
-NQ = @:
+Q :=
+NQ := @:
 MAKE := $(MAKE)
 else
-Q = @
-NQ = @echo
+Q := @
+NQ := @echo
 MAKE := $(MAKE) --no-print-directory
 endif
 
 first: all
 
-.SUFFIXES: .beam .erl .py .qrc .ui
+.SUFFIXES: .beam .erl
 
 $(BINDIR)/%.beam: $(SRCDIR)/%.erl $(ERL_HEADERS)
 	$(NQ) "compiling" $<
 	$(Q) $(ERLC) -I $(INCDIR) $(ERLCFLAGS) -b beam -o $(BINDIR) $<
 
-%_rc.py: %.qrc
-	$(NQ) "generating" $@ "from" $<
-	$(Q) $(PYRCC) -py2 -o $@ $<
+all: $(ERL_OBJS) all-recursive
 
-Ui_%.py: %.ui
-	$(NQ) "generating" $@ "from" $<
-	$(Q) $(PYUIC) -o $@ $<
-
-all: $(ERL_OBJS) $(FORMS_OBJS) $(RESOURCES_OBJS)
+all-recursive:
+	$(Q) for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir ; \
+	done
 
 relazione:
-	$(Q) cd doc/ && $(MAKE)
+	$(Q) $(MAKE) -C doc
 
 clean:
-	$(NQ) "cleaning up ..."
+	$(NQ) "cleaning"
 	$(Q) rm -f *~
 	$(Q) rm -f $(ERL_OBJS)
-	$(Q) rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
-	$(Q) rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
-	$(Q) cd doc/ && $(MAKE) clean
-	$(NQ) "cleanup done"
+	$(Q) for dir in $(SUBDIRS) doc ; do \
+		$(MAKE) -C $$dir clean ; \
+	done
 
 distclean: clean
+	$(NQ) "distcleaning"
 	$(Q) rm -f aclocal.m4 config.log config.status Makefile
 	$(Q) rm -rf autom4te.cache
+	$(Q) for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir distclean ; \
+	done
 
-.PHONY: all clean distclean first relazione
+.PHONY: all all-recursive clean distclean first relazione

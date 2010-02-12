@@ -1,0 +1,42 @@
+PYRCC = @PYRCC@
+PYUIC = @PYUIC@
+
+FORMS := $(wildcard */*.ui)
+FORMS_OBJS := $(join $(dir $(FORMS)),$(patsubst %.ui,Ui_%.py,$(notdir $(FORMS))))
+
+RESOURCES := icons.qrc
+RESOURCES_OBJS := $(patsubst %.qrc,%_rc.py,$(RESOURCES))
+
+##########################################
+
+ifeq ($(V),1)
+Q :=
+NQ := @:
+else
+Q := @
+NQ := @echo
+endif
+
+first: all
+
+.SUFFIXES: .py .qrc .ui
+
+%_rc.py: %.qrc
+	$(NQ) "generating" $@ "from" $<
+	$(Q) $(PYRCC) -py2 -o $@ $<
+
+Ui_%.py: %.ui
+	$(NQ) "generating" $@ "from" $<
+	$(Q) $(PYUIC) -o $@ $<
+
+all: $(FORMS_OBJS) $(RESOURCES_OBJS)
+
+clean:
+	$(Q) rm -f *~
+	$(Q) rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
+	$(Q) rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
+
+distclean: clean
+	$(Q) rm -f Makefile
+
+.PHONY: all clean distclean first

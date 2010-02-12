@@ -19,4 +19,5 @@ AC_ARG_VAR([PYUIC], [PyQt4 user interface compiler])
 AC_PATH_PROG([PYUIC], pyuic4)
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([src/forse/Makefile])
 AC_OUTPUT
