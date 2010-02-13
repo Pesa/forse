@@ -562,6 +562,18 @@ Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori 
 Termiazione dei processi car
 \subsection{Interazione con l'Utente}
 
+\section{Event Dispatcher}
+\begin{landscape}
+\begin{figure}
+\includegraphics[width=0.75\paperheight]{diagrammi/NotifFlow}
+\caption{Diffusione delle notifiche tramite dispatcher}
+\label{fig:notifFlow}
+\end{figure}
+\end{landscape}
+
+In figura \ref{fig:notifFlow}, sulla sinistra si possono vedere quali sono i tipi di notifica presenti nel sistema e da che componenti sono inviati, mentre sulla destra sono rappresentate le componenti che ricevono i dati, eventualmente rielaborati, derivanti dalle notifiche.
+
+TODO: descrizione interna del dispatcher.
 \section{Correttezza}
 Considerazioni sulla correttezza del tempo di percorrenza, controllo della concorrenza, algoritmo di sorpasso.
 Rallentamento della simulazione non influenza i tempi di gara (scheduler).
