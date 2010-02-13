@@ -1,10 +1,10 @@
 import sys
 from PyQt4.QtGui import QMainWindow
-from Ui_MainWindow import Ui_MainWindow
+from Ui_LoggerWindow import Ui_LoggerWindow
 from util import NodeApplication
 
 
-class MainWindow(QMainWindow, Ui_MainWindow):
+class MainWindow(QMainWindow, Ui_LoggerWindow):
 
     def __init__(self):
         QMainWindow.__init__(self)
