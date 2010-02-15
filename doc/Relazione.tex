@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{pdflscape}
+\usepackage{multirow}
 
 \hypersetup{
 	breaklinks,
@@ -38,9 +39,9 @@ I requisiti considerati in fase di progettazione sono stati ricavati da quelli p
 secondo le clausole di partecipazione di livello 3.
 
 \textsl{Formula One Race Simulation Engine} è realizzato utilizzando i linguaggi \textsl{Erlang} e \textsl{Python}. Per la distribuzione dell'applicazione abbiamo
-usato il protocollo di distribuzione Erlang, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{Twotp} per il linguaggio
+usato il protocollo di distribuzione Erlang, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{TwOTP} per il linguaggio
 \textsl{Python}.
-Per la creazione di interfacce grafiche è stata utilizzata la libreria \textsl{Qt4}.
+Per la creazione di interfacce grafiche è stata utilizzata la libreria \textsl{Qt}.
 
 Nelle fasi di progettazione e realizzazione del prototipo è stata posta maggiore attenzione riguardo le tematiche inerenti distribuzione e concorrenza, nozioni
 centrali del corso, a scapito della parte riguardante la correttezza della simulazione da un punto di vista fisico. Abbiamo comunque cercato di includere
@@ -119,7 +120,7 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
 
 
 \chapter{Problemi}
-
+Avvio, accesso alla pista (scheduler), le macchine non si devono scavalcare e sorpassi coerenti, interazione asicrona dell'utente e dei team per le soste, interazione del weather sincrono e utente asincrono, realismo fisico e di simulazione (box), controllo di terminazione a fine gara, terminazione del sistema.
 
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
@@ -324,7 +325,58 @@ Eventualmente cassare questa sezione
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
-Breve descizioni dei principi base ed eventuali problemi riscontrati.
+Il prototipo è realizzato in \textit{Erlang} e \textit{Python} con l'utilizzo delle librerie \textit{TwOTP} e \textit{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \textit{Erlang} su nodi \textit{Python} e per la costruzione di GUI con il supporto dei bindings \textit{PyQt}.
+
+Di seguito le versioni del software utilizzato:
+\begin{center}
+\begin{tabular}{c|c}
+\textbf{Software} & \textbf{Versione}\\
+\hline
+Erlang & R13B02\\
+\hline
+Python & 2.6.4\\
+\hline
+TwOTP & 0.7\\
+Twisted & 9.0.0\\
+\hline
+PyQt & 4.7\\
+Qt & 4.6\\
+\end{tabular}
+\end{center}
+
+Il criterio che abbiamo usato per decidere se implementare una componente del sistema in Erlang o Python è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare Python più le librerie sopra citate, Erlang altrimenti.
+\begin{center}
+\begin{tabular}{|p{0.2\textwidth}|p{0.3\textwidth}|}
+\hline
+\multirow{6}{*}{\textbf{Erlang}} & Scheduler\\
+& Event Dispatcher\\
+& Weather\\
+& Track\\
+& Team\\
+& Car \\
+\hline
+\multirow{4}{*}{\textbf{Python}} & Race Info\\
+& Debug Log\\
+& Team GUI\\
+& Weather GUI\\
+\hline
+\end{tabular}
+\end{center}
+\subsection*{Caratteristiche di Erlang}
+\textit{Erlang} è un linguaggio di programmazione funzionale concorrente \textit{general-purpose} con \textit{dynamic typing}. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textit{Dialyzer}, un tool di analisi statica per \textit{Erlang}.
+
+I processi \textit{Erlang} sono estremamente leggeri dal punto di vista dell'occupazione memoria e per questo il linguaggio si presta bene ad applicazioni che usano un gran numero di processi concorrenti. Non vi è memoria condivisa e i processi comunicano tramite scambio di messaggi asincrono.
+
+La macchina virtuale Erlang è detta anche nodo Erlang e un sistema Erlang distribuito è composto quindi da una rete di nodi Erlang. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione Erlang che permette la comunicazione tra due nodi Erlang in rete grazie anche al EPMD (Erlang Port Mapper Daemon) avviato automaticamente al bootstrap di ogni nodo. Oltre a questo protocollo nativo, Erlang supporta anche CORBA v 2.0 tramite il modulo Orber.
+
+Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
+\subsection*{Mnesia}
+Mnesia è un database distribuito per \textit{Erlang} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa. Nella componente track per esempio Mnesia viene utilizzato per contenere i dati relativi ai segmenti di cui si compone la pista... (descrivere il sistema di notifiche a raceinfo?? FIXME).
+\subsection*{Interazione Erlang-Python: TwOTP}
+TwOTP, Twisted interface to Erlang OTP, è una libreria che implementa il protocollo di distribuzione \textit{Erlang} in linguaggio \textit{Python} con l'ausilio di \textit{Twisted}. (FIXME che cazzo dico ancora??).
+\subsection*{Nodi erlang e applicazioni}
+\subsection*{Eventuali problemi riscontrati}
+Differenza tra chiamate asincrone in locale e in remoto (garanzia sull'ordine).
 \section{Dinamiche della competizione}
 \subsection{Partenza}
 Prima che l'utente dia il via alla competizione tutte le auto devono essersi registrate presso lo scheduler indicando come tempo di prenotazione 0.
@@ -573,7 +625,18 @@ Termiazione dei processi car
 
 In figura \ref{fig:notifFlow}, sulla sinistra si possono vedere quali sono i tipi di notifica presenti nel sistema e da che componenti sono inviati, mentre sulla destra sono rappresentate le componenti che ricevono i dati, eventualmente rielaborati, derivanti dalle notifiche.
 
-TODO: descrizione interna del dispatcher.
+Un compito molto importante del dispatcher è quello di mantenere l'ordine delle notifiche rispetto ogni destinazione, non è quindi possibile affidarsi a comunicazione asincrona.
+I messaggi in ingresso e in uscita dal dispatcher verso le altre componenti del sistema sono quindi veicolati da chiamate sincrone, tuttavia, al suo interno il dispatcher è composto da più processi che comunicano tra di loro in modo asincrono, mantenendo comunque invariato l'ordine delle notifiche.
+Questo è possibile poiché l'ordine di messaggi asincroni tra processi sullo stesso nodo è grantito dal linguaggio. Una funzione fondamentale di questa parte asincrona nel percorso che la notifica deve fare è quella di interrompere possibili deadlock.
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/Dispatcher}
+\caption{Interno del Event Dispatcher}
+\label{fig:dispatcher}
+\end{figure}
+
+Come si può vedere in figura \ref{fig:dispatcher}, il dispatcher è composto di un processo detto frontend (FIXME controllare come si scrive :P) che ha il compito di ricevere ogni notifica in ingresso e spedirla ai backend interessati in modo asincrono. Oltre a ciò, il frontend deve anche ricevere le richieste di subscription e registrare quindi i processi richiedenti presso il corretto backend. Al ricevimento di una notifica un backend provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di subscribers.
+
+Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i backends abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della subscription. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
 \section{Correttezza}
 Considerazioni sulla correttezza del tempo di percorrenza, controllo della concorrenza, algoritmo di sorpasso.
 Rallentamento della simulazione non influenza i tempi di gara (scheduler).
