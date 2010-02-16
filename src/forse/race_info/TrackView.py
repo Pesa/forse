@@ -6,9 +6,6 @@ from Track import Track
 from util import atomToBool, NodeApplication
 
 
-__all__ = ['TrackView']
-
-
 class TrackView(QGraphicsView):
 
     def __init__(self, parent=None):
