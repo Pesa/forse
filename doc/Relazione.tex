@@ -120,7 +120,41 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
 
 
 \chapter{Problemi}
-Avvio, accesso alla pista (scheduler), le macchine non si devono scavalcare e sorpassi coerenti, interazione asicrona dell'utente e dei team per le soste, interazione del weather sincrono e utente asincrono, realismo fisico e di simulazione (box), controllo di terminazione a fine gara, terminazione del sistema.
+\subsection*{Avvio del sistema}
+La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero avere delle inconsistenze nella simulazione. In sostanza è necessario quindi implementare una barriera per la sincronazzizazione di questi processi necessari alla simulazione.
+
+\subsection*{Accesso alla pista}
+Le modifiche alle condizioni della pista devono essere eseguite in mutua esclusione per evitare inconsistenze nel suo stato interno, è necessario quindi che i processi che accedono alle informazioni sulla pista eseguano in modo ordinato e solo quando previsto dalla logica di simulazione. Non deve accadere quindi che due auto effettuino contemporaneamente uno spostamento oppure che vengano modificate le condizioni atmosferiche finché un'auto si sta spostando sul tracciato di gara.
+La concorrenza deve quindi essere controllata per evitare queste situazioni di race condition.
+
+\subsection*{Sorpassi coerenti}
+Quando due auto si trovano a percorrere lo stesso segmento di pista devono interagire in modo realistico. Devono essere quindi chiare e verosimili le condizioni che permettono ad un'auto di sorpassarne un'altra per evitare che si verifichino sorpassi dove la pista o la presenza di altre auto non lo consentano.
+\subsection*{Comunicazione di sosta}
+Un'auto effettua il rifornimento solo quando richiesto da un attore esterno. Questo attore può essere la scuderia o l'utente.
+
+La scuderia indica all'auto durante quale giro di gara effettuare la sosta in base alle informazioni raccolte sulle performance dell'auto, di conseguenza è possibile che al variare delle condizioni della pista la scuderia calcoli una nuova strategia. Nel caso di un cambiamento delle condizioni atmosferiche per esempio la scuderia può decidere di far rientrare ai box un'auto al fine di montare dei pneumatici adeguati alle nuove condizioni, risulta quindi evidente che il messaggio di sosta può essere più volte e l'auto deve tenere in considerazione solo quello più recente.
+
+L'utente può invece forzare la sosta immediata di un'auto ai box. L'interazione con l'utente avviene in modo asincrono rispetto alla simulazione e deve avere la precedenza sulle direttive provenienti dalla scuderia.
+
+Le situazioni da evitare sono quindi due:
+\begin{itemize}
+\item Un'auto effettua una sosta ai box sulla base di informazioni non aggiornate,
+\item La richiesta di sosta proveniente dall'utente viene ignorata a causa di una successiva ricezione di direttive diverse dalla scuderia.
+\end{itemize}
+
+\subsection*{Variazione condizioni atmosferiche}
+Le variazioni alle condizioni atmosferiche sono effettuate dal sistema in modo sincrono alla competizione nel caso in cui siano state previste a livello di configurazione oppure possono avvenire a seguito di un'intervento dell'utente in modo asincrono rispetto alla competizione. Il sistema deve quindi permettere di effettuare queste modifiche evitando i problemi di race condition precedentementi evidenziati.
+
+\subsection*{Realismo}
+Poiché il prototipo deve simulare una situazione reale bisogna trovare un trade-off adeguato tra la semplicità di implementazione e l'accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere un segmento che dal punto di vista della rappresentazione della pista e delle sue regole di percorrenza. Nella realtà per esempio due auto appartenenti alla stessa scuderia non possono effettuare il rifornimento in contemporanea e devono rispettare i limiti di velocità imposti dal regolamento quando si trovano nella pitlane.
+
+\subsection*{Fine della competizione}
+Il sistema deve essere in grado di riconoscere la fine della competizione ovvero quando l'ultima auto in gara taglia il traguardo. in risposta a questo evento il sistema deve reagire in modo opportuno, mettendosi in uno stato che impedisca alla simulazione di procedere.
+
+Deve essere quindi previsto un modo per comunicare a tutte le componenti del sistema di terminare, nel caso in cui non servano più, oppure di mettersi in uno stato di sospensione per permettere all'utente di consultare i dati raccolti durante la simulazione.
+
+\subsection*{Terminazione del sistema}
+TODO
 
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
@@ -627,7 +661,8 @@ In figura \ref{fig:notifFlow}, sulla sinistra si possono vedere quali sono i tip
 
 Un compito molto importante del dispatcher è quello di mantenere l'ordine delle notifiche rispetto ogni destinazione, non è quindi possibile affidarsi a comunicazione asincrona.
 I messaggi in ingresso e in uscita dal dispatcher verso le altre componenti del sistema sono quindi veicolati da chiamate sincrone, tuttavia, al suo interno il dispatcher è composto da più processi che comunicano tra di loro in modo asincrono, mantenendo comunque invariato l'ordine delle notifiche.
-Questo è possibile poiché l'ordine di messaggi asincroni tra processi sullo stesso nodo è grantito dal linguaggio. Una funzione fondamentale di questa parte asincrona nel percorso che la notifica deve fare è quella di interrompere possibili deadlock.
+Questo è possibile poiché l'ordine di messaggi asincroni tra processi sullo stesso nodo è grantito dal linguaggio. Una funzione fondamentale di questa parte asincrona nel percorso che la notifica deve fare è quella di evitare possibili deadlock intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso il dispatcher non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
+Come si può notare in figura \ref{fig:notifFlow}, per esempio, la componente team compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di deadlock in cui team, durante la sincronizzanizzazione con il dispatcher, tenta di sincronizzarsi con se stesso ottenendo come risultato un evidente fallimento.
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Dispatcher}
 \caption{Interno del Event Dispatcher}
@@ -638,8 +673,15 @@ Come si può vedere in figura \ref{fig:dispatcher}, il dispatcher è composto di
 
 Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i backends abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della subscription. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
 \section{Correttezza}
-Considerazioni sulla correttezza del tempo di percorrenza, controllo della concorrenza, algoritmo di sorpasso.
-Rallentamento della simulazione non influenza i tempi di gara (scheduler).
+\subsection*{Avvio del sistema}
+TODO
+\subsection*{Accesso alla pista}
+controllo della concorrenza (scheduler).
+
+\subsection*{Tempo di percorrenza}
+Considerazioni sulla correttezza del tempo di percorrenza, algoritmo di sorpasso, rallentamento della simulazione non influenza i tempi di gara (scheduler).
+
+
 \appendix
 
 \chapter{Glossario}
