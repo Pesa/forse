@@ -347,7 +347,7 @@ I dati da mostrare all'utente sono:
 L'utente può inoltre forzare la sosta ai box o il ritiro per un'auto appartenente alla scuderia.
 \subsection*{Interfaccia Fornita}
 \subsection*{Interfaccia Richiesta}
-\section{Weather Gui}
+\section{Weather Station}
 Questa componente è un'interfaccia grafica che mostra all'utente le condizioni atmosferiche sulla pista e permette a quest'ultimo di modificarle in modo asincrono rispetto alla simulazione durante il corso della competizione. Le informazioni sullo stato della pista sono ottenute dall'event dispatcher mentre le richieste di variazioni vengono inviate alla componente weather.
 
 \subsection*{Interfaccia Fornita}
@@ -392,7 +392,7 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \multirow{4}{*}{\textbf{Python}} & Race Info\\
 & Debug Log\\
 & Team GUI\\
-& Weather GUI\\
+& Weather Station\\
 \hline
 \end{tabular}
 \end{center}
@@ -669,9 +669,9 @@ Come si può notare in figura \ref{fig:notifFlow}, per esempio, la componente te
 \label{fig:dispatcher}
 \end{figure}
 
-Come si può vedere in figura \ref{fig:dispatcher}, il dispatcher è composto di un processo detto frontend (FIXME controllare come si scrive :P) che ha il compito di ricevere ogni notifica in ingresso e spedirla ai backend interessati in modo asincrono. Oltre a ciò, il frontend deve anche ricevere le richieste di subscription e registrare quindi i processi richiedenti presso il corretto backend. Al ricevimento di una notifica un backend provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di subscribers.
+Come si può vedere in figura \ref{fig:dispatcher}, il dispatcher è composto di un processo detto front-end che ha il compito di ricevere ogni notifica in ingresso e spedirla ai back-end interessati in modo asincrono. Oltre a ciò, il front-end deve anche ricevere le richieste di subscription e registrare quindi i processi richiedenti presso il corretto back-end. Al ricevimento di una notifica un back-end provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di subscribers.
 
-Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i backends abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della subscription. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
+Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i back-ends abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della subscription. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
 \section{Correttezza}
 \subsection*{Avvio del sistema}
 TODO
@@ -681,6 +681,8 @@ controllo della concorrenza (scheduler).
 \subsection*{Tempo di percorrenza}
 Considerazioni sulla correttezza del tempo di percorrenza, algoritmo di sorpasso, rallentamento della simulazione non influenza i tempi di gara (scheduler).
 
+\subsection*{Terminazione della simulazione}
+\subsection*{Terminazione del sistema}
 
 \appendix
 
