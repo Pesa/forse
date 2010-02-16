@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="/">
+    <file>../../icons/dialog-ok.png</file>
+    <file>../../icons/open.png</file>
     <file>../../icons/arrow-down.png</file>
     <file>../../icons/arrow-up.png</file>
     <file>../../icons/clear.png</file>
