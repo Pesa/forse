@@ -42,12 +42,10 @@ class _ProxyHandler(object):
 
 class NodeApplication(QApplication):
 
-    def __init__(self, appName):
+    def __init__(self, appName, autoConnect=True):
         QApplication.__init__(self, sys.argv)
-        self.__nameServer = os.getenv("FORSE_NS")
-        if not self.__nameServer:
-            raise ValueError("environment variable FORSE_NS is not defined.")
         self.__appName = appName
+        self.__autoConnect = autoConnect
         self.__cookie = twotp.readCookie()
         self.__nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
         self.__process = twotp.Process(self.__nodeName, self.__cookie)
@@ -55,7 +53,17 @@ class NodeApplication(QApplication):
         self.__retryDelay = 1
         QTimer.singleShot(0, self.__startup)
 
+    def connect(self):
+        QTimer.singleShot(0, self.__connect)
+
+    def registerMsgHandlers(self, handlers):
+        for tag, method in handlers.iteritems():
+            self.__proxy.addHandler(tag, method)
+
     def __connect(self):
+        self.__nameServer = os.getenv("FORSE_NS")
+        if not self.__nameServer:
+            raise ValueError("environment variable FORSE_NS is not defined.")
         d = self.__process.callRemote(self.__nameServer, "global", "whereis_name",
                                       Atom("event_dispatcher"))
         d.addCallback(self.__resolveCB)
@@ -98,7 +106,8 @@ class NodeApplication(QApplication):
         self.__process.register(self.__appName)
         self.__process.registerModule(self.__appName, self.__proxy)
         self.__process.listen()
-        self.__connect()
+        if self.__autoConnect:
+            self.__connect()
 
     def __subscribeCB(self, result):
         if isinstance(result, Atom) and result.text == "ok":
@@ -108,7 +117,3 @@ class NodeApplication(QApplication):
 
     def __subscribeEB(self, error):
         print error
-
-    def registerMsgHandlers(self, handlers):
-        for tag, method in handlers.iteritems():
-            self.__proxy.addHandler(tag, method)
