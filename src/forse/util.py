@@ -1,6 +1,4 @@
-import os, sys, twotp
-from hashlib import sha256
-from random import random
+import hashlib, os, random, sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QApplication
@@ -70,7 +68,7 @@ class NodeApplication(QApplication):
         d.addErrback(self.__resolveEB)
 
     def __generateRandomHash(self, length=8):
-        return sha256(str(random())).hexdigest()[:length]
+        return hashlib.sha1(str(random.random())).hexdigest()[:length]
 
     def __nodeCB(self, result):
         args = [Atom(self.__nodeName), Atom(self.__appName), Atom("handleMessage")]
