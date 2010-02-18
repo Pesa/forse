@@ -716,13 +716,27 @@ Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata �
 \section{Avvio del sistema}
 TODO
 \section{Accesso alla pista}
-controllo della concorrenza (scheduler).
+L'accesso alla componente track è disciplinato dallo scheduler infatti le uniche componenti che vi possono accedere sono car e weather. Ogniqualvolta car o weather necessitino dell'accesso alla risorsa track, essi effettuano la procedura di prenotazione presso lo scheduler a cui è delegato il compito di gestire la modalità di accesso a track.
+
+La componente scheduler utilizza una politica FIFO within priorities per gestire la coda dei processi prenotati assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione.
+Scheduler elegge quindi un solo processo alla volta (la testa della coda) per l'accesso a track e non permette l'accesso ad altri processi. Questo finché il processo che sta utilizzando track non notifica allo scheduler di non aver più bisgno della risorsa.
+
+Scheduler garantisce quindi un accesso sequenziale a track e assicura l'assenza di stati inconsistenti della pista.
 
 \section{Tempo di percorrenza}
-Considerazioni sulla correttezza del tempo di percorrenza, algoritmo di sorpasso, rallentamento della simulazione non influenza i tempi di gara (scheduler).
+Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente track.
 
-\section{Terminazione della simulazione}
-\section{Terminazione del sistema}
+Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tantomeno influisce l'orologio di sistema.
+Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino, come descritto in modo accurato in \ref{txt:percorrenza}.
+La procedura di sosta ai box differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
+
+Analizzando l'algoritmo ci si può facilmente convincere che non è possibile che avvenga il fenomeno dello ``scavalcamento'' tra auto.
+
+L'ultima considerazione rigarda l'influenza che il fattore di speedup può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto.
+
+Il fattore di speedup infatti viene implementato aumentando o riducendo il periodo di pausa che lo scheduler fa trascorrere tra il rilascio della componente track da parte di un processo e la concessione di tale risora ad un'altro.
+Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
+
 \section{Non determinismo}
 Per quanto riguarda il non determinismo a livello di simulazione abbiamo deciso di limitarlo alle sole situazioni in cui esso sia desiderabile.
 L'unico caso in cui l'ordine di esecuzione può infatti influire con il risultato della simulazione è quello in cui anche nella realtà non si possa prevedere in modo certo l'esito dell'interazione tra due auto.
@@ -746,6 +760,52 @@ Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allo
 
 C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento del sistema in una generica simulazione ma bisogna invece creare una situazione ad-hoc per ottenere dei test ripetibili e poter apprezzare quindi la presenza del non determinismo.
 
+\section{Realismo}
+\subsection*{Fisico}
+Al fine di ottenere buon livello di realismo della simulazione da un punto di vista fisico abbiamo deciso di far dipendere le performance dell'auto da diversi fattori modellando i fenomeni fisici convoilti nel miglior modo possibile, con particolare attenzione alla decelarazione.
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\multirow{5}{*}{Velocità massima in curva} & Raggio di curvatura\\
+& Inclinazione del tratto\\
+& Condizione atmosferica\\
+& Tipo di pneumatici\\
+& Usura dei pneumatici\\
+\hline
+\multirow{8}{*}{Accelerazione/Decelerazione massima} & Potenza del motore/dei freni\\
+& Peso dell'auto\\
+& Peso del carburante\\
+& Peso del pilota\\
+& Inclinazione del tratto\\
+& Condizione atmosferica\\
+& Tipo di pneumatici\\
+& Usura dei pneumatici\\
+\hline
+\multirow{3}{*}{Consumo dei pneumatici} & Raggio di curvatura\\
+& Tipo di pneumatici\\
+& Condizione atmosferica\\
+\hline
+Consumo di carburante & Inclinazione del tratto\\
+\hline
+\end{tabular}
+\end{center}
+
+Considerando la fase di decelerazione che un'auto deve intraprendere generalmente prima di entrare in curva o prima di accedere alla pitlane, è stato necessario introdurre nelle meccaniche di simulazione il calcolo della tabella di preelaborazione.
+Questo principalmente per evitare che le auto arrivassero all'entrata della curva e, non avendo il tempo di frenare, uscissero di pista sistematicamente.
+\subsection*{Dinamiche di gara}
+Per quanto riguarda il realismo nelle dinamiche di gara abbiamo considerato la possibilità per un'auto di ritirarsi dalla competizione ed essere quindi rimossa dalla pista a seguito di:
+\begin{itemize}
+\item Uscita di pista per velocità troppo elevata,
+\item Uscita di pista per evitare incidenti qualora l'auto non risca a frenare in tempo per evitare le altre auto,
+\item Esplosione pneumatici a causa di un'eccessiva usura,
+\item Esaurimento del carburante,
+\item Potenza del motore insufficiente a percorrere il tratto.
+\end{itemize}
+
+Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento in base anche alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
+
+Per avere una simulazione a grana fine abbiamo deciso di impostare la lunghezza di un segmento a 5 metri, in questo modo siamo riusciti anche ad ottenere una presentazione grafica della simulazione abbastanza fluida.
 
 \appendix
 
