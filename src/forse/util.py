@@ -1,10 +1,10 @@
-import hashlib, os, random, sys, twotp
+import hashlib, os, qt4reactor, random, sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QApplication
 
 
-__all__ = ['atomToBool', 'NodeApplication']
+__all__ = ['atomToBool', 'NodeApplication', 'SubscriberApplication']
 
 
 def atomToBool(atom):
@@ -39,79 +39,96 @@ class _ProxyHandler(object):
 
 
 class NodeApplication(QApplication):
+    """
+    Provides integration between a QApplication instance and a Python
+    node, making easier to perform remote operations on Erlang nodes.
+    """
 
-    def __init__(self, appName, autoConnect=True):
+    def __init__(self, appName):
         QApplication.__init__(self, sys.argv)
-        self.__appName = appName
-        self.__autoConnect = autoConnect
+        qt4reactor.install()
+        self._appName = appName
+        self.__nameServer = os.getenv("FORSE_NS")
+        if not self.__nameServer:
+            raise ValueError("environment variable FORSE_NS is not defined.")
         self.__cookie = twotp.readCookie()
-        self.__nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
-        self.__process = twotp.Process(self.__nodeName, self.__cookie)
-        self.__proxy = _ProxyHandler()
-        self.__retryDelay = 1
+        self._nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
+        self._process = twotp.Process(self._nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
 
-    def connect(self):
-        QTimer.singleShot(0, self.__connect)
+    def rpc(self, mod, fun, *args):
+        """
+        Executes C{mod:fun(args)} as a remote procedure call.
+        """
+        d = self._process.callRemote(self.__nameServer, mod, fun, *args)
+        d.addCallback(self.__rpcCB)
+        return d
+
+    def __generateRandomHash(self, length=8):
+        return hashlib.sha1(str(random.random())).hexdigest()[:length]
+
+    def __rpcCB(self, result):
+        if isinstance(result, Atom):
+            return result.text
+        else:
+            return result
+
+    def __startup(self):
+        from twisted.internet import reactor
+        reactor.runReturn()
+        self._process.register(self._appName)
+        self._process.listen()
+        self._startupHook()
+
+    def _startupHook(self):
+        pass
+
+
+class SubscriberApplication(NodeApplication):
+    """
+    NodeApplication subclass which can subscribe to an event_dispatcher
+    service. After subscribing, events are automatically forwarded to
+    a set of application-defined handlers.
+    """
+
+    def __init__(self, appName):
+        NodeApplication.__init__(self, appName)
+        self.__proxy = _ProxyHandler()
+        self.__retryDelay = 1
 
     def registerMsgHandlers(self, handlers):
         for tag, method in handlers.iteritems():
             self.__proxy.addHandler(tag, method)
 
-    def __connect(self):
-        self.__nameServer = os.getenv("FORSE_NS")
-        if not self.__nameServer:
-            raise ValueError("environment variable FORSE_NS is not defined.")
-        d = self.__process.callRemote(self.__nameServer, "global", "whereis_name",
-                                      Atom("event_dispatcher"))
-        d.addCallback(self.__resolveCB)
-        d.addErrback(self.__resolveEB)
-
-    def __generateRandomHash(self, length=8):
-        return hashlib.sha1(str(random.random())).hexdigest()[:length]
-
-    def __nodeCB(self, result):
-        args = [Atom(self.__nodeName), Atom(self.__appName), Atom("handleMessage")]
-        callback = Atom("callback"), Atom("rpc"), Atom("call"), args
-        d = self.__process.callRemote(result.text, "event_dispatcher", "subscribe",
-                                      Atom(self.__appName), callback)
+    def subscribe(self):
+        """
+        Sends a subscription request to the event_dispatcher.
+        """
+        cbargs = [Atom(self._nodeName), Atom(self._appName), Atom("handleMessage")]
+        callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
+        d = self.rpc("event_dispatcher", "subscribe", Atom(self._appName), callback)
         d.addCallback(self.__subscribeCB)
         d.addErrback(self.__subscribeEB)
+        return d
 
-    def __nodeEB(self, error):
-        print error
-        self.__retryConnect()
+    def _startupHook(self):
+        self._process.registerModule(self._appName, self.__proxy)
+        self.subscribe()
 
-    def __resolveCB(self, result):
-        d = self.__process.callRemote(self.__nameServer, "erlang", "node", result)
-        d.addCallback(self.__nodeCB)
-        d.addErrback(self.__nodeEB)
-
-    def __resolveEB(self, error):
-        print error
-        self.__retryConnect()
-
-    def __retryConnect(self):
-        QTimer.singleShot(self.__retryDelay * 1000, self.__connect)
+    def __retrySubscription(self):
+        QTimer.singleShot(self.__retryDelay * 1000, self.subscribe)
         if self.__retryDelay < 10:
             self.__retryDelay += 1
 
-    def __startup(self):
-        import qt4reactor
-        qt4reactor.install()
-        from twisted.internet import reactor
-        reactor.runReturn()
-        self.__process.register(self.__appName)
-        self.__process.registerModule(self.__appName, self.__proxy)
-        self.__process.listen()
-        if self.__autoConnect:
-            self.__connect()
-
     def __subscribeCB(self, result):
-        if isinstance(result, Atom) and result.text == "ok":
+        if result == "ok":
             self.__retryDelay = 1
         else:
+            # TODO: notify GUI
             print "Subscription failed:", result
+        return result
 
     def __subscribeEB(self, error):
-        print error
+        # TODO: notify GUI
+        print "subscribeEB:", error
+        self.__retrySubscription()

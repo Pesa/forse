@@ -1,10 +1,10 @@
 import sys
-from util import NodeApplication
+from util import SubscriberApplication
 from RaceInfoWindow import RaceInfoWindow
 
 
 if __name__ == "__main__":
-    app = NodeApplication("race_info")
+    app = SubscriberApplication("race_info")
     mainwin = RaceInfoWindow()
     mainwin.show()
     sys.exit(app.exec_())

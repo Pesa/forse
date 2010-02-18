@@ -4,7 +4,7 @@ from ControlPanel import ControlPanel
 
 
 if __name__ == "__main__":
-    app = NodeApplication("control_panel", False)
+    app = NodeApplication("control_panel")
     mainwin = ControlPanel()
     mainwin.show()
     sys.exit(app.exec_())
