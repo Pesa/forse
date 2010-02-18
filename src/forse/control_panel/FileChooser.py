@@ -14,7 +14,7 @@ class FileChooser(QWidget, Ui_FileChooser):
         self.lineEdit.setCompleter(self.__completer)
 
     def getFileName(self):
-        return self.__fileName
+        return str(self.__fileName)
 
     def setDefaultPath(self, path):
         canonicalized = QFileInfo(path).canonicalFilePath()
