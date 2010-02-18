@@ -149,7 +149,7 @@ Le variazioni alle condizioni atmosferiche sono effettuate dal sistema in modo s
 Poiché il prototipo deve simulare una situazione reale bisogna trovare un trade-off adeguato tra la semplicità di implementazione e l'accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere un segmento che dal punto di vista della rappresentazione della pista e delle sue regole di percorrenza. Nella realtà per esempio due auto appartenenti alla stessa scuderia non possono effettuare il rifornimento in contemporanea e devono rispettare i limiti di velocità imposti dal regolamento quando si trovano nella pitlane.
 
 \subsection*{Fine della competizione}
-Il sistema deve essere in grado di riconoscere la fine della competizione ovvero quando l'ultima auto in gara taglia il traguardo. in risposta a questo evento il sistema deve reagire in modo opportuno, mettendosi in uno stato che impedisca alla simulazione di procedere.
+Il sistema deve essere in grado di riconoscere la fine della competizione ovvero quando l'ultima auto in gara taglia il traguardo. In risposta a questo evento il sistema deve reagire in modo opportuno, mettendosi in uno stato che impedisca alla simulazione di procedere.
 
 Deve essere quindi previsto un modo per comunicare a tutte le componenti del sistema di terminare, nel caso in cui non servano più, oppure di mettersi in uno stato di sospensione per permettere all'utente di consultare i dati raccolti durante la simulazione.
 
@@ -405,12 +405,19 @@ La macchina virtuale Erlang è detta anche nodo Erlang e un sistema Erlang distr
 
 Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
 \subsection*{Mnesia}
-Mnesia è un database distribuito per \textit{Erlang} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa. Nella componente track per esempio Mnesia viene utilizzato per contenere i dati relativi ai segmenti di cui si compone la pista... (descrivere il sistema di notifiche a raceinfo?? FIXME).
+Mnesia è un database distribuito per \textit{Erlang} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa.
+
+Il linguaggio usato per le query è \textit{Erlang} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente Mnesia supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
 \subsection*{Interazione Erlang-Python: TwOTP}
 TwOTP, Twisted interface to Erlang OTP, è una libreria che implementa il protocollo di distribuzione \textit{Erlang} in linguaggio \textit{Python} con l'ausilio di \textit{Twisted}. (FIXME che cazzo dico ancora??).
 \subsection*{Nodi erlang e applicazioni}
+TODO: si potrebbe anche cassare....
 \subsection*{Eventuali problemi riscontrati}
-Differenza tra chiamate asincrone in locale e in remoto (garanzia sull'ordine).
+Il fatto che due processi comunichino allo stesso modo, indipendentemente dal fatto che siano sullo stesso nodo o su nodi differenti, non è del tutto corretto. Vi è infatti una differenza tra le garanzie offerte dal linguaggio riguardo le chiamate asincrone in locale e in distribuito.
+
+L'ordine di invio di messaggi asincroni tra due processi può differire dall'ordine di arrivo degli stessi messaggi nel caso in cui tali processi si trovino su nodi differenti, mentre è garantito essere uguale nel caso in cui i due processi comunicanti si trovino sullo stesso nodo.
+
+Questo può essere considerato un problema in quanto è l'unico aspetto del linguaggio che impone dei vincoli per quanto riguarda la distribuzione delle varie componenti e deve essere considerato quindi in fase di progettazione architetturale.
 \section{Dinamiche della competizione}
 \subsection{Partenza}
 Prima che l'utente dia il via alla competizione tutte le auto devono essersi registrate presso lo scheduler indicando come tempo di prenotazione 0.
@@ -422,6 +429,7 @@ La disposizione iniziale delle auto sulla pista avviene similmente a quanto ripo
 \label{fig:startGrid}
 \end{figure}
 \subsection{Percorrenza di un Segmento}
+\label{txt:percorrenza}
 Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
 \begin{itemize}
 \item Corsia di ingresso,
@@ -599,6 +607,7 @@ Il regolamento delle gare di formula uno impone un limite di velocità nella cor
 La corsia aggiuntiva nei segmenti di tipo pre\_pitlane e post\_pitlane serve a rappresentare rispettivamente la corsia di decelerazione e la corsia di accelerazione e non sono quindi soggette a particolari limiti di velocità imposti dal regolamento.
 
 \subsection{Rifornimento}
+\label{txt:rifornimento}
 Per poter effettuare le operazioni di rifornimento e cambio pneumatici un'auto deve trovarsi a percorrere il segmento pitstop associato alla sua scuderia nella corsia di indice -2. Quando car effettua uno spostamento in tale posizione (vedi \fun{track:move}) è la componente track che si incarica di effettuare la chiamata alla componente team associata all'auto per richiedere quali operazioni siano da effettuare sull'auto durante la sosta.
 
 Track invia quindi lo stato carburante e pneumatici dell'auto al team il quale risponde con un messaggio contenente quanto carburante aggiungere e quale tipo di pneumatici montare in caso di cambio gomme, il tutto tramite l'invocazione del metodo \fun{pitstop\_operations} di team.
@@ -627,7 +636,7 @@ Un'auto si reca ai pitstop in risposta a due eventi distinti:
 \item su richiesta dei team, in base ai dati ottenuti nel corso della competizione, indicando il giro a cui l'auto deve recarsi ai box.
 \end{itemize}
 
-Entrambe queste richieste devono passare dalla componente team che si incarica di comunicare con l'auto attraverso l'invio di un messaggio di tipo next\_pitstop in modo asincrono per evitare possibili situazioni di deadlock. Il fatto che il messaggio sia asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento pitstop di una scuderia vi sia un segmento di tipo intermediate e supponiamo anche che l'auto A di tale scuderia stia percorrendo la pitlane per effettuare una sosta.
+Il primo tipo di richiesta arriva direttamente dalla componente Team GUI, mentre il secondo tipo arriva da team che comunica con l'auto attraverso l'invio di un messaggio di tipo next\_pitstop in modo asincrono per evitare possibili situazioni di deadlock. Il fatto che il messaggio sia asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento pitstop di una scuderia vi sia un segmento di tipo intermediate e supponiamo anche che l'auto A di tale scuderia stia percorrendo la pitlane per effettuare una sosta.
 E' possibile che si verifichi la seguente sequenza di eventi:
 \begin{enumerate}
 \item A percorre il segmento intermediate e viene inviata una chrono\_notif al dispatcher,
@@ -636,7 +645,7 @@ E' possibile che si verifichi la seguente sequenza di eventi:
 \item A riceve il messaggio e obbedisce al team rientrando ai box nel giro successivo, effettuando quindi una sosta probabilmente inutile.
 \end{enumerate}
 
-La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che car e team mantengano un contatore dei pitstop effettuati dall'auto fino a quel momento e che team nel messaggio next\_pitstop inserisca anche il valore di tale contatore. Di conseguenza nel momento in cui l'auto riceve il messaggio può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorare il messaggio.
+La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che car e team mantengano un contatore dei pitstop effettuati dall'auto fino a quel momento e che team nel messaggio next\_pitstop inserisca anche il valore di tale contatore. Di conseguenza nel momento in cui l'auto riceve il messaggio può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorare il messaggio. I messaggi provenienti dall'utente ovviamente non necessitano di tale contatore poiché sono considerati dall'auto sempre corretti.
 
 Lato car l'algoritmo che gestisce l'arrivo di messaggi next\_pitstop è quello rappresentato in figura \ref{fig:nextPitstop}.
 
@@ -645,9 +654,40 @@ Il parametro \fun{new\_stop} presente nel messaggio next\_pitstop può assumere 
 Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero e \fun{undefined}. Il valore undefined serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai team o dall'utente.
 
 \subsection{Arrivo}
-Termiazione dei processi car
-\subsection{Interazione con l'Utente}
+Un'auto termina la competizione nel momento in cui va a percorrere il segmento successivo al traguardo nell'ultimo giro di gara oppure se esce di pista, come descritto in \ref{txt:percorrenza}. Come si può notare in figura \ref{fig:move}, nel momento in cui un'auto esce dalla competizione viene invocato il metodo \fun{track:remove\_car} e successivamente termina la sua esecuzione.
 
+Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in gara interno alla componente track. Nel momento in cui questo contatore raggiunge il valore zero allora la gara è terminata e track può notificare questo evento al resto del sistema inviando al dispatcher la notifica \fun{\#race\_notif\{event = finished\}}.
+
+In questo modo le componenti del sistema non più necessarie possono terminare la loro esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili e restare attiva per permettere all'utente di consultare i dati relativi alla simulazione.
+\subsection{Interazione con l'Utente}
+L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite le diverse interfacce.
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\multirow{4}{*}{\textbf{Race Info}} & Avvio della simulazione\\
+& Sospensione della simulazione\\
+& Cambio del fattore di speedup\\
+& Terminazione del sistema\\
+\hline
+\multirow{2}{*}{\textbf{Team GUI}} & Imporre sosta ai box ad un'auto\\
+& Imporre il ritiro ad un'auto\\
+\hline
+\textbf{Weather Station} & Modificare le condizioni atmosferiche dei settori\\
+\hline
+\end{tabular}
+\end{center}
+
+L'avvio della simulazione avviene tramite la chiamata \fun{scheduler:start\_simulation} che fa in modo che lo scheduler conceda il permesso di eseguire in modo sequenziale ai processi in coda.
+
+La sospensione della simulazione avviene tramite l'invocazione a \fun{scheduler:pause\_simulation} che inibisce temporaneamente la valutazione della coda e di conseguenza le modifiche alla pista.
+
+La velocità di evoluzione della simulazione può essere alterata dall'utente attraverso il metodo \fun{scheduler:set\_speedup} che va ad agire sul tempo che intercorre tra la fine dell'esecuzione di un'attività presente nella coda e l'inizio di quella successiva, non interferendo quindi in alcun modo con il tempo logico della simulazione.
+
+La terminazione del sistema... FIXME.
+
+L'utente può imporre una sosta ai box ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \fun{\#next\_pitstop\{lap = now\}} che viene elaborato da car come descritto in \ref{txt:rifornimento}.
+
+Tramite Team GUI l'utente può imporre il ritiro di un'auto dalla competizione grazie al metodo \fun{car:retire}.
 \section{Event Dispatcher}
 \begin{landscape}
 \begin{figure}
@@ -672,19 +712,44 @@ Come si può notare in figura \ref{fig:notifFlow}, per esempio, la componente te
 Come si può vedere in figura \ref{fig:dispatcher}, il dispatcher è composto di un processo detto front-end che ha il compito di ricevere ogni notifica in ingresso e spedirla ai back-end interessati in modo asincrono. Oltre a ciò, il front-end deve anche ricevere le richieste di subscription e registrare quindi i processi richiedenti presso il corretto back-end. Al ricevimento di una notifica un back-end provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di subscribers.
 
 Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i back-ends abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della subscription. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
-\section{Correttezza}
-\subsection*{Avvio del sistema}
+\chapter{Correttezza}
+\section{Avvio del sistema}
 TODO
-\subsection*{Accesso alla pista}
+\section{Accesso alla pista}
 controllo della concorrenza (scheduler).
 
-\subsection*{Tempo di percorrenza}
+\section{Tempo di percorrenza}
 Considerazioni sulla correttezza del tempo di percorrenza, algoritmo di sorpasso, rallentamento della simulazione non influenza i tempi di gara (scheduler).
 
-\subsection*{Terminazione della simulazione}
-\subsection*{Terminazione del sistema}
+\section{Terminazione della simulazione}
+\section{Terminazione del sistema}
+\section{Non determinismo}
+Per quanto riguarda il non determinismo a livello di simulazione abbiamo deciso di limitarlo alle sole situazioni in cui esso sia desiderabile.
+L'unico caso in cui l'ordine di esecuzione può infatti influire con il risultato della simulazione è quello in cui anche nella realtà non si possa prevedere in modo certo l'esito dell'interazione tra due auto.
+
+\begin{figure}
+\includegraphics[width=0.6\textwidth]{diagrammi/NonDet}
+\caption{Situazione di non determinismo}
+\label{fig:nonDet}
+\end{figure}
+
+Consideriamo infatti la situazione riportata in figura \ref{fig:nonDet}, e assumiamo che:
+\begin{itemize}
+\item le auto e i piloti abbiano caratteristiche identiche,
+\item $T_{en_A}^{n+1} = T_{en_B}^{n+1}$: le auto abbiano tempi di ingresso uguali,
+\item $V_{en_A}^{n+1} = V_{en_B}^{n+1}$: le auto abbiano velocità di ingresso uguali.
+\end{itemize}
+
+Sotto queste ipotesi non vi sono problemi di interazione tra le auto finché $L_{ex_A}^{n+1} \neq L_{ex_B}^{n+1}$ poiché, avendo traiettorie che non si intersecano, i tempi di percorrenza dell'una non sono influenzabili in alcun modo dall'altra.
+
+Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in \ref{txt:percorrenza}, la seconda auto si dovrà accodare alla prima segnando un tempo di uscita dal segmento leggermente maggiore.
+
+C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento del sistema in una generica simulazione ma bisogna invece creare una situazione ad-hoc per ottenere dei test ripetibili e poter apprezzare quindi la presenza del non determinismo.
+
 
 \appendix
+
+\chapter{File di configurazione}
 
 \chapter{Glossario}
 
