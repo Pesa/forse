@@ -11,7 +11,7 @@
 %% Time in seconds a car needs to move to the adjacent lane.
 -define(LANE_CHANGE_TIME, 0.5).
 
-%% Minimun time between two cars in the same lane
+%% Minimum time between two cars in the same lane.
 -define(TIME_EPSILON, 0.05).
 
 %% Coefficient of friction of new slick tyres when rain == 0.
