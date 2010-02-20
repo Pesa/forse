@@ -48,10 +48,12 @@ class NodeApplication(QApplication):
         QApplication.__init__(self, sys.argv)
         qt4reactor.install()
         self._appName = appName
+        self.__cookie = os.getenv("FORSE_COOKIE")
+        if not self.__cookie:
+            self.__cookie = twotp.readCookie()
         self.__nameServer = os.getenv("FORSE_NS")
         if not self.__nameServer:
             raise ValueError("environment variable FORSE_NS is not defined.")
-        self.__cookie = twotp.readCookie()
         self._nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
         self._process = twotp.Process(self._nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
