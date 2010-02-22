@@ -50,7 +50,9 @@ class RPCReply(object):
         if isinstance(reply, Atom):
             self.__reply = reply.text
         elif isinstance(reply, Failure):
-            self.__reply = reply.type.__name__
+            self.__reply = "<%s.%s> : %s" % (reply.type.__module__,
+                                             reply.type.__name__,
+                                             reply.value)
         else:
             self.__reply = reply
 
