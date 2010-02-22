@@ -6,6 +6,7 @@
 \usepackage{tabularx}
 \usepackage{pdflscape}
 \usepackage{multirow}
+\usepackage{listings}
 
 \hypersetup{
 	breaklinks,
@@ -354,8 +355,6 @@ Questa componente è un'interfaccia grafica che mostra all'utente le condizioni 
 \subsection*{Interfaccia Richiesta}
 \section{Avvio e Terminazione}
 Infrastruttura e meccanismi di avvio e terminazione del sistema.
-\section{Alternative?}
-Eventualmente cassare questa sezione
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
@@ -409,9 +408,12 @@ Mnesia è un database distribuito per \textit{Erlang} che supporta sia copie RAM
 
 Il linguaggio usato per le query è \textit{Erlang} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente Mnesia supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
 \subsection*{Interazione Erlang-Python: TwOTP}
-TwOTP, Twisted interface to Erlang OTP, è una libreria che implementa il protocollo di distribuzione \textit{Erlang} in linguaggio \textit{Python} con l'ausilio di \textit{Twisted}. (FIXME che cazzo dico ancora??).
-\subsection*{Nodi erlang e applicazioni}
-TODO: si potrebbe anche cassare....
+TwOTP, Twisted interface to Erlang OTP, è una libreria che implementa il protocollo di distribuzione \textit{Erlang} in linguaggio \textit{Python} con l'ausilio di \textit{Twisted}.
+
+\textit{Twisted} è un framework scritto in \textit{Python} per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile networking engine ad eventi.
+
+In questo modo è possibile per un'applicazione \textit{Python} interagire coerentemente con nodi \textit{Erlang} attraverso l'uso dell'EPMD.
+
 \subsection*{Eventuali problemi riscontrati}
 Il fatto che due processi comunichino allo stesso modo, indipendentemente dal fatto che siano sullo stesso nodo o su nodi differenti, non è del tutto corretto. Vi è infatti una differenza tra le garanzie offerte dal linguaggio riguardo le chiamate asincrone in locale e in distribuito.
 
@@ -810,6 +812,102 @@ Per avere una simulazione a grana fine abbiamo deciso di impostare la lunghezza 
 \appendix
 
 \chapter{File di configurazione}
+\section*{Team e Car}
+Le impostazioni delle scuderie, delle auto e dei piloti sono contenuti in uno stesso file di configurazione.
+\begin{lstlisting}
+[
+        {team_name, "McLaren"},
+        {brake, 34000},
+        {power, 25000},
+        {weight, 650},
+        {cars, [
+                [{id, 2},
+                {name, "Lewis Hamilton"},
+                {skill, 6},
+                {weight, 68},
+                {fuel, 70},
+                {tyres, slick}],
+                [{id, 6},
+                {name, "Heikki Kovalainen"},
+                {skill, 4},
+                {weight, 62},
+                {fuel, 80},
+                {tyres, slick}]
+                ]}
+].
+\end{lstlisting}
+
+I parametri di configurazione sono descritti in \textit{Erlang} per risparmiare tempo sfruttando le funzioni di parsing offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore il cui significato è spiegato nella seguente tabella:
+
+\begin{center}
+\begin{tabular}{|p{0.15\textwidth}|p{0.75\textwidth}|}
+\hline
+\multicolumn{2}{|c|}{Scuderia e Auto}\\
+\hline
+team\_name & Nome della scuderia\\
+brake & Potenza dei freni\\
+power & Potenza del motore\\
+weight & Peso dell'auto a secco\\
+cars & Lista dei piloti e della configurazione iniziale delle auto\\
+\hline
+\multicolumn{2}{|c|}{Pilota e Auto}\\
+\hline
+id & Posizione nella griglia di partenza\\
+name & Nome del pilota\\
+skill & Abilità del pilota (intero tra 1 e 10 compresi)\\
+weight & Peso del pilota\\
+fuel & Carburante presente nell'auto ad inizio gara\\
+tyres & Tipo di gomme montate sull'auto ad inizio gara\\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Track}
+Il file di configurazione di track contiene le informazioni riguardanti la conformazione della pista espressa in settori. La configurazione è composta da una lista di tuple, ciascuna delle quali rappresenta un settore.
+
+Di seguito la sintassi per descrivere i tipi di settore possibili e i parametri consentiti.
+
+\begin{itemize}
+\item \texttt{\{straight, LEN, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Rettilineo
+\item \texttt{\{right, LEN, CURVE\_RAD, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Curva a destra
+\item \texttt{\{left, LEN, CURVE\_RAD, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Curva a sinistra
+\item \texttt{\{finish\_line\}}\\ Traguardo
+\item \texttt{\{intermediate\}}\\ Intermedio cronometrico
+\item \texttt{\{pitlane\_entrance\}}\\ Inizio della zona box
+\item \texttt{\{pitlane\_exit\}}\\ Fine della zona box
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{|p{0.2\textwidth}|p{0.7\textwidth}|}
+\hline
+LEN & Lunghezza del settore in metri, possibilmente un valore multiplo di 5\\
+\hline
+CURVE\_RAD & Raggio di curvatura in metri\\
+\hline
+MIN\_LANE & Minimo indice di corsia consentito\\
+\hline
+MAX\_LANE & Massimo indice di corsia consentito\\
+\hline
+INC & Inclinazione della pista [-89.9; 89.9]\\
+\hline
+RAIN & Condizioni atmosferiche all'inizio della gara, un intero tra 0 e 10\\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Weather}
+Questo file contiene una lista di tuple, ciascuna delle quali rappresenta le variazioni del tempo atmosferico in un istante di gara.
+
+Le tuple sono nella forma
+\begin{center}
+\texttt{\{WHEN, [\{WHERE, RAIN\}, \dots $\;$]\}}
+\end{center}
+\begin{itemize}
+\item \texttt{WHEN}: Quando, rispetto il tempo di gara, avverrà il cabiamento. Può essere espresso in secondi oppure nel formato \{h,m,s\}.
+\item \texttt{WHERE}: In che settore avverrà il cambiamento, l'indice si riferisce alla posizione del settore nel file di configurazione della pista.
+\item \texttt{RAIN}: Quantità di pioggia presente nel settore, un intero nell'intervallo [0;10].
+\end{itemize}
+
 
 \chapter{Glossario}
 
