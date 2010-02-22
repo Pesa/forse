@@ -1,10 +1,11 @@
 import hashlib, os, qt4reactor, random, sys, twotp
+from twisted.python.failure import Failure
 from twotp.term import Atom
-from PyQt4.QtCore import QTimer, pyqtSignal
+from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 from PyQt4.QtGui import QApplication
 
 
-__all__ = ['atomToBool', 'NodeApplication', 'SubscriberApplication']
+__all__ = ['atomToBool', 'RPC', 'NodeApplication', 'SubscriberApplication']
 
 
 def atomToBool(atom):
@@ -42,14 +43,51 @@ class _ProxyHandler(object):
             print "No handlers registered for", type.text, "message:", msg
 
 
+class RPCReply(object):
+
+    def __init__(self, reply):
+        object.__init__(self)
+        if isinstance(reply, Atom):
+            self.__reply = reply.text
+        elif isinstance(reply, Failure):
+            self.__reply = reply.type.__name__
+        else:
+            self.__reply = reply
+
+    def __str__(self):
+        return str(self.__reply)
+
+
+class RPC(QObject):
+    """
+    Encapsulates the execution of C{mod:fun(args)} as a remote procedure call.
+    """
+
+    done = pyqtSignal(RPCReply)
+
+    def __init__(self, mod, fun, *args):
+        QObject.__init__(self)
+        self.__mod = mod
+        self.__fun = fun
+        self.__args = args
+
+    @pyqtSlot()
+    def call(self, *args):
+        """
+        Performs the actual remote call. The signal C{done} is emitted
+        when a reply has been received from the remote side.
+        """
+        if not args:
+            args = self.__args
+        d = NodeApplication.instance()._rpc(self.__mod, self.__fun, *args)
+        d.addBoth(lambda x: self.done.emit(RPCReply(x)))
+
+
 class NodeApplication(QApplication):
     """
     Provides integration between a QApplication instance and a Python
     node, making easier to perform remote operations on Erlang nodes.
     """
-
-    rpcError = pyqtSignal()
-    rpcResult = pyqtSignal(str)
 
     def __init__(self, appName):
         QApplication.__init__(self, sys.argv)
@@ -65,31 +103,17 @@ class NodeApplication(QApplication):
         self.__process = twotp.Process(self._nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
 
-    def rpc(self, mod, fun, *args):
-        """
-        Executes C{mod:fun(args)} as a remote procedure call.
-        """
-        d = self._rpc(mod, fun, *args)
-        d.addCallback(self.__rpcCB)
-        d.addErrback(self.__rpcEB)
-
     def _rpc(self, mod, fun, *args):
         return self.__process.callRemote(self.__nameServer, mod, fun, *args)
 
     def _registerModule(self, name, module):
         self.__process.registerModule(name, module)
 
+    def _startupHook(self):
+        pass
+
     def __generateRandomHash(self, length=8):
         return hashlib.sha1(str(random.random())).hexdigest()[:length]
-
-    def __rpcCB(self, result):
-        if isinstance(result, Atom):
-            self.rpcResult.emit(result.text)
-        else:
-            raise TypeError(str(result) + " is not supported.")
-
-    def __rpcEB(self, _error):
-        self.rpcError.emit()
 
     def __startup(self):
         from twisted.internet import reactor
@@ -97,9 +121,6 @@ class NodeApplication(QApplication):
         self.__process.register(self._appName)
         self.__process.listen()
         self._startupHook()
-
-    def _startupHook(self):
-        pass
 
 
 class SubscriberApplication(NodeApplication):
