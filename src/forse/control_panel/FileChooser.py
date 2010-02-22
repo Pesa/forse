@@ -5,7 +5,7 @@ from Ui_FileChooser import Ui_FileChooser
 
 class FileChooser(QWidget, Ui_FileChooser):
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.__fileName = QString("")

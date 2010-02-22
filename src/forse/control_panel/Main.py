@@ -1,10 +1,10 @@
 import sys
 from util import NodeApplication
-from ControlPanel import ControlPanel
+from ControlPanelWindow import ControlPanelWindow
 
 
 if __name__ == "__main__":
     app = NodeApplication("control_panel")
-    mainwin = ControlPanel()
+    mainwin = ControlPanelWindow()
     mainwin.show()
     sys.exit(app.exec_())
