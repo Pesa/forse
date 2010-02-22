@@ -121,7 +121,8 @@ handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
 	{reply, {error, already_started}, State};
 
-handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
+handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
+  when not State#state.bootstrapped ->
 	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
 	case check_reqs(State#state.candidates, Reqs) of
 		true when State#state.num_cars > 0 ->
@@ -173,12 +174,15 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State) ->
 			rpc:call(Master, utils, set_setting, [running_cars, State#state.num_cars]),
 			rpc:call(Master, utils, set_setting, [total_laps, Laps]),
 			
-			{stop, normal, ok, State#state{bootstrapped = true}};
+			{reply, ok, State#state{bootstrapped = true}};
 		_ ->
 			{reply, config_error, State}
 	end;
+handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
+	{reply, {error, already_started}, State};
 
-handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State) ->
+handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State)
+  when not State#state.bootstrapped ->
 	try
 		{ok, Teams} = file:consult(TeamsFile),
 		{ok, [Track]} = file:consult(TrackFile),
@@ -201,6 +205,8 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 		error : {badmatch, _} ->
 			{reply, config_error, State}
 	end;
+handle_call({read_config_files, _TeamsFile, _TrackFile, _WeatherFile}, _From, State) ->
+	{reply, {error, already_started}, State};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
