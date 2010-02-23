@@ -54,10 +54,16 @@ class RPCReply(object):
                                              reply.type.__name__,
                                              reply.value)
         else:
-            self.__reply = reply
+            self.__reply = str(reply)
+
+    def __eq__(self, other):
+        return self.__reply == other
+
+    def __ne__(self, other):
+        return self.__reply != other
 
     def __str__(self):
-        return str(self.__reply)
+        return self.__reply
 
 
 class RPC(QObject):
