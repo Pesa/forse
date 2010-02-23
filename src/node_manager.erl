@@ -41,10 +41,14 @@ start_link() ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	% FIXME: remove hardcoded stuff
-	Hosts = [localhost],
-	net_adm:world_list(Hosts),
+	LocalHost = list_to_atom(net_adm:localhost()),
+	OtherHosts = case net_adm:host_file() of
+					 {error, _} -> [];
+					 Hosts -> Hosts
+				 end,
+	net_adm:world_list([LocalHost | OtherHosts]),
 	global:sync(),
+	% FIXME: remove hardcoded stuff
 	bootstrap_server:add_node([{scheduler,1},
 							   {event_dispatcher,1},
 							   {team,10},
