@@ -1,5 +1,5 @@
 from PyQt4.QtCore import pyqtSlot
-from PyQt4.QtGui import QDialog
+from PyQt4.QtGui import QDialog, QMessageBox
 from Ui_ConfigDialog import Ui_ConfigDialog
 from util import RPC
 
@@ -15,14 +15,22 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         self.trackFileChooser.setDefaultPath("examples/track.conf")
         self.weatherFileChooser.setLabel("Weather")
         self.weatherFileChooser.setDefaultPath("examples/weather.conf")
-        self._submit = RPC("bootstrap_server", "read_config_files")
-        self._submit.done.connect(self._foobar)
+        self._config = RPC("bootstrap_server", "read_config_files")
+        self._config.done.connect(self._configDone)
 
-    def _foobar(self, reply):
-        print reply
+    def getBootstrapArgs(self):
+        return self.lapsSpinBox.value(), self.speedupSpinBox.value()
 
     @pyqtSlot(name="on_buttons_accepted")
     def _submitConfig(self):
-        self._submit.call(self.teamsFileChooser.getFileName(),
+        self.setEnabled(False)
+        self._config.call(self.teamsFileChooser.getFileName(),
                           self.trackFileChooser.getFileName(),
                           self.weatherFileChooser.getFileName())
+
+    def _configDone(self, reply):
+        if reply == "ok":
+            self.accept()
+        else:
+            QMessageBox.critical(self, "Error", str(reply))
+            self.setEnabled(True)
