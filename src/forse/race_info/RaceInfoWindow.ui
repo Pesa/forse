@@ -24,11 +24,12 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>Tool Bar</string>
+  <widget class="QStatusBar" name="statusBar">
+   <property name="sizeGripEnabled">
+    <bool>false</bool>
    </property>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
    <property name="movable">
     <bool>false</bool>
    </property>
@@ -40,9 +41,6 @@
      <width>32</width>
      <height>32</height>
     </size>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextUnderIcon</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
