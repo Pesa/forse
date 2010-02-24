@@ -196,11 +196,15 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 								Acc
 						end
 				end,
-		{reply, ok, State#state{num_cars = lists:foldl(Count, 0, Teams),
-								num_teams = length(Teams),
-								teams_config = Teams,
-								track_config = Track,
-								weather_config = Weather}}
+		NewState = State#state{num_cars = lists:foldl(Count, 0, Teams),
+							   num_teams = length(Teams),
+							   teams_config = Teams,
+							   track_config = Track,
+							   weather_config = Weather},
+		% check if requirements are already satisfied
+		check_reqs(NewState#state.candidates, ?GEN_REQS(NewState#state.num_cars,
+														NewState#state.num_teams)),
+		{reply, ok, NewState}
 	catch
 		error : {badmatch, _} ->
 			{reply, config_error, State}
