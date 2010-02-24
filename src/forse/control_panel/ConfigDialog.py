@@ -15,8 +15,8 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         self.trackFileChooser.setDefaultPath("examples/track.conf")
         self.weatherFileChooser.setLabel("Weather")
         self.weatherFileChooser.setDefaultPath("examples/weather.conf")
-        self._config = RPC("bootstrap_server", "read_config_files")
-        self._config.done.connect(self._configDone)
+        self._configRPC = RPC("bootstrap_server", "read_config_files")
+        self._configRPC.done.connect(self._configDone)
 
     def getBootstrapArgs(self):
         return self.lapsSpinBox.value(), self.speedupSpinBox.value()
@@ -24,13 +24,13 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
     @pyqtSlot(name="on_buttons_accepted")
     def _submitConfig(self):
         self.setEnabled(False)
-        self._config.call(self.teamsFileChooser.getFileName(),
-                          self.trackFileChooser.getFileName(),
-                          self.weatherFileChooser.getFileName())
+        self._configRPC.call(self.teamsFileChooser.getFileName(),
+                             self.trackFileChooser.getFileName(),
+                             self.weatherFileChooser.getFileName())
 
     def _configDone(self, reply):
         if reply == "ok":
             self.accept()
         else:
-            QMessageBox.critical(self, "Error", str(reply))
+            QMessageBox.critical(self, "Error", "Configuration error:\n\n   %s" % reply)
             self.setEnabled(True)
