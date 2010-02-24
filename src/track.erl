@@ -553,12 +553,12 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 
 -spec preelab_bent_and_pit(#car_status{}) -> [#speed_bound{}].
 preelab_bent_and_pit(CarStatus) ->
-	bent_and_pit(CarStatus, utils:get_setting(sgm_number) - 1).
+	bent_and_pit(CarStatus, utils:get_setting(sgm_number) - 1, {undefined, undefined}).
 
--spec bent_and_pit(#car_status{}, sgm_id() | -1) -> [#speed_bound{}].
-bent_and_pit(_CarStatus, -1) ->
+-spec bent_and_pit(#car_status{}, sgm_id() | -1, {float() | undefined, float() | undefined}) -> [#speed_bound{}].
+bent_and_pit(_CarStatus, -1, _) ->
 	[];
-bent_and_pit(CarStatus, Sgm) ->
+bent_and_pit(CarStatus, Sgm, {NextBentB, NextPitB}) ->
 	S = utils:mnesia_read(track, Sgm),
 	BentBound = case S#segment.curvature /= 0 of
 					true ->
@@ -567,18 +567,20 @@ bent_and_pit(CarStatus, Sgm) ->
 						undefined
 				end,
 	T = S#segment.type,
+	BentB = erlang:min(BentBound, NextBentB),
+	PitB = erlang:min(NextPitB, BentBound),
 	if
 		T == pitstop;
 		T == pitlane ->
 			R = #speed_bound{sgm_id = Sgm,
-							 pit_bound = erlang:min(?PIT_MAX_SPEED, BentBound),
-							 bound = BentBound},
-			[R | bent_and_pit(CarStatus, Sgm - 1)];
+							 pit_bound = erlang:min(?PIT_MAX_SPEED, PitB),
+							 bound = BentB},
+			[R | bent_and_pit(CarStatus, Sgm - 1, {BentBound, erlang:min(?PIT_MAX_SPEED, BentBound)})];
 		true ->
 			R = #speed_bound{sgm_id = Sgm,
-							 bound = BentBound,
-							 pit_bound = BentBound},
-			[R | bent_and_pit(CarStatus, Sgm - 1)]
+							 bound = BentB,
+							 pit_bound = PitB},
+			[R | bent_and_pit(CarStatus, Sgm - 1, {BentBound, BentBound})]
 	end.
 
 
