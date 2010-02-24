@@ -47,14 +47,7 @@ class RPCReply(object):
 
     def __init__(self, reply):
         object.__init__(self)
-        if isinstance(reply, Atom):
-            self.__reply = reply.text
-        elif isinstance(reply, Failure):
-            self.__reply = "<%s.%s> : %s" % (reply.type.__module__,
-                                             reply.type.__name__,
-                                             reply.value)
-        else:
-            self.__reply = str(reply)
+        self.__reply = self.__toString(reply)
 
     def __eq__(self, other):
         return self.__reply == other
@@ -64,6 +57,19 @@ class RPCReply(object):
 
     def __str__(self):
         return self.__reply
+
+    def __toString(self, x):
+        if isinstance(x, Atom):
+            return x.text
+        elif isinstance(x, Failure):
+            return "<%s.%s> : %s" % (x.type.__module__, x.type.__name__, x.value)
+        elif isinstance(x, tuple):
+            s = ""
+            for z in map(lambda y: self.__toString(y), x):
+                s += z + ", "
+            return "{%s}" % s.rstrip(", ")
+        else:
+            return str(x)
 
 
 class RPC(QObject):
