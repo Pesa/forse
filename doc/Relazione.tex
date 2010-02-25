@@ -354,7 +354,34 @@ Questa componente è un'interfaccia grafica che mostra all'utente le condizioni 
 \subsection*{Interfaccia Fornita}
 \subsection*{Interfaccia Richiesta}
 \section{Avvio e Terminazione}
-Infrastruttura e meccanismi di avvio e terminazione del sistema.
+Per rendere più usabile il prototipo abbiamo pensato di far svolgere l'avvio e la configurazione del sistema tramite interfaccia grafica.
+L'utente dovrà interagire con due tipi di interfacce di configurazione:
+\begin{itemize}
+\item Control Panel: serve per permettere all'utente di inserire il percorso dei file di configurazione necessari, per avviare e terminare il sistema.
+\item Node Configurator: serve all'utente per indicare al sistema dove possono essere avviate le componenti essenziali del sistema e per deteriminare quindi come saranno distribuite sulla rete tali componenti.
+\end{itemize}
+Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo ``centrale'' ovvero quello controllato da bootstrap\_server e dei nodi secondari gestiti da node\_manager.
+
+Questi processi di controllo non devo terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo erlang alla chiusura del sistema.
+\subsection*{Control Panel e Bootstrap Server}
+Control panel ha il compito di avviare, una volta ottenute le informazioni necessarie dall'utente, un nodo erlang sul quale far eseguire la componente bootstrap\_server.
+Control panel deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
+
+La funzione di bootstrap\_server è fondamentale per l'avvio e la terminazione del sistema e di conseguenza non deve essere terminato finché gli altri nodi del sistema sono attivi.
+
+Il suo compito nella fase di avvio è quello di coordinare l'avvio di tutti i nodi appartenti al sistema e di avviare, grazie a node\_manager, le componenti del sistema presso i nodi distribuiti, secondo la disponibilità di tali nodi e le necessità della simulazione.
+
+Il numero di componenti da istanziare per eseguire la simulazione viene derivato dalle informazioni contenute nei file di configurazione. Finché il sistema non conta un numero di nodi con una disponibilità di risorse sufficiente ad ospitare la simulazione, il sistema non può essere avviato.
+Una volta che bootstrap\_server ha istanziato nel giusto ordine le componenti necessarie presso i nodi distribuiti la fase di boostrap del sistema può dirsi conclusa.
+
+Una volta effettuata la fase di bootstrap del sistema bootstrap\_server rimane in attesa del comando di terminazione da parte di control panel per coordinare la terminazione dei nodi del sistema distribuiti.
+
+\subsection*{Node Configurator e Node Manager}
+Una volta avviato node configurator questo istanzia un nodo erlang che andrà a fare parte del sistema distribuito e ivi avvia node\_manager. L'utente deve indicare tramite node configurator la disponibilità di risorse del nodo erlang appena avviato in modo che node\_manager possa comunicarlo a bootstrap\_server.
+
+La componente node\_manager ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del bootstrap\_server.
+
+Una volta terminata la fase di bootstrap del sistema, node\_manager deve rimanere in attesa del comando di terminazione del nodo da parte di bootstrap\_server.
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
