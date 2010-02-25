@@ -555,7 +555,8 @@ preelab_sgm(BoundList, AttIndex, FDec, Sgm, LastSgm, VNext, CarStatus, Mass, Sgm
 preelab_bent_and_pit(CarStatus) ->
 	bent_and_pit(CarStatus, utils:get_setting(sgm_number) - 1, {undefined, undefined}).
 
--spec bent_and_pit(#car_status{}, sgm_id() | -1, {float() | undefined, float() | undefined}) -> [#speed_bound{}].
+-spec bent_and_pit(#car_status{}, sgm_id() | -1, {float() | 'undefined', float() | 'undefined'}) ->
+			[#speed_bound{}].
 bent_and_pit(_CarStatus, -1, _) ->
 	[];
 bent_and_pit(CarStatus, Sgm, {NextBentB, NextPitB}) ->
