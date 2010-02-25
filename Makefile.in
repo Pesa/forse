@@ -42,6 +42,9 @@ all-recursive:
 relazione:
 	$(Q) $(MAKE) -C doc
 
+check:
+	$(Q) dialyzer -I $(INCDIR) --src -c $(ERL_SOURCES)
+
 clean:
 	$(NQ) "cleaning"
 	$(Q) rm -f *~
@@ -58,4 +61,4 @@ distclean: clean
 		$(MAKE) -C $$dir distclean ; \
 	done
 
-.PHONY: all all-recursive clean distclean first relazione
+.PHONY: all all-recursive check clean distclean first relazione
