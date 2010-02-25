@@ -447,6 +447,16 @@ Il fatto che due processi comunichino allo stesso modo, indipendentemente dal fa
 L'ordine di invio di messaggi asincroni tra due processi può differire dall'ordine di arrivo degli stessi messaggi nel caso in cui tali processi si trovino su nodi differenti, mentre è garantito essere uguale nel caso in cui i due processi comunicanti si trovino sullo stesso nodo.
 
 Questo può essere considerato un problema in quanto è l'unico aspetto del linguaggio che impone dei vincoli per quanto riguarda la distribuzione delle varie componenti e deve essere considerato quindi in fase di progettazione architetturale.
+
+\section{Avvio del sistema}
+\begin{landscape}
+\begin{figure}
+\includegraphics[height=.25\paperheight]{diagrammi/Bootstrap}
+\caption{Fase di bootstrap}
+\label{fig:bootstrap}
+\end{figure}
+\end{landscape}
+
 \section{Dinamiche della competizione}
 \subsection{Partenza}
 Prima che l'utente dia il via alla competizione tutte le auto devono essersi registrate presso lo scheduler indicando come tempo di prenotazione 0.
