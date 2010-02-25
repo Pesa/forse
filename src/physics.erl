@@ -38,15 +38,15 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index, Space,
 	case K of
 		null ->
 			add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC));
-		_ when EnterLane == K#car_position.enter_lane orelse 
-				EnterTime + G > K#car_position.enter_t + GK ->
+		_ when EnterLane == K#car_position.enter_lane
+		  orelse EnterTime + G > K#car_position.enter_t + GK ->
 			case add_g(G, calculate(Space, EnterSpeed, MaxExitSpeed, Amin, Amax, SkillC)) of
 				{ok, T, _S} when EnterTime + T < K#car_position.exit_t + ?TIME_EPSILON ->
 					MinTime = K#car_position.exit_t + ?TIME_EPSILON - EnterTime - G,
 					AvgSpeed = Space / MinTime,
 					ExitSpeed = EnterSpeed + 2 * (AvgSpeed - EnterSpeed),
 					add_g(G, calculate(Space, EnterSpeed, ExitSpeed, Amin, Amax, SkillC));
-				Else -> 
+				Else ->
 					Else
 			end;
 		_ ->

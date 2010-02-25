@@ -124,7 +124,7 @@
 %% config: application's configuration
 %% ------------------------------------------------------------
 -record(config_notif, {app		:: atom(),
-					   config	:: conflist()}).
+					   config	:: conflist() | tuple()}).
 
 %% ------------------------------------------------------------
 %% pitstop_notif
