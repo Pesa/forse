@@ -58,16 +58,25 @@ class RPCReply(object):
     def __str__(self):
         return self.__reply
 
-    def __toString(self, x):
+    def __toString(self, x, inErlangString=False):
         if isinstance(x, Atom):
             return x.text
         elif isinstance(x, Failure):
-            return "<%s.%s> : %s" % (x.type.__module__, x.type.__name__, x.value)
+            return '<%s.%s> : %s' % (x.type.__module__, x.type.__name__, x.value)
+        elif isinstance(x, int) and inErlangString:
+            try:
+                return chr(x)
+            except ValueError:
+                return str(x)
+        elif isinstance(x, list):
+            s = ''.join([ self.__toString(e, True) for e in x ])
+            if inErlangString:
+                return s
+            else:
+                return '"%s"' % s
         elif isinstance(x, tuple):
-            s = ""
-            for z in map(lambda y: self.__toString(y), x):
-                s += z + ", "
-            return "{%s}" % s.rstrip(", ")
+            s = ', '.join([ self.__toString(e) for e in x ])
+            return '{%s}' % s
         else:
             return str(x)
 
@@ -107,13 +116,13 @@ class NodeApplication(QApplication):
         QApplication.__init__(self, sys.argv)
         qt4reactor.install()
         self._appName = appName
-        self.__cookie = os.getenv("FORSE_COOKIE")
+        self.__cookie = os.getenv('FORSE_COOKIE')
         if not self.__cookie:
             self.__cookie = twotp.readCookie()
-        self.__nameServer = os.getenv("FORSE_NS")
+        self.__nameServer = os.getenv('FORSE_NS')
         if not self.__nameServer:
             raise ValueError("environment variable FORSE_NS is not defined.")
-        self._nodeName = twotp.buildNodeName(appName + "_" + self.__generateRandomHash())
+        self._nodeName = twotp.buildNodeName(appName + '_' + self.__generateRandomHash())
         self.__process = twotp.Process(self._nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
 
