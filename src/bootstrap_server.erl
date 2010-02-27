@@ -184,9 +184,10 @@ handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State)
   when not State#state.bootstrapped ->
 	try
-		{ok, Teams} = file:consult(TeamsFile),
-		{ok, [Track]} = file:consult(TrackFile),
-		{ok, [Weather]} = file:consult(WeatherFile),
+		% try reading the supplied configuration files
+		Teams = consult(TeamsFile),
+		[Track] = consult(TrackFile),
+		[Weather] = consult(WeatherFile),
 		% count the number of cars declared in the config file
 		Count = fun(Team, Acc) ->
 						case lists:keyfind(cars, 1, Team) of
@@ -206,9 +207,10 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 														NewState#state.num_teams)),
 		{reply, ok, NewState}
 	catch
-		% TODO: improve error handling
-		error : {badmatch, Error} ->
-			{reply, Error, State}
+		error : {badmatch, _} = Error ->
+			{reply, {error, Error}, State};
+		throw : Error ->
+			{reply, {error, Error}, State}
 	end;
 handle_call({read_config_files, _TeamsFile, _TrackFile, _WeatherFile}, _From, State) ->
 	{reply, {error, 'already started'}, State};
@@ -319,6 +321,18 @@ choose_nodes([{_Node, 0} | Tail], N, Config) ->
 choose_nodes([{Node, Avail} | Tail], N, Config) ->
 	choose_nodes(Tail ++ [{Node, Avail - 1}], N - 1, [Node | Config]).
 
+-spec consult(string()) -> [term()].
+
+consult(Filename) ->
+	case file:consult(Filename) of
+		{ok, Terms} ->
+			Terms;
+		{error, {Line, Mod, Term}} ->
+			throw(file:format_error({Line, Mod, Term}));
+		{error, Reason} ->
+			throw(Reason)
+	end.
+
 -spec split_config(conflist()) -> {conflist(), [pos_integer()], conflist(), [car()]}.
 
 split_config(Config) ->
@@ -339,7 +353,7 @@ split_config(Config) ->
 	ExtractIDs = fun(Car) ->
 						 case lists:keyfind(id, 1, Car) of
 							 {id, Id} -> Id;
-							 false -> throw(car_id_not_found)
+							 false -> throw("car id not found")
 						 end
 				 end,
 	{N, T, C} = lists:foldl(Split, {1, [], []}, Config),
