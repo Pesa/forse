@@ -51,19 +51,19 @@
 start() ->
 	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
 
--spec add_node(conflist()) -> 'ok' | {'error', Error :: atom()}.
+-spec add_node(conflist()) -> 'ok' | {'error', Reason :: term()}.
 
 add_node(SupportedApps)
   when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
--spec bootstrap(pos_integer(), number()) -> 'ok' | {'error', Error :: atom()}.
+-spec bootstrap(pos_integer(), number()) -> 'ok' | {'error', Reason :: term()}.
 
 bootstrap(Laps, Speedup)
   when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
 
--spec read_config_files(string(), string(), string()) -> 'ok' | {'error', Error :: atom()}.
+-spec read_config_files(string(), string(), string()) -> 'ok' | {'error', Reason :: term()}.
 
 read_config_files(TeamsFile, TrackFile, WeatherFile)
   when is_list(TeamsFile), is_list(TrackFile), is_list(WeatherFile) ->
@@ -119,7 +119,7 @@ handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) when not State#state.
 							nodes = NewNodes}};
 handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
-	{reply, {error, 'already started'}, State};
+	{reply, {error, "already bootstrapped"}, State};
 
 handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
   when not State#state.bootstrapped ->
@@ -176,10 +176,10 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 			
 			{reply, ok, State#state{bootstrapped = true}};
 		_ ->
-			{reply, {error, 'not enough candidate nodes'}, State}
+			{reply, {error, "requirements not satisfied"}, State}
 	end;
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
-	{reply, {error, 'already started'}, State};
+	{reply, {error, "already bootstrapped"}, State};
 
 handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State)
   when not State#state.bootstrapped ->
@@ -213,7 +213,7 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 			{reply, {error, Error}, State}
 	end;
 handle_call({read_config_files, _TeamsFile, _TrackFile, _WeatherFile}, _From, State) ->
-	{reply, {error, 'already started'}, State};
+	{reply, {error, "already bootstrapped"}, State};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
