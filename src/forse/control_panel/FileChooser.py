@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QFileInfo, QString, pyqtSlot
+from PyQt4.QtCore import QFileInfo, pyqtSlot
 from PyQt4.QtGui import QCompleter, QDirModel, QFileDialog, QWidget
 from Ui_FileChooser import Ui_FileChooser
 
