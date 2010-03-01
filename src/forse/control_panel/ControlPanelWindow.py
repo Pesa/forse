@@ -1,8 +1,8 @@
 from PyQt4.QtCore import QTimer, pyqtSlot
-from PyQt4.QtGui import QMainWindow, QMessageBox
+from PyQt4.QtGui import QApplication, QMainWindow, QMessageBox
 from ConfigDialog import ConfigDialog
 from Ui_ControlPanelWindow import Ui_ControlPanelWindow
-from util import RPC
+from remote import BootstrapServer
 
 
 class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
@@ -10,13 +10,15 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        self._bootstrapRPC = RPC("bootstrap_server", "bootstrap")
-        self._bootstrapRPC.done.connect(self._bootstrapDone)
-        QTimer.singleShot(0, self.actionNewSimulation.trigger)
+        QApplication.instance().lastWindowClosed.connect(self._shutdown)
+        if BootstrapServer.start():
+            QTimer.singleShot(0, self.actionNewSimulation.trigger)
+        else:
+            QMessageBox.critical(self, "Fatal error", "Failed to spawn an Erlang node for the bootstrap server.")
 
     @pyqtSlot(name="on_bootstrapButton_clicked")
     def _bootstrap(self):
-        self._bootstrapRPC.call(*self._bootstrapArgs)
+        BootstrapServer.bootstrap(self._bootstrapDone, *self._bootstrapArgs)
 
     def _bootstrapDone(self, reply):
         if reply == "ok":
@@ -32,3 +34,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         if dialog.exec_() == ConfigDialog.Accepted:
             self._bootstrapArgs = dialog.getBootstrapArgs()
             self.bootstrapButton.setEnabled(True)
+
+    @pyqtSlot()
+    def _shutdown(self):
+        BootstrapServer.stop(lambda _: QApplication.quit())

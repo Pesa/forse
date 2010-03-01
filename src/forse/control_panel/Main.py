@@ -5,6 +5,7 @@ from ControlPanelWindow import ControlPanelWindow
 
 if __name__ == "__main__":
     app = NodeApplication("control_panel")
+    app.setQuitOnLastWindowClosed(False)
     mainwin = ControlPanelWindow()
     mainwin.show()
     sys.exit(app.exec_())

@@ -1,11 +1,7 @@
-import hashlib, os, qt4reactor, random, sys, twotp
-from twisted.python.failure import Failure
+import hashlib, os, qt4reactor, random, socket, sys, twotp
 from twotp.term import Atom
-from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+from PyQt4.QtCore import QProcess, QTimer, pyqtSignal
 from PyQt4.QtGui import QApplication
-
-
-__all__ = ['atomToBool', 'RPC', 'NodeApplication', 'SubscriberApplication']
 
 
 def atomToBool(atom):
@@ -21,6 +17,27 @@ def atomToBool(atom):
         return False
     else:
         raise ValueError(str(atom) + " is not a valid boolean value.")
+
+
+def buildNodeName(name, randomize=False):
+    """
+    Returns a string that can be used as the name of an Erlang or Python node.
+    If C{randomize} is true, a random hexadecimal hash is appended to C{name}.
+    """
+    if not name.startswith("forse_"):
+        name = "forse_" + name
+    if randomize:
+        name += '_' + randomHash()
+    if '@' not in name:
+        name += '@' + socket.gethostname()
+    return name
+
+
+def randomHash(length=8):
+    """
+    Generates a random hexadecimal string of the specified length.
+    """
+    return hashlib.sha1(str(random.random())).hexdigest()[:length]
 
 
 class _ProxyHandler(object):
@@ -43,69 +60,6 @@ class _ProxyHandler(object):
             print "No handlers registered for", type.text, "message:", msg
 
 
-class RPCReply(object):
-
-    def __init__(self, reply):
-        object.__init__(self)
-        self.__reply = self.__toString(reply)
-
-    def __eq__(self, other):
-        return self.__reply == other
-
-    def __ne__(self, other):
-        return self.__reply != other
-
-    def __str__(self):
-        return self.__reply
-
-    def __toString(self, x, inErlangString=False):
-        if isinstance(x, Atom):
-            return x.text
-        elif isinstance(x, Failure):
-            return '<%s.%s> : %s' % (x.type.__module__, x.type.__name__, x.value)
-        elif isinstance(x, int) and inErlangString:
-            try:
-                return chr(x)
-            except ValueError:
-                return str(x)
-        elif isinstance(x, list):
-            s = ''.join([ self.__toString(e, True) for e in x ])
-            if inErlangString:
-                return s
-            else:
-                return '"%s"' % s
-        elif isinstance(x, tuple):
-            s = ', '.join([ self.__toString(e) for e in x ])
-            return '{%s}' % s
-        else:
-            return str(x)
-
-
-class RPC(QObject):
-    """
-    Encapsulates the execution of C{mod:fun(args)} as a remote procedure call.
-    """
-
-    done = pyqtSignal(RPCReply)
-
-    def __init__(self, mod, fun, *args):
-        QObject.__init__(self)
-        self.__mod = mod
-        self.__fun = fun
-        self.__args = args
-
-    @pyqtSlot()
-    def call(self, *args):
-        """
-        Performs the actual remote call. The signal C{done} is emitted
-        when a reply has been received from the remote side.
-        """
-        if not args:
-            args = self.__args
-        d = NodeApplication.instance()._rpc(self.__mod, self.__fun, *args)
-        d.addBoth(lambda x: self.done.emit(RPCReply(x)))
-
-
 class NodeApplication(QApplication):
     """
     Provides integration between a QApplication instance and a Python
@@ -116,27 +70,33 @@ class NodeApplication(QApplication):
         QApplication.__init__(self, sys.argv)
         qt4reactor.install()
         self._appName = appName
+        self._nodeName = buildNodeName(appName, randomize=True)
         self.__cookie = os.getenv('FORSE_COOKIE')
         if not self.__cookie:
             self.__cookie = twotp.readCookie()
         self.__nameServer = os.getenv('FORSE_NS')
-        if not self.__nameServer:
-            raise ValueError("environment variable FORSE_NS is not defined.")
-        self._nodeName = twotp.buildNodeName(appName + '_' + self.__generateRandomHash())
         self.__process = twotp.Process(self._nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
 
-    def _rpc(self, mod, fun, *args):
+    def rpc(self, mod, fun, *args):
         return self.__process.callRemote(self.__nameServer, mod, fun, *args)
+
+    def spawnErlangNode(self, runApp, nodeName=None, randomize=False):
+        nodeName = buildNodeName(nodeName if nodeName else runApp, randomize)
+        self.__nameServer = nodeName
+        args = ["-config", "forse",
+                "-detached",
+                "-pa", "ebin",
+                "-setcookie", self.__cookie,
+                "-sname", nodeName,
+                "-run", runApp]
+        return QProcess.startDetached("erl", args)
 
     def _registerModule(self, name, module):
         self.__process.registerModule(name, module)
 
     def _startupHook(self):
         pass
-
-    def __generateRandomHash(self, length=8):
-        return hashlib.sha1(str(random.random())).hexdigest()[:length]
 
     def __startup(self):
         from twisted.internet import reactor
@@ -171,7 +131,7 @@ class SubscriberApplication(NodeApplication):
         """
         cbargs = [Atom(self._nodeName), Atom(self._appName), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
-        d = self._rpc("event_dispatcher", "subscribe", Atom(self._appName), callback)
+        d = self.rpc("event_dispatcher", "subscribe", Atom(self._appName), callback)
         d.addCallback(self.__subscribeCB)
         d.addErrback(self.__subscribeEB)
 
