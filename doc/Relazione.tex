@@ -154,8 +154,6 @@ Il sistema deve essere in grado di riconoscere la fine della competizione ovvero
 
 Deve essere quindi previsto un modo per comunicare a tutte le componenti del sistema di terminare, nel caso in cui non servano più, oppure di mettersi in uno stato di sospensione per permettere all'utente di consultare i dati raccolti durante la simulazione.
 
-\subsection*{Terminazione del sistema}
-TODO
 
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
@@ -360,11 +358,11 @@ L'utente dovrà interagire con due tipi di interfacce di configurazione:
 \item Control Panel: serve per permettere all'utente di inserire il percorso dei file di configurazione necessari, per avviare e terminare il sistema.
 \item Node Configurator: serve all'utente per indicare al sistema dove possono essere avviate le componenti essenziali del sistema e per determinare quindi come saranno distribuite sulla rete tali componenti.
 \end{itemize}
-Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo ``centrale'' ovvero quello controllato da bootstrap\_server e dei nodi secondari gestiti da node\_manager.
+Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da bootstrap\_server che non partecipa alla simulazione e dei nodi gestiti da node\_manager sui quali vengono eseguite le componenti di simulazione.
 
-Questi processi di controllo non devo terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo erlang alla chiusura del sistema.
+Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo erlang alla chiusura del sistema.
 \subsection*{Control Panel e Bootstrap Server}
-Control panel ha il compito di avviare, una volta ottenute le informazioni necessarie dall'utente, un nodo erlang sul quale far eseguire la componente bootstrap\_server.
+Control panel ha il compito di avviare un nodo erlang sul quale far eseguire la componente bootstrap\_server e acquisire le informazioni necessarie alla simulazione dall'utente.
 Control panel deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
 
 La funzione di bootstrap\_server è fondamentale per l'avvio e la terminazione del sistema e di conseguenza non deve essere terminato finché gli altri nodi del sistema sono attivi.
@@ -381,7 +379,29 @@ Una volta avviato node configurator questo istanzia un nodo erlang che andrà a 
 
 La componente node\_manager ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del bootstrap\_server.
 
-Una volta terminata la fase di bootstrap del sistema, node\_manager deve rimanere in attesa del comando di terminazione del nodo da parte di bootstrap\_server.
+Una volta terminata la fase di bootstrap del sistema, node\_manager deve rimanere in attesa del comando di terminazione del nodo da parte di bootstrap\_server, mentre node configurator viene terminato una volta che l'utente ha inserito le informazioni necessarie.
+
+\subsection*{Terminazione}
+E' necessario distinguere tra terminazione della simulazione e terminazione del sistema.
+La terminazione della simulazione comporta la terminazione dei seguenti processi:
+\begin{itemize}
+\item scheduler
+\item event\_dispatcher
+\item team
+\item car
+\item weather
+\end{itemize}
+Vengono inoltre deallocati i dati riguardanti la pista e i parametri di configurazione della competizione.
+
+La terminazione del sistema invece coinvolge la terminazione delle componenti:
+\begin{itemize}
+\item bootstrap\_server
+\item node\_manager
+\item control panel
+\end{itemize}
+Successivamente vengo anche terminati tutti i nodi del sistema.
+
+Dividendo in questo modo la fase di terminazione è possibile effettuare più simulazioni senza dover riavviare il sistema ma semplicemente terminando la simulazione corrente e riconfigurandone una di nuova tramite control panel. E' quindi possibile riutilizzare i nodi già avviati e ridurre il numero di componenti istanziate ex-novo al minimo necessario.
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
@@ -484,7 +504,16 @@ Una volta che queste informazioni sono state inserite dall'utente tramite GUI, q
 
 \fun{bootstrap\_server:configure} grazie ai dati ricevuti dall'utente riesce a calcolare la richiesta di risorse di simulazione necessarie all'avvio mentre \fun{node\_manager:configure}, con il metodo \fun{candidate} comunica a bootstrap\_server le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{enough\_resources} a control panel che può quindi abilitare il pulsante di bootstrap.
 
-A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare mnesia e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie in ordine corretto.
+A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare mnesia e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie nell'ordine:
+\label{txt:ordineAvvio}
+\begin{enumerate}
+\item event\_dispatcher,
+\item scheduler,
+\item weather,
+\item team,
+\item car.
+\end{enumerate}
+
 In questo modo si conclude la fase di avvio del sistema e si può passare quindi alla fase di simulazione.
 \section{Dinamiche della competizione}
 \subsection{Partenza}
@@ -732,9 +761,12 @@ L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite l
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-\multirow{4}{*}{\textbf{Race Info}} & Avvio della simulazione\\
+\multirow{3}{*}{\textbf{Race Info}} & Avvio della simulazione\\
 & Sospensione della simulazione\\
 & Cambio del fattore di speedup\\
+\hline
+\multirow{3}{*}{\textbf{Control Panel}} & Configurazione di una nuova simulazione\\
+& Terminazione della simulazione\\
 & Terminazione del sistema\\
 \hline
 \multirow{2}{*}{\textbf{Team GUI}} & Imporre sosta ai box ad un'auto\\
@@ -751,7 +783,9 @@ La sospensione della simulazione avviene tramite l'invocazione a \fun{scheduler:
 
 La velocità di evoluzione della simulazione può essere alterata dall'utente attraverso il metodo \fun{scheduler:set\_speedup} che va ad agire sul tempo che intercorre tra la fine dell'esecuzione di un'attività presente nella coda e l'inizio di quella successiva, non interferendo quindi in alcun modo con il tempo logico della simulazione.
 
-La terminazione del sistema... FIXME.
+La terminazione della simulazione è coordinata dal bootstrap\_server che tramite node\_manager invoca \fun{application:stop} sulle diverse componenti della simulazione.
+
+La terminazione del sistema comporta la terminazione dell'eventuale simulazione in corso e successivamente la terminazione dei nodi tramite la funzione \fun{init:stop}.
 
 L'utente può imporre una sosta ai box ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \fun{\#next\_pitstop\{lap = now\}} che viene elaborato da car come descritto in \ref{txt:rifornimento}.
 
@@ -784,16 +818,8 @@ Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata �
 
 \chapter{Correttezza}
 \section{Avvio del sistema}
-L'avvio del sistema è coordinato da bootstrap\_server che stabilisce l'ordine di avvio delle componenti del sistema e controlla che l'avvio delle stesse avvenga in modo corretto.
+L'avvio del sistema è coordinato da bootstrap\_server che stabilisce l'ordine di avvio delle componenti del sistema (\ref{txt:ordineAvvio}) e controlla che l'avvio delle stesse avvenga in modo corretto.
 
-L'ordine di avvio è il seguente:
-\begin{enumerate}
-\item event\_dispatcher,
-\item scheduler,
-\item weather,
-\item team,
-\item car.
-\end{enumerate}
 
 Il dispatcher è la prima componente ad essere avviata in modo da permettere l'invio di \fun{config\_notif} da parte delle componenti del sistema durante la loro fase di avvio.
 
@@ -893,6 +919,13 @@ Per quanto riguarda il realismo nelle dinamiche di gara abbiamo considerato la p
 Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento in base anche alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
 
 Per avere una simulazione a grana fine abbiamo deciso di impostare la lunghezza di un segmento a 5 metri, in questo modo siamo riusciti anche ad ottenere una presentazione grafica della simulazione abbastanza fluida.
+
+\section{Terminazione del sistema}
+La terminazione del sistema avviene in due fasi: nella prima bootstrap\_server coordina la terminazione delle componenti di simulazione e nella seconda la terminazione dei processi di controllo e dei nodi.
+
+Nella prima fase bootstrap\_server termina le componenti di simulazione in ordine inverso rispetto all'avvio, questo per non violare i vincoli di dipendenza tra componenti.
+
+Una volta che le componenti di simulazione sono state terminate è possibile terminare anche i processi di controllo e tutti i nodi del sistema sempre sotto la supervisione di bootstrap\_server.
 
 \appendix
 
