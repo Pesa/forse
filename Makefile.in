@@ -43,7 +43,7 @@ relazione:
 	$(Q) $(MAKE) -C doc
 
 check:
-	$(Q) dialyzer -I $(INCDIR) --src -c $(ERL_SOURCES)
+	$(Q) dialyzer -I $(INCDIR) -Wrace_conditions --no_native --src src
 
 clean:
 	$(NQ) "cleaning"
