@@ -76,6 +76,8 @@ class BootstrapServer(object):
 
 class NodeManager(object):
 
+    configure = _RPC("node_manager", "configure")
+
     @staticmethod
     def start():
         return NodeApplication.instance().spawnErlangNode("node_manager", "node", randomize=True)

@@ -20,7 +20,7 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         return self.lapsSpinBox.value(), self.speedupSpinBox.value()
 
     @pyqtSlot(name="on_buttons_accepted")
-    def _submitConfig(self):
+    def _config(self):
         self.setEnabled(False)
         BootstrapServer.readConfigFiles(self._configDone,
                                         self.teamsFileChooser.getFileName(),
