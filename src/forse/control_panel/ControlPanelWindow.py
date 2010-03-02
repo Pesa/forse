@@ -11,10 +11,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         QMainWindow.__init__(self)
         self.setupUi(self)
         QApplication.instance().lastWindowClosed.connect(self._shutdown)
-        if BootstrapServer.start():
-            QTimer.singleShot(0, self.actionNewSimulation.trigger)
-        else:
-            QMessageBox.critical(self, "Fatal error", "Failed to spawn an Erlang node for the bootstrap server.")
+        QTimer.singleShot(0, self._startup)
 
     @pyqtSlot(name="on_bootstrapButton_clicked")
     def _bootstrap(self):
@@ -35,6 +32,12 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
             self._bootstrapArgs = dialog.getBootstrapArgs()
             self.bootstrapButton.setEnabled(True)
 
-    @pyqtSlot()
     def _shutdown(self):
         BootstrapServer.stop(lambda _: QApplication.quit())
+
+    def _startup(self):
+        if BootstrapServer.start():
+            self.actionNewSimulation.trigger()
+        else:
+            QMessageBox.critical(self, "Fatal error", "Failed to start an instance of bootstrap_server.")
+            QApplication.quit()
