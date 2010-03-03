@@ -4,6 +4,7 @@
 
 %% External exports
 -export([start/0,
+		 start_link/0,
 		 add_node/1,
 		 bootstrap/2,
 		 read_config_files/3]).
@@ -46,15 +47,19 @@
 %% External functions
 %% ====================================================================
 
--spec start() -> start_result().
+-spec start() -> 'ok' | {'error', Reason :: term()}.
 
 start() ->
-	gen_server:start(?GLOBAL_NAME, ?MODULE, [], []).
+	application:start(?MODULE).
+
+-spec start_link() -> start_result().
+
+start_link() ->
+	gen_server:start_link(?GLOBAL_NAME, ?MODULE, [], []).
 
 -spec add_node(conflist()) -> 'ok' | {'error', Reason :: term()}.
 
-add_node(SupportedApps)
-  when is_list(SupportedApps) ->
+add_node(SupportedApps) when is_list(SupportedApps) ->
 	gen_server:call(?GLOBAL_NAME, {add_node, SupportedApps}, infinity).
 
 -spec bootstrap(pos_integer(), number()) -> 'ok' | {'error', Reason :: term()}.
