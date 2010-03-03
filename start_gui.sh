@@ -1,7 +1,7 @@
 #!/bin/sh
 
 [ -z ${FORSE_COOKIE} ] && export FORSE_COOKIE="42"
-[ -z ${FORSE_NS} ] && export FORSE_NS="foo@$(hostname)"
+[ -z ${FORSE_NS} ] && export FORSE_NS="forse_bootstrap_server@$(hostname)"
 
 gui="$(basename $0)"
 
