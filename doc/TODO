@@ -1,10 +1,12 @@
-- fare GUI per il bootstrap_server
 - fare GUI e backends per weather, race_info e teams
 - TODO/FIXME nel codice
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - physics:get_car_ahead -> non deve considerare se stessa
 - il processo secondario dello scheduler dovrebbe essere supervisionato
-- gestione delle eccezioni in track e bootstrap_server
+- gestione delle eccezioni in track
+- migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
 - migliorare la Reason restituita quando access:check_move fallisce
+- team_sup: i processi dei team vengono avviati come transient...
+		non dovrebbero essere permanent?
