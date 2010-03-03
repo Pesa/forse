@@ -3,7 +3,8 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0]).
+-export([start_link/0,
+		 configure/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -27,6 +28,11 @@
 start_link() ->
 	gen_server:start_link(?LOCAL_NAME, ?MODULE, [], []).
 
+-spec configure(conflist()) -> 'ok' | {'error', Reason :: term()}.
+
+configure(SupportedApps) when is_list(SupportedApps) ->
+	gen_server:call(?LOCAL_NAME, {configure, SupportedApps}, infinity).
+
 
 %% ====================================================================
 %% Server functions
@@ -41,19 +47,6 @@ start_link() ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-	LocalHost = list_to_atom(net_adm:localhost()),
-	OtherHosts = case net_adm:host_file() of
-					 {error, _} -> [];
-					 Hosts -> Hosts
-				 end,
-	net_adm:world_list([LocalHost | OtherHosts]),
-	global:sync(),
-	% FIXME: remove hardcoded stuff
-	bootstrap_server:add_node([{scheduler,1},
-							   {event_dispatcher,1},
-							   {team,10},
-							   {car,20},
-							   {weather,1}]),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -66,6 +59,17 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({configure, SupportedApps}, _From, State) ->
+	LocalHost = list_to_atom(net_adm:localhost()),
+	OtherHosts = case net_adm:host_file() of
+					 {error, _} -> [];
+					 Hosts -> Hosts
+				 end,
+	net_adm:world_list([LocalHost | OtherHosts]),
+	global:sync(),
+	Reply = bootstrap_server:add_node(SupportedApps),
+	{reply, Reply, State};
+
 handle_call({load_app, AppSpec, MainNode, FailoverNodes}, _From, State) ->
 	App = element(2, AppSpec),
 	Dist = {App, [MainNode, list_to_tuple(FailoverNodes)]},
