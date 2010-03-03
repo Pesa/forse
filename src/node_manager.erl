@@ -3,7 +3,8 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0,
+-export([start/0,
+		 start_link/0,
 		 configure/1]).
 
 %% gen_server callbacks
@@ -22,6 +23,11 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
+-spec start() -> 'ok' | {'error', Reason :: term()}.
+
+start() ->
+	application:start(?MODULE).
 
 -spec start_link() -> start_result().
 
