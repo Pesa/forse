@@ -16,16 +16,16 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         self.weatherFileChooser.setLabel("Weather")
         self.weatherFileChooser.setDefaultPath("examples/weather.conf")
 
-    def getBootstrapArgs(self):
+    def bootstrapArgs(self):
         return self.lapsSpinBox.value(), self.speedupSpinBox.value()
 
     @pyqtSlot(name="on_buttons_accepted")
     def _config(self):
         self.setEnabled(False)
         BootstrapServer.readConfigFiles(self._configDone,
-                                        self.teamsFileChooser.getFileName(),
-                                        self.trackFileChooser.getFileName(),
-                                        self.weatherFileChooser.getFileName())
+                                        self.teamsFileChooser.fileName(),
+                                        self.trackFileChooser.fileName(),
+                                        self.weatherFileChooser.fileName())
 
     def _configDone(self, reply):
         if reply == "ok":

@@ -12,7 +12,7 @@ class FileChooser(QWidget, Ui_FileChooser):
         self.__completer.setModel(QDirModel(self.__completer))
         self.lineEdit.setCompleter(self.__completer)
 
-    def getFileName(self):
+    def fileName(self):
         return str(self.lineEdit.text())
 
     def setDefaultPath(self, path):

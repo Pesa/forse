@@ -30,7 +30,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
     def _newSimulation(self):
         dialog = ConfigDialog(self)
         if dialog.exec_() == ConfigDialog.Accepted:
-            self._bootstrapArgs = dialog.getBootstrapArgs()
+            self._bootstrapArgs = dialog.bootstrapArgs()
             self.bootstrapButton.setEnabled(True)
 
     def _shutdown(self):
