@@ -316,7 +316,7 @@ Attraverso questa componente l'utente può interagire con lo stato della simulaz
 \begin{itemize}
 \item avvio,
 \item pausa,
-\item cambio del fattore di speedup.
+\item cambio del fattore di \textit{speed-up}.
 \end{itemize}
 \subsection*{Interfaccia Fornita}
 Essendo \texttt{race\_info} una \textit{GUI} dal punto di vista funzionale espone sicuramente un'interfaccia verso l'utente con lo scopo di rendere facilmente fruibili i dati riguardanti l'evolvere della simulazione.
@@ -488,7 +488,7 @@ Tramite \texttt{control\_panel} l'utente deve indicare:
 \begin{itemize}
 \item percorso dei file di configurazione,
 \item numero di giri della simulazione,
-\item fattore di speedup da utilizzare.
+\item fattore di \textit{speed-up} da utilizzare.
 \end{itemize}
 
 Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti necessarie alla simulazione possono essere istanziate sul nodo \textsl{Erlang} che ha istanziato. Queste componenti sono:
@@ -763,7 +763,7 @@ L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite l
 \hline
 \multirow{3}{*}{\textbf{\texttt{race\_info}}} & Avvio della simulazione\\
 & Sospensione della simulazione\\
-& Cambio del fattore di speedup\\
+& Cambio del fattore di \textit{speed-up}\\
 \hline
 \multirow{3}{*}{\textbf{\texttt{control\_panel}}} & Configurazione di una nuova simulazione\\
 & Terminazione della simulazione\\
@@ -845,9 +845,9 @@ La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percor
 
 Analizzando l'algoritmo ci si può facilmente convincere che non è possibile che avvenga il fenomeno dello ``scavalcamento'' tra auto.
 
-L'ultima considerazione riguarda l'influenza che il fattore di speedup può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto.
+L'ultima considerazione riguarda l'influenza che il fattore di \textit{speed-up} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto.
 
-Il fattore di speedup infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro.
+Il fattore di \textit{speed-up} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro.
 Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
 
 \section{Non determinismo}
@@ -1026,12 +1026,15 @@ Le tuple sono nella forma
 \item \texttt{RAIN}: Quantità di pioggia presente nel settore, un intero nell'intervallo [0;10].
 \end{itemize}
 
+\chapter{Avvio del prototipo}
+
+
 
 \chapter{Glossario}
 
 \begin{tabularx}{\textwidth}{lX}
 \term{Intermedio cronometrico}{}
-\term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con pitstop) per ogni segmento della pista.}
+\term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con \textit{pit stop}) per ogni segmento della pista.}
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
 \term{Speedup}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
