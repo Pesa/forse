@@ -37,7 +37,7 @@ start_link() ->
 -spec configure(conflist()) -> 'ok' | {'error', Reason :: term()}.
 
 configure(SupportedApps) when is_list(SupportedApps) ->
-	gen_server:call(?LOCAL_NAME, {configure, SupportedApps}, infinity).
+	gen_server:call(?MODULE, {configure, SupportedApps}, infinity).
 
 
 %% ====================================================================
