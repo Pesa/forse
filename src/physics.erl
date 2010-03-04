@@ -68,6 +68,7 @@ sgm_max_speed(VNext, Amin, SgmLength)->
 -spec engine_max_speed(number()) -> float().
 engine_max_speed(F) ->
 	0.00085 * F + 74.5.
+
 %% Calculates the car's acceleration.
 %% F: force (brake or engine)
 %% M: mass
