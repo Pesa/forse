@@ -7,7 +7,8 @@
 		 start_link/0,
 		 add_node/1,
 		 bootstrap/2,
-		 read_config_files/3]).
+		 read_config_files/3,
+		 set_gui_node/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -36,6 +37,7 @@
 -record(state, {bootstrapped	= false	:: boolean(),
 				candidates		= []	:: conflist(),
 				nodes			= []	:: [node()],
+				gui_node				:: node(),
 				num_cars				:: non_neg_integer(),
 				num_teams				:: non_neg_integer(),
 				teams_config			:: conflist(),
@@ -73,6 +75,11 @@ bootstrap(Laps, Speedup)
 read_config_files(TeamsFile, TrackFile, WeatherFile)
   when is_list(TeamsFile), is_list(TrackFile), is_list(WeatherFile) ->
 	gen_server:call(?GLOBAL_NAME, {read_config_files, TeamsFile, TrackFile, WeatherFile}).
+
+-spec set_gui_node(node()) -> 'ok'.
+
+set_gui_node(Node) when is_atom(Node) ->
+	gen_server:call(?GLOBAL_NAME, {set_gui_node, Node}).
 
 
 %% ====================================================================
@@ -114,22 +121,21 @@ handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) when not State#state.
 				Config
 		end,
 	NewCandidates = lists:foldl(F, State#state.candidates, SupportedApps),
+	NewNodes = State#state.nodes ++ [Node],
+	NewState = State#state{candidates = NewCandidates,
+						   nodes = NewNodes},
 	case State#state.teams_config of
 		undefined -> ok;
-		_ -> check_reqs(NewCandidates, ?GEN_REQS(State#state.num_cars,
-												 State#state.num_teams))
+		_ -> check_reqs(NewState)
 	end,
-	NewNodes = State#state.nodes ++ [Node],
-	{reply, ok, State#state{candidates = NewCandidates,
-							nodes = NewNodes}};
+	{reply, ok, NewState};
 handle_call({add_node, _SupportedApps}, _From, State) ->
 	% new nodes cannot be added while the system is running
 	{reply, {error, "already bootstrapped"}, State};
 
 handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
   when not State#state.bootstrapped ->
-	Reqs = ?GEN_REQS(State#state.num_cars, State#state.num_teams),
-	case check_reqs(State#state.candidates, Reqs) of
+	case check_reqs(State) of
 		true when State#state.num_cars > 0 ->
 			Master = hd(Nodes),
 			
@@ -156,7 +162,8 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 								  {_, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
 								  {App, choose_nodes(AppNodes, N, [])}
 						  end,
-			NodesConfig = lists:map(ChooseNodes, Reqs),
+			NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars,
+														   State#state.num_teams)),
 			Start = fun(App) ->
 							Configs = case App of
 										  car -> Cars;
@@ -208,8 +215,7 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 							   track_config = Track,
 							   weather_config = Weather},
 		% check if requirements are already satisfied
-		check_reqs(NewState#state.candidates, ?GEN_REQS(NewState#state.num_cars,
-														NewState#state.num_teams)),
+		check_reqs(NewState),
 		{reply, ok, NewState}
 	catch
 		error : {badmatch, _} = Error ->
@@ -219,6 +225,9 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 	end;
 handle_call({read_config_files, _TeamsFile, _TrackFile, _WeatherFile}, _From, State) ->
 	{reply, {error, "already bootstrapped"}, State};
+
+handle_call({set_gui_node, Node}, _From, State) ->
+	{reply, ok, State#state{gui_node = Node}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
@@ -292,12 +301,12 @@ app_spec(weather, Config) ->
 	 [{applications, [kernel, stdlib, scheduler]},
 	  {mod, {weather_app, Config}}]}.
 
--spec check_reqs(conflist(), conflist()) -> boolean().
+-spec check_reqs(#state{}) -> boolean().
 
-check_reqs(Candidates, Reqs) ->
+check_reqs(State) ->
 	Sum = fun({_, N}, Acc) -> Acc + N end,
 	Check = fun({App, Min}) ->
-					case lists:keyfind(App, 1, Candidates) of
+					case lists:keyfind(App, 1, State#state.candidates) of
 						{App, Nodes} ->
 							MaxAvail = lists:foldl(Sum, 0, Nodes),
 							if
@@ -308,12 +317,14 @@ check_reqs(Candidates, Reqs) ->
 							false
 					end
 			end,
-	case lists:all(Check, Reqs) of
+	case lists:all(Check, ?GEN_REQS(State#state.num_cars, State#state.num_teams)) of
 		true ->
-			% TODO: notify the GUI that we can proceed
-			% rpc:cast(node, mod, func, [])
+			% notify the control panel that we can proceed with the bootstrap
+			rpc:cast(State#state.gui_node, control_panel, ready, []),
 			true;
 		false ->
+			% tell the control panel that we aren't ready
+			rpc:cast(State#state.gui_node, control_panel, not_ready, []),
 			false
 	end.
 
