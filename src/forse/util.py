@@ -1,4 +1,5 @@
-import hashlib, os, qt4reactor, random, socket, sys, twotp
+import hashlib, os, random, socket, sys
+import qt4reactor, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QProcess, QTimer, pyqtSignal
 from PyQt4.QtGui import QApplication
@@ -70,13 +71,16 @@ class NodeApplication(QApplication):
         QApplication.__init__(self, sys.argv)
         qt4reactor.install()
         self._appName = appName
-        self._nodeName = buildNodeName(appName, randomize=True)
         self.__cookie = os.getenv('FORSE_COOKIE')
         if not self.__cookie:
             self.__cookie = twotp.readCookie()
         self.__nameServer = os.getenv('FORSE_NS')
-        self.__process = twotp.Process(self._nodeName, self.__cookie)
+        self.__nodeName = buildNodeName(appName, randomize=True)
+        self.__process = twotp.Process(self.__nodeName, self.__cookie)
         QTimer.singleShot(0, self.__startup)
+
+    def nodeName(self):
+        return Atom(self.__nodeName)
 
     def rpc(self, mod, fun, *args):
         return self.__process.callRemote(self.__nameServer, mod, fun, *args)
@@ -129,7 +133,7 @@ class SubscriberApplication(NodeApplication):
         """
         Sends a subscription request to the event_dispatcher.
         """
-        cbargs = [Atom(self._nodeName), Atom(self._appName), Atom("handleMessage")]
+        cbargs = [self.nodeName(), Atom(self._appName), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
         d = self.rpc("event_dispatcher", "subscribe", Atom(self._appName), callback)
         d.addCallback(self.__subscribeCB)

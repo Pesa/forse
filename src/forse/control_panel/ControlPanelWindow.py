@@ -1,8 +1,9 @@
 from PyQt4.QtCore import QTimer, pyqtSlot
-from PyQt4.QtGui import QApplication, QMainWindow, QMessageBox
+from PyQt4.QtGui import QMainWindow, QMessageBox
 from ConfigDialog import ConfigDialog
 from Ui_ControlPanelWindow import Ui_ControlPanelWindow
 from remote import BootstrapServer
+from util import NodeApplication
 
 
 class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
@@ -10,7 +11,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        QApplication.instance().lastWindowClosed.connect(self._shutdown)
+        NodeApplication.instance().lastWindowClosed.connect(self._shutdown)
         QTimer.singleShot(0, self._startup)
 
     @pyqtSlot(name="on_bootstrapButton_clicked")
@@ -33,11 +34,12 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
             self.bootstrapButton.setEnabled(True)
 
     def _shutdown(self):
-        BootstrapServer.stop(lambda _: QApplication.quit())
+        BootstrapServer.stop(lambda _: NodeApplication.quit())
 
     def _startup(self):
         if BootstrapServer.start():
+            BootstrapServer.setGuiNode(None, NodeApplication.instance().nodeName())
             self.actionNewSimulation.trigger()
         else:
             QMessageBox.critical(self, "Fatal error", "Failed to start an instance of bootstrap_server.")
-            QApplication.quit()
+            NodeApplication.quit()

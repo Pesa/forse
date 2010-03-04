@@ -60,13 +60,15 @@ class _RPC(object):
         invoked as soon as a reply has been received from the remote side.
         """
         d = NodeApplication.instance().rpc(self.__mod, self.__fun, *args)
-        d.addBoth(lambda x: callback(_RPCReply(x)))
+        if callback is not None:
+            d.addBoth(lambda x: callback(_RPCReply(x)))
 
 
 class BootstrapServer(object):
 
     bootstrap = _RPC("bootstrap_server", "bootstrap")
     readConfigFiles = _RPC("bootstrap_server", "read_config_files")
+    setGuiNode = _RPC("bootstrap_server", "set_gui_node")
     stop = _RPC("init", "stop")
 
     @staticmethod
