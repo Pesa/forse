@@ -500,9 +500,9 @@ Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti
 \item \texttt{weather}
 \end{itemize}
 
-Una volta che queste informazioni sono state inserite dall'utente tramite \textit{GUI}, queste vengono comunicate alle corrispondenti componenti \textsl{Erlang} con l'invocazione a \fun{configure}.
+Una volta che queste informazioni sono state inserite dall'utente tramite \textit{GUI}, queste vengono comunicate alle corrispondenti componenti \textsl{Erlang} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
 
-\fun{bootstrap\_server:configure} grazie ai dati ricevuti dall'utente riesce a calcolare la richiesta di risorse di simulazione necessarie all'avvio mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{enough\_resources} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
+\fun{bootstrap\_server:read\_config\_files} grazie ai dati ricevuti dall'utente riesce a calcolare la richiesta di risorse di simulazione necessarie all'avvio mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
 
 A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie nell'ordine:
 \label{txt:ordineAvvio}
