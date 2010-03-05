@@ -35,6 +35,7 @@
 								 {record_name, Record}]).
 
 -record(state, {bootstrapped	= false	:: boolean(),
+				ready			= false	:: boolean(),
 				candidates		= []	:: conflist(),
 				nodes			= []	:: [node()],
 				gui_node				:: node(),
@@ -107,7 +108,10 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) when not State#state.bootstrapped ->
+handle_call({add_node, _SupportedApps}, _From, State) when State#state.bootstrapped ->
+	% new nodes cannot be added while the system is running
+	{reply, {error, "already bootstrapped"}, State};
+handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) ->
 	Node = node(Pid),
 	F = fun({App, N}, Config) when is_integer(N), N > 0 ->
 				NewApp = case lists:keyfind(App, 1, Config) of
@@ -121,80 +125,70 @@ handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) when not State#state.
 				Config
 		end,
 	NewCandidates = lists:foldl(F, State#state.candidates, SupportedApps),
-	NewNodes = State#state.nodes ++ [Node],
 	NewState = State#state{candidates = NewCandidates,
-						   nodes = NewNodes},
-	case State#state.teams_config of
-		undefined -> ok;
-		_ -> check_reqs(NewState)
-	end,
-	{reply, ok, NewState};
-handle_call({add_node, _SupportedApps}, _From, State) ->
-	% new nodes cannot be added while the system is running
-	{reply, {error, "already bootstrapped"}, State};
+						   nodes = State#state.nodes ++ [Node]},
+	{reply, ok, NewState#state{ready = check_reqs(NewState)}};
 
+handle_call({bootstrap, _Laps, _Speedup}, _From, State) when State#state.bootstrapped ->
+	{reply, {error, "already bootstrapped"}, State};
 handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
-  when not State#state.bootstrapped ->
-	case check_reqs(State) of
-		true when State#state.num_cars > 0 ->
-			Master = hd(Nodes),
-			
-			% setup applications' configurations
-			Dispatcher = [],
-			Scheduler = [{speedup, Speedup}],
-			{Teams, TeamsIDs, Cars, CarsIDs} = split_config(State#state.teams_config),
-			Weather = State#state.weather_config,
-			
-			% mnesia database initialization
-			rpc:multicall(Nodes, mnesia, start, []),
-			rpc:multicall(Nodes, mnesia, change_config, [extra_db_nodes, Nodes]),
-			rpc:call(Master, mnesia, create_table, [setting, ?TAB_DEF(setting, Nodes)]),
-			rpc:call(Master, mnesia, create_table, [track, ?TAB_DEF(segment, Nodes)]),
-			rpc:call(Master, mnesia, create_table, [car_type, ?TAB_DEF(car_type, Nodes)]),
-			rpc:call(Master, mnesia, create_table, [pilot, ?TAB_DEF(pilot, Nodes)]),
-			lists:foreach(fun(Id) ->
-								  rpc:call(Master, mnesia, create_table,
-										   [?PREELAB_TABLE(Id), ?TAB_DEF(speed_bound, Nodes)])
-						  end, CarsIDs),
-			
-			% applications initialization
-			ChooseNodes = fun({App, N}) ->
-								  {_, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
-								  {App, choose_nodes(AppNodes, N, [])}
-						  end,
-			NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars,
-														   State#state.num_teams)),
-			Start = fun(App) ->
-							Configs = case App of
-										  car -> Cars;
-										  event_dispatcher -> [Dispatcher];
-										  scheduler -> [Scheduler];
-										  team -> Teams;
-										  weather -> [Weather]
-									  end,
-							AppSpecs = lists:map(fun(C) ->
-														 app_spec(App, C)
-												 end, Configs),
-							{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
-							start_apps(AppSpecs, AppNodes, Nodes)
-					end,
-			lists:foreach(Start, ?BOOTSTRAP_ORDER),
-			
-			% track & settings initialization
-			% FIXME: change the following line when track becomes a gen_server
-			rpc:call(Master, track, init, [State#state.track_config, TeamsIDs, CarsIDs]),
-			rpc:call(Master, utils, set_setting, [running_cars, State#state.num_cars]),
-			rpc:call(Master, utils, set_setting, [total_laps, Laps]),
-			
-			{reply, ok, State#state{bootstrapped = true}};
-		_ ->
-			{reply, {error, "requirements not satisfied"}, State}
-	end;
+  when State#state.ready, State#state.num_cars > 0 ->
+	Master = hd(Nodes),
+	
+	% setup applications' configurations
+	Dispatcher = [],
+	Scheduler = [{speedup, Speedup}],
+	{Teams, TeamsIDs, Cars, CarsIDs} = split_config(State#state.teams_config),
+	Weather = State#state.weather_config,
+	
+	% mnesia database initialization
+	rpc:multicall(Nodes, mnesia, start, []),
+	rpc:multicall(Nodes, mnesia, change_config, [extra_db_nodes, Nodes]),
+	rpc:call(Master, mnesia, create_table, [setting, ?TAB_DEF(setting, Nodes)]),
+	rpc:call(Master, mnesia, create_table, [track, ?TAB_DEF(segment, Nodes)]),
+	rpc:call(Master, mnesia, create_table, [car_type, ?TAB_DEF(car_type, Nodes)]),
+	rpc:call(Master, mnesia, create_table, [pilot, ?TAB_DEF(pilot, Nodes)]),
+	lists:foreach(fun(Id) ->
+						  rpc:call(Master, mnesia, create_table,
+								   [?PREELAB_TABLE(Id), ?TAB_DEF(speed_bound, Nodes)])
+				  end, CarsIDs),
+	
+	% applications initialization
+	ChooseNodes = fun({App, N}) ->
+						  {_, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
+						  {App, choose_nodes(AppNodes, N, [])}
+				  end,
+	NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars,
+												   State#state.num_teams)),
+	Start = fun(App) ->
+					Configs = case App of
+								  car -> Cars;
+								  event_dispatcher -> [Dispatcher];
+								  scheduler -> [Scheduler];
+								  team -> Teams;
+								  weather -> [Weather]
+							  end,
+					AppSpecs = lists:map(fun(C) ->
+												 app_spec(App, C)
+										 end, Configs),
+					{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
+					start_apps(AppSpecs, AppNodes, Nodes)
+			end,
+	lists:foreach(Start, ?BOOTSTRAP_ORDER),
+	
+	% track & settings initialization
+	% FIXME: change the following line when track becomes a gen_server
+	rpc:call(Master, track, init, [State#state.track_config, TeamsIDs, CarsIDs]),
+	rpc:call(Master, utils, set_setting, [running_cars, State#state.num_cars]),
+	rpc:call(Master, utils, set_setting, [total_laps, Laps]),
+	
+	{reply, ok, State#state{bootstrapped = true}};
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
-	{reply, {error, "already bootstrapped"}, State};
+	{reply, {error, "requirements not satisfied"}, State};
 
-handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State)
-  when not State#state.bootstrapped ->
+handle_call({read_config_files, _, _, _}, _From, State) when State#state.bootstrapped ->
+	{reply, {error, "already bootstrapped"}, State};
+handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State) ->
 	try
 		% try reading the supplied configuration files
 		Teams = consult(TeamsFile),
@@ -215,16 +209,14 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 							   track_config = Track,
 							   weather_config = Weather},
 		% check if requirements are already satisfied
-		check_reqs(NewState),
-		{reply, ok, NewState}
+		Ready = check_reqs(NewState),
+		{reply, ok, NewState#state{ready = Ready}}
 	catch
 		error : {badmatch, _} = Error ->
 			{reply, {error, Error}, State};
 		throw : Error ->
 			{reply, {error, Error}, State}
 	end;
-handle_call({read_config_files, _TeamsFile, _TrackFile, _WeatherFile}, _From, State) ->
-	{reply, {error, "already bootstrapped"}, State};
 
 handle_call({set_gui_node, Node}, _From, State) ->
 	{reply, ok, State#state{gui_node = Node}};
@@ -303,6 +295,8 @@ app_spec(weather, Config) ->
 
 -spec check_reqs(#state{}) -> boolean().
 
+check_reqs(State) when State#state.teams_config == undefined ->
+	false;
 check_reqs(State) ->
 	Sum = fun({_, N}, Acc) -> Acc + N end,
 	Check = fun({App, Min}) ->
