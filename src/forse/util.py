@@ -54,9 +54,8 @@ class _ProxyHandler(object):
 
     def remote_handleMessage(self, type, msg):
         try:
-            key, value = msg
-            for h in self.__handlers[type.text, key.text]:
-                h(value)
+            for h in self.__handlers[type.text, msg[0].text]:
+                h(*msg[1:])
         except KeyError:
             print "No handlers registered for", type.text, "message:", msg
 
