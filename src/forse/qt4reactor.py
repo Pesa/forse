@@ -32,6 +32,8 @@ Maintainer: U{Glenn H Tarbox, PhD<mailto:glenn@tarbox.org>}
 Previous maintainer: U{Itamar Shtull-Trauring<mailto:twisted@itamarst.org>}
 Original port to QT4: U{Gabe Rudy<mailto:rudy@goldenhelix.com>}
 Subsequent port by therve
+
+Bug-fixing and modernization by Davide Pesavento.
 """
 
 __all__ = ['install']
@@ -40,8 +42,7 @@ import sys, time
 
 from zope.interface import implements
 
-from PyQt4.QtCore import QObject, SIGNAL, QCoreApplication, \
-                         QEventLoop, QSocketNotifier, QTimer
+from PyQt4.QtCore import QCoreApplication, QEventLoop, QSocketNotifier, QTimer
 
 from twisted.internet.interfaces import IReactorFDSet
 from twisted.internet.posixbase import PosixReactorBase
@@ -62,10 +63,10 @@ class TwistedSocketNotifier(QSocketNotifier):
             self.fn = self.read
         elif type == QSocketNotifier.Write:
             self.fn = self.write
-        QObject.connect(self, SIGNAL("activated(int)"), self.fn)
+        self.activated[int].connect(self.fn)
 
     def shutdown(self):
-        QObject.disconnect(self, SIGNAL("activated(int)"), self.fn)
+        self.activated[int].disconnect(self.fn)
         self.setEnabled(False)
         self.fn = self.watcher = None
         self.deleteLater()
@@ -194,7 +195,7 @@ class Qt4Reactor(PosixReactorBase):
         self._readWriteQ.append(t)
 
     def runReturn(self, installSignalHandlers=True):
-        QObject.connect(self._timer, SIGNAL("timeout()"), self.reactorInvokePrivate)
+        self._timer.timeout.connect(self.reactorInvokePrivate)
         self.startRunning(installSignalHandlers=installSignalHandlers)
         self._timer.start(0)
 
