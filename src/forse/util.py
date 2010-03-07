@@ -47,7 +47,10 @@ class _ProxyHandler(object):
         object.__init__(self)
         self.__handlers = {}
 
-    def addHandler(self, tag, method):
+    def createHandler(self, name, method):
+        setattr(self, "remote_" + name, method)
+
+    def installHandler(self, tag, method):
         if tag not in self.__handlers:
             self.__handlers[tag] = []
         self.__handlers[tag].append(method)
@@ -76,10 +79,18 @@ class NodeApplication(QApplication):
         self.__nameServer = os.getenv('FORSE_NS')
         self.__nodeName = buildNodeName(appName, randomize=True)
         self.__process = twotp.Process(self.__nodeName, self.__cookie)
+        self.__proxy = _ProxyHandler()
         QTimer.singleShot(0, self.__startup)
+
+    def createHandler(self, name, method):
+        self.__proxy.createHandler(name, method)
 
     def nodeName(self):
         return Atom(self.__nodeName)
+
+    def registerMsgHandlers(self, handlers):
+        for tag, method in handlers.iteritems():
+            self.__proxy.installHandler(tag, method)
 
     def rpc(self, mod, fun, *args):
         return self.__process.callRemote(self.__nameServer, mod, fun, *args)
@@ -95,18 +106,12 @@ class NodeApplication(QApplication):
                 "-run", runApp]
         return QProcess.startDetached("erl", args)
 
-    def _registerModule(self, name, module):
-        self.__process.registerModule(name, module)
-
-    def _startupHook(self):
-        pass
-
     def __startup(self):
         from twisted.internet import reactor
         reactor.runReturn()
         self.__process.register(self._appName)
+        self.__process.registerModule(self._appName, self.__proxy)
         self.__process.listen()
-        self._startupHook()
 
 
 class SubscriberApplication(NodeApplication):
@@ -121,12 +126,8 @@ class SubscriberApplication(NodeApplication):
 
     def __init__(self, appName):
         NodeApplication.__init__(self, appName)
-        self.__proxy = _ProxyHandler()
         self.__retryDelay = 1
-
-    def registerMsgHandlers(self, handlers):
-        for tag, method in handlers.iteritems():
-            self.__proxy.addHandler(tag, method)
+        self.__retrySubscription()
 
     def subscribe(self):
         """
@@ -137,10 +138,6 @@ class SubscriberApplication(NodeApplication):
         d = self.rpc("event_dispatcher", "subscribe", Atom(self._appName), callback)
         d.addCallback(self.__subscribeCB)
         d.addErrback(self.__subscribeEB)
-
-    def _startupHook(self):
-        self._registerModule(self._appName, self.__proxy)
-        self.subscribe()
 
     def __retrySubscription(self):
         QTimer.singleShot(self.__retryDelay * 1000, self.subscribe)

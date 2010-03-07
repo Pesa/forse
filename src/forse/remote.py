@@ -44,7 +44,7 @@ class _RPCReply(object):
             return str(x)
 
 
-class _RPC(object):
+class _RPCTo(object):
     """
     Encapsulates the execution of C{mod:fun(args)} as a remote procedure call.
     """
@@ -64,12 +64,29 @@ class _RPC(object):
             d.addBoth(lambda x: callback(_RPCReply(x)))
 
 
+class _RPCFrom(object):
+    """
+    Provides a thin abstraction layer (and a more pythonic interface)
+    for a remote procedure call received by a Python node.
+    """
+
+    def __init__(self, notif):
+        object.__init__(self)
+        self.__notif = notif
+
+    def connect(self, method):
+        NodeApplication.instance().createHandler(self.__notif, method)
+
+
 class BootstrapServer(object):
 
-    bootstrap = _RPC("bootstrap_server", "bootstrap")
-    readConfigFiles = _RPC("bootstrap_server", "read_config_files")
-    setGuiNode = _RPC("bootstrap_server", "set_gui_node")
-    stop = _RPC("init", "stop")
+    bootstrap = _RPCTo("bootstrap_server", "bootstrap")
+    readConfigFiles = _RPCTo("bootstrap_server", "read_config_files")
+    setGuiNode = _RPCTo("bootstrap_server", "set_gui_node")
+    stop = _RPCTo("init", "stop")
+
+    ready = _RPCFrom("ready")
+    notReady = _RPCFrom("not_ready")
 
     @staticmethod
     def start():
@@ -78,7 +95,7 @@ class BootstrapServer(object):
 
 class NodeManager(object):
 
-    configure = _RPC("node_manager", "configure")
+    configure = _RPCTo("node_manager", "configure")
 
     @staticmethod
     def start():
