@@ -214,7 +214,7 @@ class Qt4Reactor(PosixReactorBase):
 
     def reactorInvokePrivate(self):
         if not self.running:
-            self._blockApp.quit()
+            self.qApp.quit()
         self.runUntilCurrent()
         t = self.timeout()
         if t is None:
