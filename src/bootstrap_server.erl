@@ -314,11 +314,11 @@ check_reqs(State) ->
 	case lists:all(Check, ?GEN_REQS(State#state.num_cars, State#state.num_teams)) of
 		true ->
 			% notify the control panel that we can proceed with the bootstrap
-			rpc:cast(State#state.gui_node, control_panel, ready, []),
+			rpc:call(State#state.gui_node, control_panel, ready, []),
 			true;
 		false ->
 			% tell the control panel that we aren't ready
-			rpc:cast(State#state.gui_node, control_panel, not_ready, []),
+			rpc:call(State#state.gui_node, control_panel, not_ready, []),
 			false
 	end.
 
