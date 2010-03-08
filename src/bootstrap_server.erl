@@ -113,6 +113,13 @@ handle_call({add_node, _SupportedApps}, _From, State) when State#state.bootstrap
 	{reply, {error, "already bootstrapped"}, State};
 handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) ->
 	Node = node(Pid),
+	
+	% start monitoring the connection
+	monitor_node(Node, true),
+	% tell the control panel that a new node is available
+	rpc:call(State#state.gui_node, control_panel, node_up, [Node]),
+	
+	% update the list of candidates
 	F = fun({App, N}, Config) when is_integer(N), N > 0 ->
 				NewApp = case lists:keyfind(App, 1, Config) of
 							 {App, List} ->
@@ -158,8 +165,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 						  {_, AppNodes} = lists:keyfind(App, 1, State#state.candidates),
 						  {App, choose_nodes(AppNodes, N, [])}
 				  end,
-	NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars,
-												   State#state.num_teams)),
+	NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars, State#state.num_teams)),
 	Start = fun(App) ->
 					Configs = case App of
 								  car -> Cars;
@@ -168,9 +174,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 								  team -> Teams;
 								  weather -> [Weather]
 							  end,
-					AppSpecs = lists:map(fun(C) ->
-												 app_spec(App, C)
-										 end, Configs),
+					AppSpecs = lists:map(fun(C) -> app_spec(App, C) end, Configs),
 					{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
 					start_apps(AppSpecs, AppNodes, Nodes)
 			end,
@@ -194,6 +198,7 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 		Teams = consult(TeamsFile),
 		[Track] = consult(TrackFile),
 		[Weather] = consult(WeatherFile),
+		
 		% count the number of cars declared in the config file
 		Count = fun(Team, Acc) ->
 						case lists:keyfind(cars, 1, Team) of
@@ -208,6 +213,7 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 							   teams_config = Teams,
 							   track_config = Track,
 							   weather_config = Weather},
+		
 		% check if requirements are already satisfied
 		Ready = check_reqs(NewState),
 		{reply, ok, NewState#state{ready = Ready}}
@@ -243,6 +249,18 @@ handle_cast(Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_info({nodedown, Node}, State) ->
+	% notify the control panel that the node went down
+	rpc:call(State#state.gui_node, control_panel, node_down, [Node]),
+	% delete the node from the list of candidates
+	Delete = fun({App, NodesList}) ->
+					 {App, lists:keydelete(Node, 1, NodesList)}
+			 end,
+	NewCandidates = lists:map(Delete, State#state.candidates),
+	NewNodes = lists:delete(Node, State#state.nodes),
+	{noreply, State#state{candidates = NewCandidates,
+						  nodes = NewNodes}};
+
 handle_info(Info, State) ->
 	?WARN({"unhandled info", Info}),
 	{noreply, State}.
