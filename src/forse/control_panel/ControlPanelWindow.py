@@ -12,8 +12,8 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         QMainWindow.__init__(self)
         self.setupUi(self)
         NodeApplication.instance().lastWindowClosed.connect(self._shutdown)
-        BootstrapServer.ready.connect(self._ready)
-        BootstrapServer.notReady.connect(self._notReady)
+        BootstrapServer.ready.connect(lambda: self.bootstrapButton.setEnabled(True))
+        BootstrapServer.notReady.connect(lambda: self.bootstrapButton.setEnabled(False))
         QTimer.singleShot(0, self._startup)
 
     @pyqtSlot(name="on_bootstrapButton_clicked")
@@ -24,6 +24,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         if reply == "ok":
             self.statusBar.showMessage("System bootstrapped successfully", 5000)
             self.actionNewSimulation.setEnabled(False)
+            self.bootstrapButton.setEnabled(False)
         else:
             self.statusBar.showMessage("Bootstrap error", 5000)
             QMessageBox.critical(self, "Error", "An error occurred during bootstrap:\n\n   %s" % reply)
@@ -33,12 +34,6 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         dialog = ConfigDialog(self)
         if dialog.exec_() == ConfigDialog.Accepted:
             self._bootstrapArgs = dialog.bootstrapArgs()
-
-    def _notReady(self):
-        self.bootstrapButton.setEnabled(False)
-
-    def _ready(self):
-        self.bootstrapButton.setEnabled(True)
 
     def _shutdown(self):
         BootstrapServer.stop(lambda _: NodeApplication.quit())
