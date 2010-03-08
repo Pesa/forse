@@ -1,4 +1,4 @@
-import hashlib, os, random, socket, sys
+import hashlib, os, random, socket, sys, time
 import qt4reactor, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QProcess, QTimer, pyqtSignal
@@ -104,7 +104,9 @@ class NodeApplication(QApplication):
                 "-setcookie", self.__cookie,
                 "-sname", nodeName,
                 "-run", runApp]
-        return QProcess.startDetached("erl", args)
+        result = QProcess.startDetached("erl", args)
+        time.sleep(1)
+        return result
 
     def __startup(self):
         from twisted.internet import reactor
