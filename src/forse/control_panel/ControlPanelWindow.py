@@ -1,5 +1,5 @@
 from PyQt4.QtCore import QTimer, pyqtSlot
-from PyQt4.QtGui import QMainWindow, QMessageBox
+from PyQt4.QtGui import QMainWindow, QMessageBox, QStringListModel
 from ConfigDialog import ConfigDialog
 from Ui_ControlPanelWindow import Ui_ControlPanelWindow
 from remote import BootstrapServer
@@ -11,7 +11,12 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.nodesList = []
+        self.nodesModel = QStringListModel(self.nodesList, self)
+        self.nodesView.setModel(self.nodesModel)
         NodeApplication.instance().lastWindowClosed.connect(self._shutdown)
+        BootstrapServer.nodeDown.connect(self._nodeDown)
+        BootstrapServer.nodeUp.connect(self._nodeUp)
         BootstrapServer.ready.connect(lambda: self.bootstrapButton.setEnabled(True))
         BootstrapServer.notReady.connect(lambda: self.bootstrapButton.setEnabled(False))
         QTimer.singleShot(0, self._startup)
@@ -34,6 +39,17 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         dialog = ConfigDialog(self)
         if dialog.exec_() == ConfigDialog.Accepted:
             self._bootstrapArgs = dialog.bootstrapArgs()
+
+    def _nodeDown(self, node):
+        try:
+            self.nodesList.remove(str(node))
+            self.nodesModel.setStringList(self.nodesList)
+        except ValueError:
+            pass
+
+    def _nodeUp(self, node):
+        self.nodesList.append(str(node))
+        self.nodesModel.setStringList(self.nodesList)
 
     def _shutdown(self):
         BootstrapServer.stop(lambda _: NodeApplication.quit())
