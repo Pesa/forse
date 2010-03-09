@@ -134,6 +134,8 @@ handle_call({add_node, SupportedApps}, {Pid, _Tag}, State) ->
 	NewCandidates = lists:foldl(F, State#state.candidates, SupportedApps),
 	NewState = State#state{candidates = NewCandidates,
 						   nodes = State#state.nodes ++ [Node]},
+	
+	% re-check the requirements
 	{reply, ok, NewState#state{ready = check_reqs(NewState)}};
 
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) when State#state.bootstrapped ->
@@ -256,10 +258,10 @@ handle_info({nodedown, Node}, State) ->
 	Delete = fun({App, NodesList}) ->
 					 {App, lists:keydelete(Node, 1, NodesList)}
 			 end,
-	NewCandidates = lists:map(Delete, State#state.candidates),
-	NewNodes = lists:delete(Node, State#state.nodes),
-	{noreply, State#state{candidates = NewCandidates,
-						  nodes = NewNodes}};
+	NewState = State#state{candidates = lists:map(Delete, State#state.candidates),
+						   nodes = lists:delete(Node, State#state.nodes)},
+	% re-check the requirements
+	{noreply, NewState#state{ready = check_reqs(NewState)}};
 
 handle_info(Info, State) ->
 	?WARN({"unhandled info", Info}),
