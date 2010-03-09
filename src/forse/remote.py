@@ -85,6 +85,7 @@ class BootstrapServer(object):
     bootstrap = _RPCTo("bootstrap_server", "bootstrap")
     readConfigFiles = _RPCTo("bootstrap_server", "read_config_files")
     setGuiNode = _RPCTo("bootstrap_server", "set_gui_node")
+    start = staticmethod(lambda: NodeApplication.instance().spawnErlangNode("bootstrap_server"))
     stop = _RPCTo("init", "stop")
 
     nodeDown = _RPCFrom("node_down")
@@ -92,19 +93,19 @@ class BootstrapServer(object):
     notReady = _RPCFrom("not_ready")
     ready = _RPCFrom("ready")
 
-    @staticmethod
-    def start():
-        return NodeApplication.instance().spawnErlangNode("bootstrap_server")
-
 
 class NodeManager(object):
 
     configure = _RPCTo("node_manager", "configure")
-
-    @staticmethod
-    def start():
-        return NodeApplication.instance().spawnErlangNode("node_manager", "node", randomize=True)
+    start = staticmethod(lambda: NodeApplication.instance().spawnErlangNode("node_manager", "node", randomize=True))
 
 
 class Team(object):
     pass
+
+
+class Scheduler(object):
+
+    setSpeedup = _RPCTo("scheduler", "set_speedup")
+    startSimulation = _RPCTo("scheduler", "start_simulation")
+    pauseSimulation = _RPCTo("scheduler", "pause_simulation")
