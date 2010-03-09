@@ -85,8 +85,10 @@ class BootstrapServer(object):
     setGuiNode = _RPCTo("bootstrap_server", "set_gui_node")
     stop = _RPCTo("init", "stop")
 
-    ready = _RPCFrom("ready")
+    nodeDown = _RPCFrom("node_down")
+    nodeUp = _RPCFrom("node_up")
     notReady = _RPCFrom("not_ready")
+    ready = _RPCFrom("ready")
 
     @staticmethod
     def start():
