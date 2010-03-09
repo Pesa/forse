@@ -74,8 +74,10 @@ class _RPCFrom(object):
         object.__init__(self)
         self.__notif = notif
 
-    def connect(self, method):
-        NodeApplication.instance().createHandler(self.__notif, method)
+    def connect(self, handler):
+        def wrapper(*args):
+            handler(*[ _RPCReply(x) for x in args ])
+        NodeApplication.instance().createHandler(self.__notif, wrapper)
 
 
 class BootstrapServer(object):
