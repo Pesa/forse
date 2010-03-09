@@ -33,8 +33,9 @@ all: $(FORMS_OBJS) $(RESOURCES_OBJS)
 
 clean:
 	$(Q) rm -f *~
-	$(Q) rm -f $(FORMS_OBJS) $(FORMS_OBJS:.py=.pyc) $(FORMS_OBJS:.py=.pyo)
-	$(Q) rm -f $(RESOURCES_OBJS) $(RESOURCES_OBJS:.py=.pyc) $(RESOURCES_OBJS:.py=.pyo)
+	$(Q) rm -f $(FORMS_OBJS) $(RESOURCES_OBJS)
+	$(Q) rm -f $(wildcard *.pyc) $(wildcard */*.pyc)
+	$(Q) rm -f $(wildcard *.pyo) $(wildcard */*.pyo)
 
 distclean: clean
 	$(Q) rm -f Makefile
