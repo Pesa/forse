@@ -1,5 +1,4 @@
-- fare GUI e backends per weather, race_info e teams
-- TODO/FIXME nel codice
+- fare/finire GUI e backends per weather, race_info e teams
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - physics:get_car_ahead -> non deve considerare se stessa
@@ -10,3 +9,8 @@
 - migliorare la Reason restituita quando access:check_move fallisce
 - team_sup: i processi dei team vengono avviati come transient...
 		non dovrebbero essere permanent?
+- start_phases per le applicazioni
+- implementare ordine di partenza delle auto casuale
+- sistemare race_state in race_info_backend:
+	- dev'essere inizializzato (a cosa?)
+	- cosa fare quando la simulazione viene terminata?
