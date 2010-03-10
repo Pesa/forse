@@ -5,7 +5,7 @@ from PyQt4.QtGui import QGraphicsItem, QGraphicsColorizeEffect, QFont, QPen
 
 __all__ = ['Car']
 
-carSize = 32
+__carSize = 32
 
 
 class Car(QGraphicsItem):
@@ -23,16 +23,12 @@ class Car(QGraphicsItem):
         self._effect.setEnabled(False)
         self._font = QFont()
         self._font.setPointSize(16)
-        self._pen = QPen(Qt.black, carSize, Qt.SolidLine, Qt.RoundCap)
-        self._rect = QRectF(-carSize / 2, -carSize / 2, carSize, carSize)
+        self._pen = QPen(Qt.black, __carSize, Qt.SolidLine, Qt.RoundCap)
+        self._rect = QRectF(-__carSize / 2, -__carSize / 2, __carSize, __carSize)
         self.setGraphicsEffect(self._effect)
         self.setToolTip("Car " + str(self._id))
         self.updatePos(startPos, pitLane)
         self._translateToNewPos()
-
-    def _translateToNewPos(self):
-        pos = self.mapFromScene(self._track.calculateCarPos(self._position, self._pit))
-        self.translate(pos.x(), pos.y())
 
     def advance(self, phase):
         if phase == 1:
@@ -61,3 +57,7 @@ class Car(QGraphicsItem):
     def updatePos(self, pos, pit):
         self._position = pos
         self._pit = pit
+
+    def _translateToNewPos(self):
+        pos = self.mapFromScene(self._track.calculateCarPos(self._position, self._pit))
+        self.translate(pos.x(), pos.y())

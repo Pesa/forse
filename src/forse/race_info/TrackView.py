@@ -28,9 +28,6 @@ class TrackView(QGraphicsView):
                     ('update', 'car_pos'): self._moveCar}
         NodeApplication.instance().registerMsgHandlers(handlers)
 
-    def _refitScene(self):
-        self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
-
     def resizeEvent(self, _event):
         self._refitScene()
 
@@ -48,6 +45,9 @@ class TrackView(QGraphicsView):
     def _moveCar(self, value):
         id, pos, pit = value
         self._cars[id].updatePos(pos, atomToBool(pit))
+
+    def _refitScene(self):
+        self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
 
     def _setRaceState(self, state):
         if state.text == "started" or state.text == "resumed":

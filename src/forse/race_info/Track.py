@@ -7,13 +7,13 @@ from PyQt4.QtGui import QPainterPath, QPainterPathStroker, QPen
 
 __all__ = ['Track']
 
-trackWidth = 16
-pitWidth = 12
-pitDistance = -3 * trackWidth
-pitPen = QPen(Qt.darkGray, pitWidth, Qt.SolidLine, Qt.FlatCap)
+__trackWidth = 16
+__pitWidth = 12
+__pitDistance = -3 * __trackWidth
+__pitPen = QPen(Qt.darkGray, __pitWidth, Qt.SolidLine, Qt.FlatCap)
 
 
-def strokeWithPen(path, pen):
+def __strokeWithPen(path, pen):
     stroker = QPainterPathStroker()
     stroker.setCapStyle(pen.capStyle())
     stroker.setDashPattern(pen.style())
@@ -56,7 +56,7 @@ class PhysicalSector(Sector):
         if length <= 0:
             raise ValueError("'length' must be a positive value.")
         self.length = length
-        self.pen = QPen(color, trackWidth, Qt.SolidLine, Qt.FlatCap)
+        self.pen = QPen(color, __trackWidth, Qt.SolidLine, Qt.FlatCap)
         self.setZValue(2)
 
     def calculateCarPos(self, pos, pit):
@@ -69,7 +69,7 @@ class PhysicalSector(Sector):
 
     def paint(self, painter, _option, _widget):
         if self.pitLane:
-            painter.setPen(pitPen)
+            painter.setPen(__pitPen)
             painter.drawPath(self.pitPath)
         painter.setPen(self.pen)
         painter.drawPath(self.path)
@@ -88,16 +88,16 @@ class BentSector(PhysicalSector):
                       2 * abs(radius), 2 * abs(radius))
         self.path = QPainterPath()
         self.path.arcTo(rect, self.startAngle, self.angle)
-        self.stroke = strokeWithPen(self.path, self.pen)
+        self.stroke = __strokeWithPen(self.path, self.pen)
 
     def enablePitLane(self):
         PhysicalSector.enablePitLane(self)
-        pitRadius = self.radius - pitDistance
-        pitRect = QRectF(pitDistance + (2 * pitRadius if pitRadius < 0 else 0),
+        pitRadius = self.radius - __pitDistance
+        pitRect = QRectF(__pitDistance + (2 * pitRadius if pitRadius < 0 else 0),
                          - abs(pitRadius), 2 * abs(pitRadius), 2 * abs(pitRadius))
-        self.pitPath = QPainterPath(QPointF(pitDistance, 0))
+        self.pitPath = QPainterPath(QPointF(__pitDistance, 0))
         self.pitPath.arcTo(pitRect, self.startAngle, self.angle)
-        pitStroke = strokeWithPen(self.pitPath, pitPen)
+        pitStroke = __strokeWithPen(self.pitPath, __pitPen)
         self.stroke += pitStroke
 
     def finalState(self):
@@ -110,13 +110,13 @@ class StraightSector(PhysicalSector):
         PhysicalSector.__init__(self, parent, pos, angle, color, length)
         self.path = QPainterPath()
         self.path.lineTo(0, self.length)
-        self.stroke = strokeWithPen(self.path, self.pen)
+        self.stroke = __strokeWithPen(self.path, self.pen)
 
     def enablePitLane(self):
         PhysicalSector.enablePitLane(self)
-        self.pitPath = QPainterPath(QPointF(pitDistance, 0))
-        self.pitPath.lineTo(pitDistance, self.length)
-        pitStroke = strokeWithPen(self.pitPath, pitPen)
+        self.pitPath = QPainterPath(QPointF(__pitDistance, 0))
+        self.pitPath.lineTo(__pitDistance, self.length)
+        pitStroke = __strokeWithPen(self.pitPath, __pitPen)
         self.stroke += pitStroke
 
     def finalState(self):
@@ -129,10 +129,10 @@ class PitLaneAccess(Sector):
         Sector.__init__(self, parent, pos, angle)
         self.setZValue(1)
         self.path = QPainterPath()
-        self.path.lineTo(pitDistance, 0)
-        self.pen = QPen(pitPen)
+        self.path.lineTo(__pitDistance, 0)
+        self.pen = QPen(__pitPen)
         self.pen.setCapStyle(Qt.SquareCap)
-        self.stroke = strokeWithPen(self.path, self.pen)
+        self.stroke = __strokeWithPen(self.path, self.pen)
 
     def paint(self, painter, _option, _widget):
         painter.setPen(self.pen)
@@ -156,12 +156,12 @@ class FinishLine(Sector):
     def __init__(self, parent, pos, angle):
         Sector.__init__(self, parent, pos, angle)
         self.setZValue(3)
-        self.blackPen = QPen(Qt.black, trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
-        self.whitePen = QPen(Qt.white, trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
-        self._createPaths(trackWidth * 3)
+        self.blackPen = QPen(Qt.black, __trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
+        self.whitePen = QPen(Qt.white, __trackWidth / 2, Qt.SolidLine, Qt.FlatCap)
+        self._createPaths(__trackWidth * 3)
 
     def _createPaths(self, width):
-        step = trackWidth / 2
+        step = __trackWidth / 2
         halfstep = step / 2
         start = step * 3
         n = width / step
@@ -175,12 +175,12 @@ class FinishLine(Sector):
             sign = 1 if i % 2 == 0 else - 1
             self.whitePath.moveTo(start - step * i, sign * halfstep)
             self.whitePath.lineTo(start - step * (i + 1), sign * halfstep)
-        self.stroke = strokeWithPen(self.blackPath, self.blackPen)
-        self.stroke += strokeWithPen(self.whitePath, self.whitePen)
+        self.stroke = __strokeWithPen(self.blackPath, self.blackPen)
+        self.stroke += __strokeWithPen(self.whitePath, self.whitePen)
 
     def enablePitLane(self):
         Sector.enablePitLane(self)
-        self._createPaths(trackWidth * 3 + abs(pitDistance))
+        self._createPaths(__trackWidth * 3 + abs(__pitDistance))
 
     def paint(self, painter, _option, _widget):
         painter.setPen(self.blackPen)
@@ -200,6 +200,15 @@ class Track(QGraphicsItemGroup):
         for s in self._sectors:
             self.addToGroup(s)
             self._totalLength += len(s)
+
+    def calculateCarPos(self, pos, pit):
+        normalized = pos % self._totalLength
+        current = 0
+        for s in self._sectors:
+            relative = normalized - current
+            if relative < len(s):
+                return s.calculateCarPos(relative, pit)
+            current += len(s)
 
     def _getNextColor(self):
         c = self._nextColor + 7
@@ -253,12 +262,3 @@ class Track(QGraphicsItemGroup):
             angle = (angle + newangle) % 360
             items.append(item)
         return self._sectorsToItems(sectors, pos, angle, color, items)
-
-    def calculateCarPos(self, pos, pit):
-        normalized = pos % self._totalLength
-        current = 0
-        for s in self._sectors:
-            relative = normalized - current
-            if relative < len(s):
-                return s.calculateCarPos(relative, pit)
-            current += len(s)
