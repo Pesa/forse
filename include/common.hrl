@@ -46,6 +46,7 @@
 -type skill()			:: 1..10.
 -type start_result()	:: 'ignore' | {'error', Error :: term()}
 						 | {'ok', Pid :: pid()}.
+-type team()			:: pos_integer().
 -type time()			:: number().
 -type tyres()			:: 'slick' | 'intermediate' | 'wet'.
 
