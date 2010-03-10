@@ -21,7 +21,7 @@
 				sectors		= []	:: [sector()],
 				pilots = []			:: [{Id :: car(), TeamID :: team(), Name :: string(), TeamName :: string() | 'undefined'}],
 				teams = []			:: [{Id :: team(), Name :: string()}],
-				standings = []		:: [{Id :: car(), Pos :: non_neg_integer()}]}).
+				standings = []		:: [{Id :: car(), Pos :: non_neg_integer(), Status :: 'running' | 'retired'}]}).
 
 
 %% ====================================================================
@@ -93,7 +93,7 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
 	% use car_pos to build standings and notify
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
-											{{CarId, Acc}, Acc + 1}
+											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
 	
 	Subs3 = event_dispatcher:notify_init({standings, Standings}, Subs2),
@@ -106,7 +106,7 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	TeamName = case lists:keyfind(Pilot#pilot.team, 1, State#state.teams) of
 				   false ->
 					   undefined;
-				   {Id, Name} ->
+				   {_Id, Name} ->
 					   Name
 			   end,
 	NewPilot = {Pilot#pilot.id, Pilot#pilot.team, Pilot#pilot.name, TeamName},
@@ -147,8 +147,20 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
-	%TODO elaborare i dati ricevuti
-	{noreply, State}.
+	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
+	{_, SerP, SerS} = lists:keyfind(Msg#surpass_notif.surpasser, 1, State#state.standings),
+	if
+		SedP - 1 == SerP ->
+			Ser = {Msg#surpass_notif.surpasser, SedP, SerS},
+			Sed = {Msg#surpass_notif.surpasser, SerP, SedS},
+			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
+			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
+			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, 
+												  State#state.subscribers),
+			{noreply, State#state{standings = S2, subscribers = Subs}};
+		true ->
+			{noreply, State}
+	end.
 
 %% --------------------------------------------------------------------
 %% Function: handle_info/2

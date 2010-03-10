@@ -712,7 +712,7 @@ move_car(OldSgm, NewSgm, CarPos) ->
 											 surpassed = Elem#car_position.car_id},
 						event_dispatcher:notify(Msg)
 				end,
-	lists:foreach(SendNotif, Surpassed).
+	lists:foreach(SendNotif, lists:reverse(lists:keysort(#car_position.exit_t, Surpassed))).
 
 %% Removes car_position of index PilotId from segment S.
 -spec remove_car(#segment{}, car()) -> 'ok'.
