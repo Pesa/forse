@@ -5,7 +5,7 @@ from PyQt4.QtGui import QGraphicsItem, QGraphicsColorizeEffect, QFont, QPen
 
 __all__ = ['Car']
 
-__carSize = 32
+_carSize = 32
 
 
 class Car(QGraphicsItem):
@@ -23,8 +23,8 @@ class Car(QGraphicsItem):
         self._effect.setEnabled(False)
         self._font = QFont()
         self._font.setPointSize(16)
-        self._pen = QPen(Qt.black, __carSize, Qt.SolidLine, Qt.RoundCap)
-        self._rect = QRectF(-__carSize / 2, -__carSize / 2, __carSize, __carSize)
+        self._pen = QPen(Qt.black, _carSize, Qt.SolidLine, Qt.RoundCap)
+        self._rect = QRectF(-_carSize / 2, -_carSize / 2, _carSize, _carSize)
         self.setGraphicsEffect(self._effect)
         self.setToolTip("Car " + str(self._id))
         self.updatePos(startPos, pitLane)
