@@ -17,8 +17,7 @@
 %% --------------------------------------------------------------------
 
 %% Initializes the track table and a few settings.
--spec init([sector()], [pos_integer()], [car()]) ->
-		   'ok' | {'error', Error :: term()}.
+-spec init([sector()], [team()], [car()]) -> 'ok' | {'error', Reason :: term()}.
 init(TrackConfig, TeamsList, CarsList)
   when is_list(TrackConfig), is_list(TeamsList), is_list(CarsList) ->
 	try
@@ -44,11 +43,10 @@ init(TrackConfig, TeamsList, CarsList)
 		C = [{starting_pos, StartPos} | Config],
 		event_dispatcher:notify(#config_notif{app = ?MODULE, config = C})
 	catch
-		% TODO: gestione delle eccezioni
-		throw : E ->
-			{error, E};
-		error : {badmatch, _} ->
-			{error, something_went_wrong}
+		error : {badmatch, _} = Error ->
+			{error, Error};
+		throw : Error ->
+			{error, Error}
 	end.
 
 -spec parse_config([{sector()}]) ->
