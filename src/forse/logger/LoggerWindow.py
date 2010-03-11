@@ -1,6 +1,6 @@
 from PyQt4.QtGui import QMainWindow
 from Ui_LoggerWindow import Ui_LoggerWindow
-from util import NodeApplication
+from util import listToString, NodeApplication
 
 
 class LoggerWindow(QMainWindow, Ui_LoggerWindow):
@@ -14,10 +14,7 @@ class LoggerWindow(QMainWindow, Ui_LoggerWindow):
         NodeApplication.instance().registerMsgHandlers(handlers)
 
     def _appendLogMsg(self, msg):
-        self.viewer.appendPlainText(self.__printable(msg))
+        self.viewer.appendPlainText(listToString(msg))
 
     def _setLogMsg(self, msg):
-        self.viewer.setPlainText(self.__printable(msg))
-
-    def __printable(self, text):
-        return ''.join([ chr(x) for x in text ])
+        self.viewer.setPlainText(listToString(msg))

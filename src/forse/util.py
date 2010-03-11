@@ -20,6 +20,15 @@ def atomToBool(atom):
         raise ValueError(str(atom) + " is not a valid boolean value.")
 
 
+def listToString(l):
+    """
+    Translates an Erlang string (a list of ASCII codes) to a Python string.
+    """
+    if not isinstance(l, list):
+        raise TypeError(str(l) + " is not a list.")
+    return ''.join([ chr(c) for c in l ])
+
+
 def buildNodeName(name, randomize=False):
     """
     Returns a string that can be used as the name of an Erlang or Python node.
