@@ -64,15 +64,15 @@ start_link(Config) when is_list(Config) ->
 	{id, TeamId} = lists:keyfind(id, 1, Config),
 	gen_server:start_link(?TEAM_NAME(TeamId), ?MODULE, Config, []).
 
--spec pitstop_operations(pos_integer(), car(), #car_status{}, non_neg_integer(),
+-spec pitstop_operations(team(), car(), #car_status{}, non_neg_integer(),
 						 non_neg_integer()) -> #pitstop_ops{}.
 
 pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount)
   when is_record(CarStatus, car_status) ->
 	gen_server:call(?TEAM_NAME(TeamId), {pitstop, CarId, CarStatus, Lap, PSCount}, infinity).
 
--spec update(pos_integer(), {'update', #chrono_notif{}}
-						  | {'init', {'rain_sum', non_neg_integer()}}) -> 'ok'.
+-spec update(team(), {'update', #chrono_notif{}}
+				   | {'init', {'rain_sum', non_neg_integer()}}) -> 'ok'.
 
 update(TeamId, {init, {rain_sum, RainSum}}) ->
 	gen_server:call(?TEAM_NAME(TeamId), {set_rain_sum, RainSum});

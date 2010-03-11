@@ -363,7 +363,7 @@ consult(Filename) ->
 			throw(Reason)
 	end.
 
--spec split_config(conflist()) -> {conflist(), [pos_integer()], conflist(), [car()]}.
+-spec split_config(conflist()) -> {conflist(), [team()], conflist(), [car()]}.
 
 split_config(Config) ->
 	Split = fun(Team, {Id, T, C} = Acc) ->

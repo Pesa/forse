@@ -59,7 +59,7 @@
 			   name								:: string(),
 			   skill							:: skill(),
 			   weight							:: float(),
-			   team								:: pos_integer(),
+			   team								:: team(),
 			   car_status		= #car_status{}	:: #car_status{},
 			   lap				= 0				:: non_neg_integer(),
 			   segment			= 0				:: sgm_id(),
@@ -78,7 +78,7 @@
 %% weight: car's weight (excluding fuel)
 %% pitstop_sgm: id of the segment containing the team's pits
 %% --------------------------------------------------
--record(car_type,{id			:: pos_integer(),
+-record(car_type,{id			:: team(),
 				  team_name		:: string(),
 				  brake			:: float(),
 				  power			:: float(),
