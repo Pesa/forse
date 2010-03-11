@@ -144,7 +144,25 @@ handle_cast(#race_notif{event = Ev}, State) ->
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	%TODO elaborare i dati ricevuti
-	{noreply, State};
+	{_, RetPos, running} = lists:keyfind(Msg#retire_notif.car, 1, State#state.standings),
+	Sort = lists:keysort(2, State#state.standings),
+	{LRun, LRet} = lists:splitwith(fun({_, _, running}) -> true;
+									  (_) -> false
+								   end,
+								   Sort),
+	F = fun({_Id, Pos, running} = T, Acc) when Pos < RetPos ->
+				{T, Acc};
+		   ({Id, Pos, running}, Acc) when Pos == RetPos ->
+				NewStand = {Id, erlang:legth(LRun), retired},
+				{NewStand, [NewStand | Acc]};
+		   ({Id, Pos, running}, Acc) when Pos > RetPos ->
+				NewStand = {Id, Pos - 1, running},
+				{NewStand, [NewStand | Acc]}
+		end,
+	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
+	Standings = lists:append(NewRunStand, LRet),
+	Subs = event_dispatcher:notify_update({standings, ChangeList}, State#state.subscribers),
+	{noreply, State#state{standings = Standings, subscribers = Subs}};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
