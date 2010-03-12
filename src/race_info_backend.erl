@@ -75,7 +75,7 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 			{cars_pos, State#state.cars_pos},
 			{race_state, State#state.race_state},
 			{standings, State#state.standings},
-			{names, lists:map(name, State#state.pilots)}],
+			{names, lists:map(fun name/1, State#state.pilots)}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
@@ -91,7 +91,7 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 								{CarId, Pos, false}
 						end, lists:reverse(lists:keysort(2, StartPos))),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
-	% use car_pos to build standings and notify
+	% use cars_pos to build initial standings
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
@@ -104,24 +104,22 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	TeamName = case lists:keyfind(Pilot#pilot.team, 1, State#state.teams) of
-				   false ->
-					   undefined;
-				   {_Id, Name} ->
-					   Name
+				   false -> undefined;
+				   {_Id, Name} -> Name
 			   end,
 	NewPilot = {Pilot#pilot.id, Pilot#pilot.team, Pilot#pilot.name, TeamName},
 	Subs = case TeamName of
-			   undefined ->
-				   State#state.subscribers;
-			   _ ->
-				   event_dispatcher:notify_update({names, [name(NewPilot)]}, State#state.subscribers)
+			   undefined -> State#state.subscribers;
+			   _ -> event_dispatcher:notify_init({names, [name(NewPilot)]},
+												 State#state.subscribers)
 		   end,
-	{noreply, State#state{pilots = [NewPilot | State#state.pilots], subscribers = Subs}};
+	{noreply, State#state{pilots = [NewPilot | State#state.pilots],
+						  subscribers = Subs}};
 
 handle_cast(#config_notif{app = team, config = CarType}, State) ->
 	SetTeam = fun({Id, T, N, undefined}, Acc) when T == CarType#car_type.id ->
 					  Pilot = {Id, T, N, CarType#car_type.team_name},
-					  S = event_dispatcher:notify_update({names, [name(Pilot)]}, Acc),
+					  S = event_dispatcher:notify_init({names, [name(Pilot)]}, Acc),
 					  {Pilot, S};
 				 (X, Acc) ->
 					  {X, Acc}
@@ -153,7 +151,7 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	F = fun({_Id, Pos, running} = T, Acc) when Pos < RetPos ->
 				{T, Acc};
 		   ({Id, Pos, running}, Acc) when Pos == RetPos ->
-				NewStand = {Id, erlang:length(LRun), retired},
+				NewStand = {Id, length(LRun), retired},
 				{NewStand, [NewStand | Acc]};
 		   ({Id, Pos, running}, Acc) when Pos > RetPos ->
 				NewStand = {Id, Pos - 1, running},
