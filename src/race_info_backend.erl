@@ -114,14 +114,14 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 			   undefined ->
 				   State#state.subscribers;
 			   _ ->
-				   event_disptacher:notify_update({names, [name(NewPilot)]}, State#state.subscribers)
+				   event_dispatcher:notify_update({names, [name(NewPilot)]}, State#state.subscribers)
 		   end,
 	{noreply, State#state{pilots = [NewPilot | State#state.pilots], subscribers = Subs}};
 
 handle_cast(#config_notif{app = team, config = CarType}, State) ->
 	SetTeam = fun({Id, T, N, undefined}, Acc) when T == CarType#car_type.id ->
 					  Pilot = {Id, T, N, CarType#car_type.team_name},
-					  S = event_disptacher:notify_update({names, [name(Pilot)]}, Acc),
+					  S = event_dispatcher:notify_update({names, [name(Pilot)]}, Acc),
 					  {Pilot, S};
 				 (X, Acc) ->
 					  {X, Acc}
@@ -153,7 +153,7 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	F = fun({_Id, Pos, running} = T, Acc) when Pos < RetPos ->
 				{T, Acc};
 		   ({Id, Pos, running}, Acc) when Pos == RetPos ->
-				NewStand = {Id, erlang:legth(LRun), retired},
+				NewStand = {Id, erlang:length(LRun), retired},
 				{NewStand, [NewStand | Acc]};
 		   ({Id, Pos, running}, Acc) when Pos > RetPos ->
 				NewStand = {Id, Pos - 1, running},
