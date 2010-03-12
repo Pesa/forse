@@ -21,7 +21,12 @@
 				sectors		= []	:: [sector()],
 				pilots = []			:: [{Id :: car(), TeamID :: team(), Name :: string(), TeamName :: string() | 'undefined'}],
 				teams = []			:: [{Id :: team(), Name :: string()}],
-				standings = []		:: [{Id :: car(), Pos :: non_neg_integer(), Status :: 'running' | 'retired'}]}).
+				standings = []		:: [{Id :: car(), Pos :: non_neg_integer(), Status :: 'running' | 'retired'}],
+				finish_line_index	:: integer(),
+				last_interm	= undefined	:: 'undefined' | {integer(), integer()},
+				max_speed = undefined	:: 'undefined' | {car(), Int :: integer(), Lap :: integer(), number()},
+				best_lap = undefined	:: 'undefined' | {car(), Lap :: integer(), time()},
+				last_finish = []		:: [{car(), Lap :: integer(), time()}]}).
 
 
 %% ====================================================================
@@ -80,8 +85,22 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
+	Car = Msg#chrono_notif.car,
+	Int = Msg#chrono_notif.intermediate,
+	Lap = Msg#chrono_notif.lap,
+	MaxSpeed = case State#state.max_speed of
+				   undefined ->
+					   % TODO notifica new speed record
+					   {Car, Int, Lap, Msg#chrono_notif.max_speed};
+				   {_, _, _, Best} when Best < Msg#chrono_notif.max_speed ->
+					   % TODO notifica new speed record
+					   {Car, Int, Lap, Msg#chrono_notif.max_speed};
+				   _ ->
+					   State#state.max_speed
+			   end,
+	
 	%TODO elaborare i dati ricevuti
-	{noreply, State};
+	{noreply, State#state{max_speed = MaxSpeed}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
@@ -91,6 +110,9 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 								{CarId, Pos, false}
 						end, lists:reverse(lists:keysort(2, StartPos))),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
+	
+	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
+	
 	% use cars_pos to build initial standings
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
@@ -100,7 +122,8 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{noreply, State#state{subscribers = Subs3,
 						  cars_pos = CarsPos,
 						  sectors = Sectors,
-						  standings = Standings}};
+						  standings = Standings,
+						  finish_line_index = FLI}};
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	TeamName = case lists:keyfind(Pilot#pilot.team, 1, State#state.teams) of
@@ -168,7 +191,7 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	if
 		SedP - 1 == SerP ->
 			Ser = {Msg#surpass_notif.surpasser, SedP, SerS},
-			Sed = {Msg#surpass_notif.surpasser, SerP, SedS},
+			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
 			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, 
