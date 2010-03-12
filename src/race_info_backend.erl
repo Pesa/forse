@@ -23,7 +23,7 @@
 				teams = []			:: [{Id :: team(), Name :: string()}],
 				standings = []		:: [{Id :: car(), Pos :: non_neg_integer(), Status :: 'running' | 'retired'}],
 				finish_line_index	:: integer(),
-				last_interm	= undefined	:: 'undefined' | {integer(), integer()},
+				last_interm	= undefined	:: 'undefined' | {Int :: integer(), Lap :: integer()},
 				max_speed = undefined	:: 'undefined' | {car(), Int :: integer(), Lap :: integer(), number()},
 				best_lap = undefined	:: 'undefined' | {car(), Lap :: integer(), time()},
 				last_finish = []		:: [{car(), Lap :: integer(), time()}]}).
@@ -88,19 +88,75 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	Car = Msg#chrono_notif.car,
 	Int = Msg#chrono_notif.intermediate,
 	Lap = Msg#chrono_notif.lap,
-	MaxSpeed = case State#state.max_speed of
-				   undefined ->
-					   % TODO notifica new speed record
-					   {Car, Int, Lap, Msg#chrono_notif.max_speed};
-				   {_, _, _, Best} when Best < Msg#chrono_notif.max_speed ->
-					   % TODO notifica new speed record
-					   {Car, Int, Lap, Msg#chrono_notif.max_speed};
-				   _ ->
-					   State#state.max_speed
-			   end,
+	Time = Msg#chrono_notif.time,
+	Subs = State#state.subscribers,
+	% Check if there's a new speed record
+	{MaxSpeed, Subs1} = case State#state.max_speed of
+							_ when Lap == 0 ->
+								{undefined, Subs};
+							undefined ->
+								% notify new speed record
+								SR = {Car, Int, Lap, Msg#chrono_notif.max_speed},
+								Subs2 = event_dispatcher:notify_init({speed_record, SR}, Subs),
+								{SR, Subs2};
+							{_, _, _, Best} when Best < Msg#chrono_notif.max_speed ->
+								% notify new speed record
+								SR = {Car, Int, Lap, Msg#chrono_notif.max_speed},
+								Subs2 = event_dispatcher:notify_init({speed_record, SR}, Subs),
+								{SR, Subs2};
+							_ ->
+								{State#state.max_speed, Subs}
+						end,
+	LI = State#state.last_interm,
+	% Send intermediate results
+	{LastInterm, Subs3} = if
+					 Lap == 0 ->
+						 {undefined, Subs1};
+					 LI == undefined;
+					 Lap > element(2, LI);
+					 Int > element(1, LI) andalso Lap >= element(2, LI) ->
+						 {_, _, LineTime} = lists:keyfind(Car, 1, State#state.last_finish),
+						 RelTime = Time - LineTime,
+						 M = {chrono, {Car, Int, Lap, RelTime, Time}},
+						 Subs4 = event_dispatcher:notify_init(M, Subs1),
+						 {{Int, Lap}, Subs4};
+					 true ->
+						 M = {chrono, {Car, Int, Lap, Time}},
+						 Subs4 = event_dispatcher:notify_init(M, Subs1),
+						 {LI, Subs4}
+				 end,
+	FinishLine = Int == State#state.finish_line_index,
+	OldLF = State#state.last_finish,
+	OldBestLap = State#state.best_lap,
 	
-	%TODO elaborare i dati ricevuti
-	{noreply, State#state{max_speed = MaxSpeed}};
+	% Check if there's a new time record
+	{BestLap, LastFinish, Subs5} = if
+								Lap == 0 andalso FinishLine ->
+									{OldBestLap, [{Car, Lap, Time} | OldLF], Subs3};
+								FinishLine ->
+									{_, _, LineTime1} = lists:keyfind(Car, 1, OldLF),
+									NewLF = lists:keyreplace(Car, 1, OldLF, {Car, Lap, Time}),
+									LapTime = Time - LineTime1,
+									if
+										OldBestLap == undefined;
+										LapTime < element(3, OldBestLap) ->
+											NewLapRecord = {Car, Lap, LapTime},
+											Subs6 = event_dispatcher:notify_init({lap_time_record, 
+																				  NewLapRecord},
+																				 Subs3),
+											{NewLapRecord, NewLF, Subs6};
+										true ->
+											{OldBestLap, NewLF, Subs3}
+									end;
+								true ->
+									{OldBestLap, OldLF, Subs3}
+							end,
+	
+	{noreply, State#state{max_speed = MaxSpeed,
+						  last_interm = LastInterm,
+						  last_finish = LastFinish,
+						  best_lap = BestLap,
+						  subscribers = Subs5}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
