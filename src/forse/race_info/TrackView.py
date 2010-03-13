@@ -20,7 +20,8 @@ class TrackView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._cars = {}
         self._track = None
-        self._timer = QTimer()
+        self._timer = QTimer(self)
+        self._timer.setInterval(30)
         self._timer.timeout.connect(self._scene.advance)
         handlers = {('init', 'cars_pos'): self._initCars,
                     ('init', 'sectors'): self._initTrack,
@@ -51,6 +52,6 @@ class TrackView(QGraphicsView):
 
     def _setRaceState(self, state):
         if state.text == "started" or state.text == "resumed":
-            self._timer.start(30)
+            self._timer.start()
         else:
             self._timer.stop()
