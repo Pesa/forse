@@ -12,9 +12,9 @@ class TrackView(QGraphicsView):
         self._scene = QGraphicsScene()
         self._scene.setItemIndexMethod(QGraphicsScene.NoIndex)
         QGraphicsView.__init__(self, self._scene, parent)
-        self.setRenderHint(QPainter.Antialiasing)
-        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
         self.setBackgroundBrush(Qt.lightGray)
+        self.setRenderHint(QPainter.Antialiasing)
+        self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._cars = {}
