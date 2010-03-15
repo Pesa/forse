@@ -114,7 +114,7 @@ class NodeApplication(QApplication):
                 "-sname", nodeName,
                 "-run", runApp]
         result = QProcess.startDetached("erl", args)
-        time.sleep(1)
+        time.sleep(1) # FIXME
         return result
 
     def __startup(self):

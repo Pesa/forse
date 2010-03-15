@@ -56,6 +56,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
 
     def _startup(self):
         if BootstrapServer.start():
+            # FIXME: bootstrap_server may not be ready yet...
             BootstrapServer.setGuiNode(None, NodeApplication.instance().nodeName())
             self.actionNewSimulation.trigger()
         else:
