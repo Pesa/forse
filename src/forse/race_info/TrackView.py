@@ -20,7 +20,7 @@ class TrackView(QGraphicsView):
         self._cars = {}
         self._track = None
         self._timer = QTimer(self)
-        self._timer.setInterval(30)
+        self._timer.setInterval(40)
         self._timer.timeout.connect(self._scene.advance)
         handlers = {('init', 'cars_pos'): self._initCars,
                     ('init', 'sectors'): self._initTrack,
