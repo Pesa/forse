@@ -86,6 +86,17 @@
 					 tyres_consumption	= 0.0		:: float(),
 					 tyres_type			= slick		:: tyres()}).
 
+
+%% ------------------------------------------------------------
+%% chrono_car_status
+%% ------------------------------------------------------------
+-record(chrono_car_status, {car				:: car(),
+							intermediate	:: pos_integer(),
+							lap				:: non_neg_integer(),
+							status			:: #car_status{}}).
+
+
+
 %% ------------------------------------------------------------
 %% pitstop_ops
 %% fuel: amount of fuel added

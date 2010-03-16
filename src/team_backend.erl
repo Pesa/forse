@@ -13,10 +13,11 @@
 		 terminate/2,
 		 code_change/3]).
 
--include("common.hrl").
+-include("db_schema.hrl").
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
-				rain_sum			:: non_neg_integer()}).
+				rain_sum			:: non_neg_integer(),
+				association = []	:: [{car(), team()}]}).
 
 
 %% ====================================================================
@@ -65,12 +66,17 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	List = [{rain_sum, State#state.rain_sum}],
+	List = [{rain_sum, State#state.rain_sum},
+			{pilot_team, State#state.association}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
-	NewSubs = event_dispatcher:notify_update(Msg, State#state.subscribers),
+	Status = #chrono_car_status{car = Msg#chrono_notif.car,
+								intermediate = Msg#chrono_notif.intermediate,
+								lap = Msg#chrono_notif.lap,
+								status = Msg#chrono_notif.status},
+	NewSubs = event_dispatcher:notify_update(Status, State#state.subscribers),
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
@@ -79,6 +85,16 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 										   State#state.subscribers),
 	{noreply, State#state{subscribers = NewSubs,
 						  rain_sum = RainSum}};
+
+handle_cast(#config_notif{app = car, config = Pilot}, State) ->
+	PilotId = Pilot#pilot.id,
+	TeamId = Pilot#pilot.team,
+	PTT = {PilotId, TeamId},
+	NewSubs = event_dispatcher:notify_init({pilot_team, [PTT]},
+										   State#state.subscribers),
+	{noreply, State#state{subscribers = NewSubs,
+						  association = [PTT | State#state.association]}};
+
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from apps other than track
 	{noreply, State};
