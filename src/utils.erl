@@ -6,7 +6,8 @@
 		 get_setting/1,
 		 set_setting/2,
 		 mnesia_read/2,
-		 table_exists/1]).
+		 table_exists/1,
+		 int_to_atom/1]).
 
 -include("db_schema.hrl").
 
@@ -83,6 +84,9 @@ mnesia_read(Tab, Key) ->
 table_exists(TableName) ->
 	lists:member(TableName, mnesia:system_info(tables)).
 
+
+int_to_atom(N) when is_integer(N) ->
+	erlang:list_to_atom(erlang:integer_to_list(N)).
 
 %% ------------------------------------------------------------------------------
 %% Internal functions
@@ -263,3 +267,4 @@ log2floor(0, N) ->
 	N;
 log2floor(Int, N) ->
 	log2floor(Int bsr 1, 1 + N).
+

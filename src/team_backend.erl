@@ -66,8 +66,7 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	List = [{rain_sum, State#state.rain_sum},
-			{pilot_team, State#state.association}],
+	List = [{rain_sum, State#state.rain_sum}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
@@ -76,7 +75,9 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 								intermediate = Msg#chrono_notif.intermediate,
 								lap = Msg#chrono_notif.lap,
 								status = Msg#chrono_notif.status},
-	NewSubs = event_dispatcher:notify_update(Status, State#state.subscribers),
+	{_, Team} = lists:keyfind(Msg#chrono_notif.car, 1, State#state.association),
+	Opt = utils:int_to_atom(Team),
+	NewSubs = event_dispatcher:notify_update(Opt, Status, State#state.subscribers),
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
@@ -90,10 +91,7 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	PilotId = Pilot#pilot.id,
 	TeamId = Pilot#pilot.team,
 	PTT = {PilotId, TeamId},
-	NewSubs = event_dispatcher:notify_init({pilot_team, [PTT]},
-										   State#state.subscribers),
-	{noreply, State#state{subscribers = NewSubs,
-						  association = [PTT | State#state.association]}};
+	{noreply, State#state{association = [PTT | State#state.association]}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from apps other than track
