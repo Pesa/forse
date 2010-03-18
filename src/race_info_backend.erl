@@ -122,7 +122,7 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 						 {{Int, Lap}, Subs4};
 					 true ->
 						 M = {chrono, {Car, Int, Lap, Time}},
-						 Subs4 = event_dispatcher:notify_init(M, Subs1),
+						 Subs4 = event_dispatcher:notify_update(M, Subs1),
 						 {LI, Subs4}
 				 end,
 	FinishLine = Int == State#state.finish_line_index,
