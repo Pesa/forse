@@ -1,6 +1,6 @@
 import sys
-from util import SubscriberApplication
 from RaceInfoWindow import RaceInfoWindow
+from Subscriber import SubscriberApplication
 
 
 if __name__ == "__main__":

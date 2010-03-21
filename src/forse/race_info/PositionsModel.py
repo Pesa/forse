@@ -1,7 +1,8 @@
+import OTPApplication
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QAbstractTableModel, QString, QTimer, QVariant
 from PyQt4.QtGui import QIcon
-from util import listToString, NodeApplication
+from Util import listToString
 
 
 __all__ = ['PositionsModel']
@@ -43,7 +44,7 @@ class PositionsModel(QAbstractTableModel):
         handlers = {('init', 'names'): self._setNames,
                     ('init', 'standings'): self._setStandings,
                     ('update', 'standings'): self._updateStandings}
-        NodeApplication.instance().registerMsgHandlers(handlers)
+        OTPApplication.registerMsgHandlers(handlers)
 
     def columnCount(self, _parent):
         return 2

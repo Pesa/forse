@@ -1,10 +1,10 @@
 import sys
-from util import NodeApplication
 from ControlPanelWindow import ControlPanelWindow
+from OTPApplication import OTPApplication
 
 
 if __name__ == "__main__":
-    app = NodeApplication("control_panel")
+    app = OTPApplication("control_panel")
     app.setQuitOnLastWindowClosed(False)
     mainwin = ControlPanelWindow()
     mainwin.show()

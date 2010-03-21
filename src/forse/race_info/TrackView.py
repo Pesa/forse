@@ -1,9 +1,10 @@
+import OTPApplication
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QGraphicsScene, QGraphicsView, QPainter
 from Car import Car
 from Track import Track
-from util import atomToBool, NodeApplication
+from Util import atomToBool
 
 
 class TrackView(QGraphicsView):
@@ -26,7 +27,7 @@ class TrackView(QGraphicsView):
                     ('init', 'sectors'): self._initTrack,
                     ('init', 'race_state'): self._setRaceState,
                     ('update', 'car_pos'): self._moveCar}
-        NodeApplication.instance().registerMsgHandlers(handlers)
+        OTPApplication.registerMsgHandlers(handlers)
 
     def resizeEvent(self, _event):
         self._refitScene()

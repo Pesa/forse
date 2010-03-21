@@ -1,7 +1,7 @@
 from PyQt4.QtGui import QMainWindow
 from PositionsModel import PositionsModel
+from Remote import Scheduler
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
-from remote import Scheduler
 
 
 class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):

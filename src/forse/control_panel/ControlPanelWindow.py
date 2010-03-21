@@ -1,9 +1,9 @@
+import OTPApplication
 from PyQt4.QtCore import QTimer, pyqtSlot
-from PyQt4.QtGui import QMainWindow, QMessageBox, QStringListModel
+from PyQt4.QtGui import QApplication, QMainWindow, QMessageBox, QStringListModel
 from ConfigDialog import ConfigDialog
+from Remote import BootstrapServer
 from Ui_ControlPanelWindow import Ui_ControlPanelWindow
-from remote import BootstrapServer
-from util import NodeApplication
 
 
 class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
@@ -14,7 +14,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         self.nodesList = []
         self.nodesModel = QStringListModel(self.nodesList, self)
         self.nodesView.setModel(self.nodesModel)
-        NodeApplication.instance().lastWindowClosed.connect(self._shutdown)
+        QApplication.instance().lastWindowClosed.connect(self._shutdown)
         BootstrapServer.nodeDown.connect(self._nodeDown)
         BootstrapServer.nodeUp.connect(self._nodeUp)
         BootstrapServer.ready.connect(lambda: self.bootstrapButton.setEnabled(True))
@@ -52,13 +52,13 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         self.nodesModel.setStringList(self.nodesList)
 
     def _shutdown(self):
-        BootstrapServer.stop(lambda _: NodeApplication.quit())
+        BootstrapServer.stop(lambda _: QApplication.quit())
 
     def _startup(self):
         if BootstrapServer.start():
             # FIXME: bootstrap_server may not be ready yet...
-            BootstrapServer.setGuiNode(None, NodeApplication.instance().nodeName())
+            BootstrapServer.setGuiNode(None, OTPApplication.nodeName())
             self.actionNewSimulation.trigger()
         else:
             QMessageBox.critical(self, "Fatal error", "Failed to start an instance of bootstrap_server.")
-            NodeApplication.quit()
+            QApplication.quit()

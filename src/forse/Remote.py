@@ -1,6 +1,10 @@
+import OTPApplication
 from twisted.python.failure import Failure
 from twotp import Atom
-from util import NodeApplication
+
+
+__all__ = ['BootstrapServer', 'EventDispatcher',
+           'NodeManager', 'Team', 'Scheduler']
 
 
 class _RPCReply(object):
@@ -59,7 +63,7 @@ class _RPCTo(object):
         Performs the actual remote call. The callable object C{callback} is
         invoked as soon as a reply has been received from the remote side.
         """
-        d = NodeApplication.instance().rpc(self.__mod, self.__fun, *args)
+        d = OTPApplication.rpc(self.__mod, self.__fun, *args)
         if callback is not None:
             d.addBoth(lambda x: callback(_RPCReply(x)))
 
@@ -77,7 +81,7 @@ class _RPCFrom(object):
     def connect(self, handler):
         def wrapper(*args):
             handler(*[ _RPCReply(x) for x in args ])
-        NodeApplication.instance().createHandler(self.__notif, wrapper)
+        OTPApplication.createHandler(self.__notif, wrapper)
 
 
 class BootstrapServer(object):
@@ -85,7 +89,7 @@ class BootstrapServer(object):
     bootstrap = _RPCTo("bootstrap_server", "bootstrap")
     readConfigFiles = _RPCTo("bootstrap_server", "read_config_files")
     setGuiNode = _RPCTo("bootstrap_server", "set_gui_node")
-    start = staticmethod(lambda: NodeApplication.instance().spawnErlangNode("bootstrap_server"))
+    start = staticmethod(lambda: OTPApplication.spawnErlangNode("bootstrap_server"))
     stop = _RPCTo("init", "stop")
 
     nodeDown = _RPCFrom("node_down")
@@ -94,10 +98,15 @@ class BootstrapServer(object):
     ready = _RPCFrom("ready")
 
 
+class EventDispatcher(object):
+
+    subscribe = _RPCTo("event_dispatcher", "subscribe")
+
+
 class NodeManager(object):
 
     configure = _RPCTo("node_manager", "configure")
-    start = staticmethod(lambda: NodeApplication.instance().spawnErlangNode("node_manager", "node", randomize=True))
+    start = staticmethod(lambda: OTPApplication.spawnErlangNode("node_manager", "node", randomize=True))
 
 
 class Team(object):

@@ -1,8 +1,8 @@
 from twotp import Atom
 from PyQt4.QtCore import QTimer, pyqtSlot
 from PyQt4.QtGui import QDialog, QMessageBox
+from Remote import NodeManager
 from Ui_NodeConfig import Ui_NodeConfig
-from remote import NodeManager
 
 
 class NodeConfig(QDialog, Ui_NodeConfig):

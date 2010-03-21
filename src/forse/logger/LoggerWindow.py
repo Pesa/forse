@@ -1,6 +1,7 @@
+import OTPApplication
 from PyQt4.QtGui import QMainWindow
+from Util import listToString
 from Ui_LoggerWindow import Ui_LoggerWindow
-from util import listToString, NodeApplication
 
 
 class LoggerWindow(QMainWindow, Ui_LoggerWindow):
@@ -11,7 +12,7 @@ class LoggerWindow(QMainWindow, Ui_LoggerWindow):
         # FIXME: improve handlers API
         handlers = {('init', ''): self._setLogMsg,
                     ('update', ''): self._appendLogMsg}
-        NodeApplication.instance().registerMsgHandlers(handlers)
+        OTPApplication.registerMsgHandlers(handlers)
 
     def _appendLogMsg(self, msg):
         self.viewer.appendPlainText(listToString(msg))

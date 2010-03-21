@@ -1,7 +1,7 @@
 from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QDialog, QMessageBox
+from Remote import BootstrapServer
 from Ui_ConfigDialog import Ui_ConfigDialog
-from remote import BootstrapServer
 
 
 class ConfigDialog(QDialog, Ui_ConfigDialog):
