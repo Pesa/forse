@@ -5,8 +5,8 @@
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{pdflscape}
-\usepackage{multirow}
 \usepackage{listings}
+\usepackage{multirow}
 
 \hypersetup{
 	breaklinks,
@@ -25,6 +25,7 @@
 \newcommand{\term}[2]{\textbf{#1} & #2 \\}
 \newcommand{\fun}[1]{\texttt{#1}}
 
+
 \begin{document}
 
 \maketitle
@@ -33,8 +34,9 @@
 
 \clearpage
 
+
 \chapter{Introduzione}
-La presente relazione, assieme al software \textsl{FORSE}, è stata realizzata come prova d'esame per il corso ``Sistemi Concorrenti e Distribuiti''.
+La presente relazione, unitamente al software \textsl{FORSE}, è stata realizzata come prova d'esame per il corso ``Sistemi Concorrenti e Distribuiti''.
 
 I requisiti considerati in fase di progettazione sono stati ricavati da quelli proposti dal docente (\url{http://www.math.unipd.it/~tullio/SCD/2008/Progetto.html})
 secondo le clausole di partecipazione di livello 3.
@@ -130,6 +132,7 @@ La concorrenza deve quindi essere controllata per evitare queste situazioni di \
 
 \subsection*{Sorpassi coerenti}
 Quando due auto si trovano a percorrere lo stesso segmento di pista devono interagire in modo realistico. Devono essere quindi chiare e verosimili le condizioni che permettono ad un'auto di sorpassarne un'altra per evitare che si verifichino sorpassi dove la pista o la presenza di altre auto non lo consentano.
+
 \subsection*{Comunicazione di sosta}
 Un'auto effettua il rifornimento solo quando richiesto da un attore esterno. Questo attore può essere la scuderia o l'utente.
 
@@ -157,6 +160,7 @@ Deve essere quindi previsto un modo per comunicare a tutte le componenti del sis
 
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
+
 \begin{landscape}
 \begin{figure}
 \includegraphics[height=.25\paperheight]{diagrammi/Arch}
@@ -174,9 +178,11 @@ L'idea di base di questa componente è di mantenere un orologio ``logico'' unico
 
 Per poter soddisfare le caratteristiche sopra indicate è risultato naturale impostare l'entità \texttt{scheduler} come attiva.
 Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione del sistema.
+
 \subsection*{Interfaccia Fornita}
 Lo \texttt{scheduler} deve fornire un metodo \fun{queue\_work} che permette alle altre entità attive di effettuare la procedura di \textit{booking} precedentemente descritta.
 Il metodo \fun{set\_speedup} serve a regolare la velocità con cui evolve la simulazione, mentre i metodi \fun{start\_simulation} e \fun{pause\_simulation} servono rispettivamente ad avviare e fermare momentaneamente la simulazione.
+
 \subsection*{Interfaccia Richiesta}
 Nessuna.
 
@@ -203,6 +209,7 @@ Un altro gruppo di informazioni dinamiche fondamentali contenute in \texttt{trac
 \end{itemize}
 
 Oltre ai dati visti finora, la componente \texttt{track} deve anche gestire la logica che determina quali spostamenti siano concessi alle auto e soprattutto secondo quali vincoli tali spostamenti siano possibili. Deve quindi esporre un metodo che permetta alle auto di simulare l'esito di un eventuale spostamento nella pista e un metodo che invece implementi l'effettivo spostamento dell'auto. Fornire un metodo per la simulazione della mossa permette di dare dei dati al chiamante che può quindi scegliere, secondo la sua logica interna e strategia di gara, quale sia la migliore mossa da eseguire e in un momento successivo effettuare tale mossa.
+
 \subsection*{Interfaccia Fornita}
 Grazie al metodo \fun{simulate} le entità \texttt{car} possono simulare, una volta scelta la corsia di uscita e espressa la ``volontà'' o meno di effettuare una sosta in quel giro, l'esito di uno spostamento.
 
@@ -211,6 +218,7 @@ L'utilità di questa funzionalità è evidente se si va a considerare il fatto c
 Avendo a disposizione la posizione degli altri concorrenti è invece possibile per la componente \texttt{car} decidere di discostarsi dalla traiettoria ottimale cambiando corsia (operazione che aumenta il tempo di percorrenza del segmento) per effettuare manovre di sorpasso qualora sia possibile e vantaggioso.
 
 Il metodo \fun{move} necessita degli stessi parametri del metodo \fun{simulate} e serve semplicemente a spostare effettivamente l'auto sul tracciato di gara e ad effettuare le eventuali notifiche di eventi scatenati da tale spostamento.
+
 \subsection*{Interfaccia Richiesta}
 Da un punto di vista funzionale la componente \texttt{track} contiene la logica che guida l'erogazione delle operazioni di rifornimento, tuttavia non può decidere quali operazioni effettuare, poiché questo tipo di scelte è inerente la strategia di gara e quindi è da considerarsi a carico della componente \texttt{team}. Di conseguenza \texttt{track} necessita di un metodo \fun{pitstop\_operations} da invocare presso la componente \texttt{team} associata all'auto ai \textit{box} che abbia come valore di ritorno informazioni su che operazioni di rifornimento da effettuare.
 
@@ -239,6 +247,7 @@ Le notifiche possibili riguardano:
 \end{itemize}
 Prima dell'inizio della competizione \texttt{car} deve prenotarsi presso lo \texttt{scheduler} e stare poi in attesa del permesso di muoversi sulla pista dato dello \texttt{scheduler}.
 Questa componente ha il compito di decidere quale traiettoria adottare per percorrere un segmento e deve farlo basandosi sullo stato dell'auto, sulle direttive dei \texttt{team} e dell'utente e sulle informazioni fornite da \texttt{track}.
+
 \subsection*{Interfaccia Fornita}
 L'autorizzazione a muoversi sul circuito di gara viene data a questa componente dallo \texttt{scheduler} attraverso l'invocazione del metodo \fun{move}. L'esecuzione di questo metodo è divisa in due fasi:
 \begin{itemize}
@@ -253,26 +262,32 @@ L'utente può anche decidere di forzare il pilota ad effettuare mosse non previs
 \item imporre una sosta ai \textit{box} il prima possibile, per questo viene fornito il metodo \fun{force\_pitstop},
 \item forzare il ritiro dalla competizione di un'auto, a tale scopo viene esposto in interfaccia il metodo \fun{retire}.
 \end{itemize}
+
 \subsection*{Interfaccia Richiesta}
 Questa componente necessita delle funzionalità \fun{simulate} (fase di simulazione) e \fun{move} (fase di spostamento) fornite dalla componente \texttt{track} per poter realizzare il metodo \fun{move} prima descritto.
 Durante la fase di inizializzazione del sistema ogni componente \texttt{car} deve notificare i dati di interesse relativi alla sua configurazione al resto del sistema. Questo viene ottenuto grazie al canale \fun{notify} fornito dal \texttt{event\_dispatcher}.
+
 \section{Team}
 Questa componente nel contesto della simulazione rappresenta le scuderie in gara. \texttt{team} deve quindi ricevere i dati relativi alle prestazioni delle proprie auto e allo stato della pista, elaborare una strategia di rifornimento e comunicare alle auto quando recarsi ai \textit{box}.
 
 Le decisioni che la logica di questa componente deve prendere sono inerenti le operazioni da eseguire in fase di rifornimento e comprendono la quantità di carburante aggiuntivo da imbarcare e se sostituire o meno i pneumatici ed eventualmente il tipo più appropriato alle condizioni atmosferiche della pista.
+
 \subsection*{Interfaccia Fornita}
 \texttt{team} espone il metodo \fun{pitstop\_operations} nella sua interfaccia con lo scopo di fornire alla componente \texttt{track}, durante la fase di sosta ai \textit{box} di un'auto, le informazioni necessarie ad effettuare le operazioni di rifornimento.
 
 Il metodo \fun{update} serve a fornire un canale di comunicazione che \texttt{event\_dispatcher} usa per la notifica di eventi relativi alla gara considerati importanti per le scuderie.
+
 \subsection*{Interfaccia Richiesta}
 Per poter comunicare la strategia di gara decisa alle auto appartenenti alla scuderia rappresentata, questa componente necessita del metodo \fun{set\_next\_pitstop} fornito da \texttt{car}.
 Come la componente \texttt{car} anche \texttt{team} deve comunicare le proprie informazioni di configurazione al sistema tramite il metodo \fun{notify} del \texttt{event\_dispatcher}.
+
 \section{Event Dispatcher}
 Questa componente ha il compito di ricevere tutti i dati relativi alla competizione e, dopo una eventuale rielaborazione, inviare tali dati alle componenti interessate.
 
 Questo tipo di comunicazione segue il modello \textit{publish/subscribe} ed è quindi previsto che le componenti del sistema interessate a tali dati effettuino prima la procedura di \textit{subscription} (ricevendo se necessario lo stato attuale della competizione) per poi ottenere aggiornamenti con l'evolvere della gara. I \textit{subscribers} devono indicare che informazioni desiderano ricevere di modo che \texttt{event\_dispatcher} possa effettuare una procedura di \textit{filtering} per evitare l'invio di dati non necessari.
 
 Viste le caratteristiche che deve avere tale componente, nell'ottica di un sistema distribuito, possiamo considerarla un server.
+
 \subsection*{Interfaccia Fornita}
 \texttt{event\_dispatcher} deve fornire metodi di interfaccia verso due insiemi di attori:
 \begin{itemize}
@@ -283,23 +298,30 @@ Il metodo \fun{subscribe} prevede che il processo chiamante indichi tra i parame
 
 \subsection*{Interfaccia Richiesta}
 Da un punto di vista puramente pratico non vi è nessuna interfaccia richiesta da questa componente poiché \texttt{event\_dispatcher}, in assenza di \textit{observers}, non effettua invocazioni di metodi. Tuttavia abbiamo preferito considerare l'interfaccia richiesta come dinamica, ovvero inizialmente vuota e che acquisisce metodi all'aumentare del numero di \textit{subscribers}. Al momento della registrazione i \textit{subscribers} devono indicare ad\texttt{event\_dispatcher} quale metodo di \textit{callback} utilizzare e che va quindi ad aggiungersi all'interfaccia richiesta della presente componente.
+
 \section{Weather}
 \texttt{weather} è la componente del sistema addetta a gestire le condizioni meteo iniziali sulla pista e le variazioni di tali condizioni durante la competizione. Le variazioni alla situazione meteo sono decise dall'utente tramite file di configurazione e possono essere decise a simulazione avviata in modo asincrono tramite interfaccia utente.
 
-Poiché questa entità attiva va a modificare lo stato della pista, essa è evidentemente in concorrenza con le entità \texttt{car} presenti nel sistema. E' pertanto necessario che l'accesso alla risorsa \texttt{track} avvenga in modo controllato, in particolare è previsto che le modifiche sulla pista avvengano attraverso \textit{booking} presso lo \texttt{scheduler}.
+Poiché questa entità attiva va a modificare lo stato della pista, essa è evidentemente in concorrenza con le entità \texttt{car} presenti nel sistema. \`E pertanto necessario che l'accesso alla risorsa \texttt{track} avvenga in modo controllato, in particolare è previsto che le modifiche sulla pista avvengano attraverso \textit{booking} presso lo \texttt{scheduler}.
+
 \subsection*{Interfaccia Fornita}
 Al momento della prenotazione presso lo \texttt{scheduler} questa componente indica il metodo \fun{apply\_change} come metodo di \textit{callback}, di conseguenza, nel momento in cui lo \texttt{scheduler} permetterà a questa entità di eseguire, invocherà tale metodo. Questo metodo ha il compito di cambiare il tempo atmosferico di \texttt{track} secondo quanto definito dall'utente.
 L'altro metodo che l'interfaccia di \texttt{weather} espone è \fun{schedule\_change} che serve per impostare eventuali variazioni nel tempo atmosferico da parte dell'utente a simulazione avviata.
+
 \subsection*{Interfaccia Richiesta}
 Conformemente a quanto visto finora anche la modifica del tempo atmosferico necessita dell'autorizzazione dello \texttt{scheduler} per essere portata a termine poiché modifica lo stato di \texttt{track}. Di conseguenza tutte le modifiche saranno procedute da un'invocazione del metodo \fun{queue\_work} dello \texttt{scheduler} per assolvere alla fase di prenotazione.
 
 Le condizioni atmosferiche sono un fattore importante per la simulazione e una variazione delle medesime può essere di interesse a diverse componenti del sistema. Per questo motivo ogni volta che viene invocato il metodo \fun{apply\_change} viene notificata la modifica grazie al metodo \fun{notify} di \texttt{event\_dispatcher}.
+
 \section{Debug Log}
 Questa componente è pensata principalmente per essere d'ausilio nella fase di sviluppo e test. In fase di inizializzazione effettua la procedura di \textit{subscription} presso \texttt{event\_dispatcher} per tutti i tipi di messaggi in modo da rendere i dati disponibili in formato testuale tramite una semplice interfaccia grafica.
+
 \subsection*{Interfaccia Fornita}
 Al fine di poter riceve le notifiche da \texttt{event\_dispatcher} questa componente espone in interfaccia un metodo \textit{callback} che serve a ricevere le notifiche e mostrare le informazioni trasportate in forma testuale all'utente.
+
 \subsection*{Interfaccia Richiesta}
 Facendo parte del gruppo di componenti \textit{observers}, \texttt{debug\_log} necessita della possibilità di registrarsi presso \texttt{event\_dispatcher} con il metodo \fun{subscribe}.
+
 \section{Race Info}
 Questa componente serve a raggruppare la maggior parte delle funzionalità di visualizzazione della competizione e permette inoltre all'utente di interagire con il sistema.
 
@@ -318,9 +340,11 @@ Attraverso questa componente l'utente può interagire con lo stato della simulaz
 \item pausa,
 \item cambio del fattore di \textit{speed-up}.
 \end{itemize}
+
 \subsection*{Interfaccia Fornita}
 Essendo \texttt{race\_info} una \textit{GUI} dal punto di vista funzionale espone sicuramente un'interfaccia verso l'utente con lo scopo di rendere facilmente fruibili i dati riguardanti l'evolvere della simulazione.
 Questa componente, conformemente a quanto avviene nel resto del sistema, riceve le informazioni sulla competizione da \texttt{event\_dispatcher}. Per questo motivo deve fornire ad\texttt{event\_dispatcher} almeno un canale di comunicazione (metodo di \textit{callback}).
+
 \subsection*{Interfaccia Richiesta}
 Per poter interagire con la simulazione come descritto precedentemente \texttt{race\_info} necessita di diversi metodi forniti della componente \texttt{scheduler}:
 \begin{itemize}
@@ -329,6 +353,7 @@ Per poter interagire con la simulazione come descritto precedentemente \texttt{r
 \item \fun{set\_speedup}.
 \end{itemize}
 Appartenendo inoltre al gruppo degli \textit{observers} questa componente necessita del metodo \fun{event\_dispatcher:subscribe}.
+
 \section{Team GUI}
 Questa componente è un'interfaccia grafica che serve a fornire all'utente dettagli approfonditi sulle statistiche di gara delle auto appartenenti ad una scuderia.
 I dati da mostrare all'utente sono:
@@ -344,13 +369,16 @@ I dati da mostrare all'utente sono:
 \item operazioni effettuate durante l'ultima sosta ai \textit{box}.
 \end{itemize}
 L'utente può inoltre forzare la sosta ai \textit{box} o il ritiro per un'auto appartenente alla scuderia.
+
 \subsection*{Interfaccia Fornita}
 \subsection*{Interfaccia Richiesta}
+
 \section{Weather Station}
 Questa componente è un'interfaccia grafica che mostra all'utente le condizioni atmosferiche sulla pista e permette a quest'ultimo di modificarle in modo asincrono rispetto alla simulazione durante il corso della competizione. Le informazioni sullo stato della pista sono ottenute da \texttt{event\_dispatcher} mentre le richieste di variazioni vengono inviate alla componente \texttt{weather}.
 
 \subsection*{Interfaccia Fornita}
 \subsection*{Interfaccia Richiesta}
+
 \section{Avvio e Terminazione}
 Per rendere più usabile il prototipo abbiamo pensato di far svolgere l'avvio e la configurazione del sistema tramite interfaccia grafica.
 L'utente dovrà interagire con due tipi di interfacce di configurazione:
@@ -361,6 +389,7 @@ L'utente dovrà interagire con due tipi di interfacce di configurazione:
 Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \texttt{bootstrap\_server} che non partecipa alla simulazione e dei nodi gestiti da \texttt{node\_manager} sui quali vengono eseguite le componenti di simulazione.
 
 Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \textsl{Erlang} alla chiusura del sistema.
+
 \subsection*{Control Panel e Bootstrap Server}
 \texttt{control\_panel} ha il compito di avviare un nodo \textsl{Erlang} sul quale far eseguire la componente \texttt{bootstrap\_server} e acquisire le informazioni necessarie alla simulazione dall'utente.
 \texttt{control\_panel} deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
@@ -382,7 +411,7 @@ La componente \texttt{node\_manager} ha anche il compito di avviare le component
 Una volta terminata la fase di \textit{bootstrap} del sistema, \texttt{node\_manager} deve rimanere in attesa del comando di terminazione del nodo da parte di \texttt{bootstrap\_server}, mentre \texttt{node\_configurator} viene terminato una volta che l'utente ha inserito le informazioni necessarie.
 
 \subsection*{Terminazione}
-E' necessario distinguere tra terminazione della simulazione e terminazione del sistema.
+\`E necessario distinguere tra terminazione della simulazione e terminazione del sistema.
 La terminazione della simulazione comporta la terminazione dei seguenti processi:
 \begin{itemize}
 \item \texttt{scheduler}
@@ -401,30 +430,31 @@ La terminazione del sistema invece coinvolge la terminazione delle componenti:
 \end{itemize}
 Successivamente vengo anche terminati tutti i nodi del sistema.
 
-Dividendo in questo modo la fase di terminazione è possibile effettuare più simulazioni senza dover riavviare il sistema ma semplicemente terminando la simulazione corrente e riconfigurandone una di nuova tramite \texttt{control\_panel}. E' quindi possibile riutilizzare i nodi già avviati e ridurre il numero di componenti istanziate \textit{ex-novo} al minimo necessario.
+Dividendo in questo modo la fase di terminazione è possibile effettuare più simulazioni senza dover riavviare il sistema ma semplicemente terminando la simulazione corrente e riconfigurandone una di nuova tramite \texttt{control\_panel}. \`E quindi possibile riutilizzare i nodi già avviati e ridurre il numero di componenti istanziate \textit{ex-novo} al minimo necessario.
+
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
-Il prototipo è realizzato in \textsl{Erlang} e \textsl{Python} con l'utilizzo delle librerie \textit{TwOTP} e \textit{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \textsl{Erlang} su nodi \textsl{Python} e per la costruzione di \textit{GUI} con il supporto dei \textit{bindings} \textsl{PyQt}.
+Il prototipo è realizzato in \textsl{Erlang} e \textsl{Python} con l'utilizzo delle librerie \textsl{TwOTP} e \textsl{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \textsl{Erlang} su nodi \textsl{Python} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}.
 
 Di seguito le versioni del software utilizzato:
 \begin{center}
 \begin{tabular}{c|c}
-\textbf{Software} & \textbf{Versione}\\
+\textbf{Software} & \textbf{Versione} \\
 \hline
-Erlang & R13B02\\
+Erlang & R13B03 \\
 \hline
-Python & 2.6.4\\
+Python & 2.6.4 \\
 \hline
-TwOTP & 0.7\\
-Twisted & 9.0.0\\
+Twisted & 9.0.0 \\
+TwOTP & 0.7 \\
 \hline
-PyQt & 4.7\\
-Qt & 4.6\\
+Qt & 4.6 \\
+PyQt & 4.7 \\
 \end{tabular}
 \end{center}
 
-Il criterio che abbiamo usato per decidere se implementare una componente del sistema in \textsl{Erlang} o \textsl{Python} è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \textsl{Python} più le librerie sopra citate, \textsl{Erlang} altrimenti.
+Il criterio che abbiamo usato per decidere se implementare una componente del sistema in \textsl{Erlang} o \textsl{Python} è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \textsl{Python} più le librerie sopra citate, \textsl{Erlang} altrimenti. Risulta dunque la seguente suddivisione:
 \begin{center}
 \begin{tabular}{|p{0.2\textwidth}|p{0.3\textwidth}|}
 \hline
@@ -442,33 +472,32 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \hline
 \end{tabular}
 \end{center}
+
 \subsection*{Caratteristiche di Erlang}
-\textsl{Erlang} è un linguaggio di programmazione funzionale concorrente \textit{general-purpose} con \textit{dynamic typing}. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textit{Dialyzer}, un tool di analisi statica per \textsl{Erlang}.
+\textsl{Erlang} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \textsl{Erlang}.
 
 I processi \textsl{Erlang} sono estremamente leggeri dal punto di vista dell'occupazione memoria e per questo il linguaggio si presta bene ad applicazioni che usano un gran numero di processi concorrenti. Non vi è memoria condivisa e i processi comunicano tramite scambio di messaggi asincrono.
 
-La macchina virtuale \textsl{Erlang} è detta anche nodo \textsl{Erlang} e un sistema \textsl{Erlang} distribuito è composto quindi da una rete di nodi \textsl{Erlang}. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \textsl{Erlang} che permette la comunicazione tra due nodi \textsl{Erlang} in rete grazie anche al \textit{EPMD} (\textit{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre a questo protocollo nativo, \textsl{Erlang} supporta anche \textit{CORBA} v 2.0 tramite il modulo \texttt{orber}.
+Una singola istanza di una macchina virtuale \textsl{Erlang} è detta anche nodo \textsl{Erlang} e un sistema \textsl{Erlang} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \textsl{Erlang} che permette la comunicazione tra due nodi \textsl{Erlang} grazie anche a \textit{EPMD} (\textit{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre al protocollo nativo, \textsl{Erlang} supporta anche CORBA v2.0 tramite il modulo \texttt{orber}.
 
 Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
+
 \subsection*{Mnesia}
 \textsl{Mnesia} è un database distribuito per \textsl{Erlang} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa.
 
 Il linguaggio usato per le query è \textsl{Erlang} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente \textsl{Mnesia} supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
-\subsection*{Interazione \textsl{Erlang-Python}: \textsl{TwOTP}}
-\textsl{TwOTP}, \textit{Twisted interface to Erlang OTP}, è una libreria che implementa il protocollo di distribuzione \textsl{Erlang} in linguaggio \textsl{Python} con l'ausilio di \textit{Twisted}.
 
-\textit{Twisted} è un framework scritto in \textsl{Python} per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} ad eventi.
+\subsection*{Interazione Erlang--Python: TwOTP}
+\textsl{TwOTP} (\textit{Twisted interface to Erlang/OTP}) è una libreria che implementa il protocollo di distribuzione \textsl{Erlang} in linguaggio \textsl{Python} con l'ausilio di \textsl{Twisted}.
 
-In questo modo è possibile per un'applicazione \textsl{Python} interagire coerentemente con nodi \textsl{Erlang} attraverso l'uso dell'\textit{EPMD}.
+\textsl{Twisted} è un framework per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} asincrono basato su eventi e \textit{callbacks}.
 
 \subsection*{Eventuali problemi riscontrati}
-Il fatto che due processi comunichino allo stesso modo, indipendentemente dal fatto che siano sullo stesso nodo o su nodi differenti, non è del tutto corretto. Vi è infatti una differenza tra le garanzie offerte dal linguaggio riguardo le chiamate asincrone in locale e in distribuito.
-
-L'ordine di invio di messaggi asincroni tra due processi può differire dall'ordine di arrivo degli stessi messaggi nel caso in cui tali processi si trovino su nodi differenti, mentre è garantito essere uguale nel caso in cui i due processi comunicanti si trovino sullo stesso nodo.
-
-Questo può essere considerato un problema in quanto è l'unico aspetto del linguaggio che impone dei vincoli per quanto riguarda la distribuzione delle varie componenti e deve essere considerato quindi in fase di progettazione architetturale.
+Affermare che due processi comunichino allo stesso modo, indipendentemente dal fatto che siano sullo stesso nodo o su nodi differenti, non è del tutto corretto. Vi è infatti una differenza fondamentale nelle garanzie offerte dal linguaggio per le chiamate asincrone eseguite remotamente rispetto a quelle eseguite in locale. L'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui tali processi si trovino su nodi differenti; al contrario l'ordine viene sempre preservato qualora i due processi comunicanti si trovino sullo stesso nodo. Ciò potrebbe costituire un problema, in quanto è l'unico aspetto del linguaggio che impone dei vincoli sulla distribuzione delle varie componenti e quindi deve essere attentamente considerato in fase di progettazione.
 
 \section{Avvio del sistema}
+\label{sec:avvio}
+
 \begin{landscape}
 \begin{figure}
 \includegraphics[height=.25\paperheight]{diagrammi/Bootstrap}
@@ -477,18 +506,15 @@ Questo può essere considerato un problema in quanto è l'unico aspetto del ling
 \end{figure}
 \end{landscape}
 
-In figura~\ref{fig:bootstrap} è rappresentato il processo di \textit{bootstrap} del sistema con un diagramma di comunicazione non standard poiché era necessario evidenziare il comportamento parallelo delle entità.
-Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo tra lettere diverse e secondo la numerazione se iniziano con la stessa lettera.
+Il diagramma di comunicazione\footnote{Per poter evidenziare efficacemente il comportamento parallelo delle entità, si è reso necessario deviare leggermente dallo standard UML sui diagrammi di comunicazione. Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo se indicate da lettere diverse, secondo la numerazione se iniziano con la stessa lettera.} in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \textsl{Erlang} sullo stesso elaboratore.
 
-\texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \textsl{Erlang} sullo stesso elaboratore.
-
-Nel nodo \textsl{Erlang} istanziato da \texttt{control\_panel} viene eseguito \texttt{bootstrap\_server} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \texttt{node\_manager}. Durante l'avvio di \texttt{bootstrap\_server} e \texttt{node\_manager} viene consultato il file \fun{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
+Nel nodo \textsl{Erlang} istanziato da \texttt{control\_panel} viene eseguito \texttt{bootstrap\_server} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \texttt{node\_manager}. Durante l'avvio di \texttt{node\_manager} viene consultato il file \texttt{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
 
 Tramite \texttt{control\_panel} l'utente deve indicare:
 \begin{itemize}
 \item percorso dei file di configurazione,
 \item numero di giri della simulazione,
-\item fattore di \textit{speed-up} da utilizzare.
+\item fattore di \textit{speed-up} iniziale.
 \end{itemize}
 
 Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti necessarie alla simulazione possono essere istanziate sul nodo \textsl{Erlang} che ha istanziato. Queste componenti sono:
@@ -500,12 +526,11 @@ Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti
 \item \texttt{weather}
 \end{itemize}
 
-Una volta che queste informazioni sono state inserite dall'utente tramite \textit{GUI}, queste vengono comunicate alle corrispondenti componenti \textsl{Erlang} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
+Una volta che queste informazioni sono state inserite, queste vengono comunicate alle rispettive componenti \textsl{Erlang} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
 
-\fun{bootstrap\_server:read\_config\_files} grazie ai dati ricevuti dall'utente riesce a calcolare la richiesta di risorse di simulazione necessarie all'avvio mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
+Effettuando il \textit{parsing} dei file di configurazione, \fun{bootstrap\_server:read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
 
-A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie nell'ordine:
-\label{txt:ordineAvvio}
+A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie, nell'ordine:
 \begin{enumerate}
 \item \texttt{event\_dispatcher},
 \item \texttt{scheduler},
@@ -514,19 +539,21 @@ A questo punto, grazie all'interazione con l'utente, viene invocato il metodo \f
 \item \texttt{car}.
 \end{enumerate}
 
-In questo modo si conclude la fase di avvio del sistema e si può passare quindi alla fase di simulazione.
+Così si conclude la fase di avvio del sistema e si può passare quindi alla fase di simulazione.
+
 \section{Dinamiche della competizione}
 \subsection{Partenza}
-Prima che l'utente dia il via alla competizione tutte le auto devono essersi registrate presso lo \texttt{scheduler} indicando come tempo di prenotazione 0.
-E' importante precisare che in questa situazione l'ordine in cui lo \texttt{scheduler} fa eseguire i processi \texttt{car} non influenza l'esito della gara infatti alla partenza le auto sono tutte su segmenti diversi e di conseguenza non concorrono tra di loro per l'accesso ad uno stesso segmento. Ne deriva quindi che sebbene l'ordine di esecuzione alla partenza possa essere considerato casuale (dipende dall'ordine di registrazione presso una componente distribuita del sistema), questo non va ad influenzare i tempi di percorrenza dei segmenti da parte delle auto e non influisce quindi con il risultato della gara.
+Prima che l'utente possa dare il via alla competizione tutte le auto devono essersi registrate presso lo \texttt{scheduler} indicando come tempo di prenotazione $0$. \`E importante precisare che, in questa situazione, l'ordine in cui lo \texttt{scheduler} permette ai processi \texttt{car} di andare in esecuzione non influenza l'esito della gara: infatti alla partenza le auto sono tutte su segmenti diversi e di conseguenza non concorrono tra di loro per l'accesso ad uno stesso segmento. Ne deriva quindi che sebbene l'ordine di esecuzione alla partenza possa essere considerato casuale (dipende dall'ordine di registrazione presso lo \texttt{scheduler}, che è una componente distribuita del sistema), questo non va ad influenzare i tempi di percorrenza dei segmenti da parte delle auto e non influisce quindi con il risultato della gara.
 La disposizione iniziale delle auto sulla pista avviene similmente a quanto riportato in figura~\ref{fig:startGrid}, ed è richiesto all'utente che nella zona di pista che precede la linea di arrivo vi siamo almeno tre corsie.
+
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/StartGrid}
-\caption{Griglia di Partenza}
+\caption{Griglia di partenza}
 \label{fig:startGrid}
 \end{figure}
+
 \subsection{Percorrenza di un Segmento}
-\label{txt:percorrenza}
+\label{sec:percorrenza}
 Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
 \begin{itemize}
 \item Corsia di ingresso,
@@ -536,91 +563,93 @@ Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
 \item Caratteristiche e stato dell'auto,
 \item Informazioni su altre auto che stanno percorrendo quel segmento.
 \end{itemize}
-Grazie alle informazioni sopra elencate e indicando in quale corsia il pilota vuole trovarsi all'uscita del segmento è possibile calcolare il tempo e la velocità di uscita dell'auto. Sono principalmente due i gruppi di fattori che influenzano questo calcolo: in primo luogo l'auto e le caratteristiche della pista, poi la presenza di altre auto nello stesso segmento e l'interazione che queste auto possono avere.
+
+Grazie alle informazioni sopra elencate e indicando in quale corsia il pilota vuole trovarsi all'uscita del segmento è possibile calcolare il tempo e la velocità di uscita dell'auto. Sono principalmente due i gruppi di fattori che influenzano questo calcolo: in primo luogo l'auto stessa e le caratteristiche della pista, poi la presenza di altre auto nello stesso segmento e l'interazione con esse.
 
 Iniziando ad analizzare il primo gruppo di fattori risulta evidente che vi è una velocità massima che un'auto può mantenere in un segmento per evitare di uscire di pista, in particolare nei segmenti curvilinei la forza di attrito deve essere sufficiente a contrastare la forza centrifuga.
-Visto che la forza d'attrito dipende anche dalle caratteristiche e dallo stato dell'auto è evidente che tale velocità massima può essere diversa per ogni auto.
-Un altro vincolo alla velocità è dato dal regolamento di gara per quanto riguarda la percorrenza della \textit{pit lane}, tuttavia questo vincolo non riguarda l'intero segmento ma solo una determinata corsia e va a influire solo sulle auto che stanno per rientrare ai \textit{box} per effettuare una sosta.
+Visto che la forza d'attrito dipende anche dalle caratteristiche e dallo stato dell'auto, ne consegue che tale velocità massima può essere diversa per ogni auto.
+Un altro vincolo alla velocità è dato dal regolamento di gara per quanto riguarda la percorrenza della \textit{pit lane}, tuttavia questo vincolo non riguarda l'intero segmento ma solo una determinata corsia e va applicato solo sulle auto che stanno per rientrare ai \textit{box} per effettuare una sosta.
 
-I segmenti appena elencati non sono tuttavia gli unici ad avere un limite alla velocità alla quale possono essere percorsi, basta pensare alle azioni che i piloti effettuano prima di intraprendere una curva nella realtà per capire che un segmento curvilineo impone vincoli alla velocità di percorrenza anche a sui segmenti che lo precedono. E' quindi corretto affermare che ogni segmento della pista ha un limite di velocità, sia esso diretto o indiretto. Il numero di segmenti che impone limiti di velocità diretti può cambiare in base al fatto che il pilota voglia o meno effettuare una sosta ai \textit{box} e di conseguenza cambieranno anche i limiti indiretti. Per questo motivo abbiamo deciso di modellare questo fatto associando ad ogni segmento due limiti di velocità.
+I segmenti appena considerati non sono tuttavia gli unici ad avere un limite alla velocità alla quale possono essere percorsi. Basta pensare alle azioni che i piloti effettuano prima di intraprendere una curva nella realtà per capire che un segmento curvilineo impone vincoli alla velocità di percorrenza anche nei segmenti che lo precedono. \`E quindi corretto affermare che ogni segmento della pista ha un limite di velocità, sia esso diretto o indiretto.
 
-La fase in cui vengono calcolati i due limiti di velocità per ogni segmento della pista è detta fase di preelaborazione e viene effettuata da un'auto:
+Inoltre il numero di segmenti che impone limiti di velocità diretti può cambiare in base al fatto che il pilota voglia o meno effettuare una sosta ai \textit{box}. Di conseguenza cambieranno anche i limiti indiretti. Per questo motivo abbiamo deciso di modellare questo fatto associando ad ogni segmento due limiti di velocità, aggiornati dinamicamente nel corso della competizione.
+
+La fase in cui vengono calcolati i due limiti di velocità per ogni segmento della pista è detta ``fase di preelaborazione'' e viene effettuata da ciascuna auto:
 \begin{enumerate}
-\item All'inizio della gara,
-\item Ogni volta che passa per il traguardo,
-\item Dopo ogni sosta ai \textit{box},
-\item Dopo ogni cambio delle condizioni atmosferiche.
+\item all'inizio della gara;
+\item ogni volta che passa per il traguardo;
+\item dopo ogni sosta ai \textit{box};
+\item dopo ogni cambio delle condizioni atmosferiche.
 \end{enumerate}
 Il calcolo al punto 1 avviene poiché non è possibile per un'auto effettuare una mossa senza avere una tabella di preelaborazione, al punto 2 per avere una stima più accurata dei valori necessari che consideri il livello di carburante e usura pneumatici attuale e ai punti 3 e 4 poiché in corrispondenza di tali eventi può cambiare di molto l'attrito pneumatici/pista e invalidare quindi la preelaborazione precedente.
 
-Nel calcolo dei limiti di velocità indiretti è molto importante la decelerazione massima che un'auto può avere per rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione facendo dipendere accelerazione e decelerazione massime di un'auto sia dalle caratteristiche dell'auto che da quelle della pista.
+Nel calcolo dei limiti di velocità indiretti è molto importante la decelerazione massima che un'auto può raggiungere: per rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione, facendo dipendere accelerazione e decelerazione massime sia dalle caratteristiche dell'auto che da quelle della pista.
 In particolare l'accelerazione/decelerazione che un auto può erogare in un determinato segmento dipende da:
 \begin{itemize}
-\item Potenza del motore/dei freni,
-\item Peso dell'auto a secco,
-\item Peso del pilota,
-\item Peso del carburante,
-\item Stato di usura e tipo dei pneumatici,
-\item Condizioni atmosferiche,
-\item Inclinazione della pista.
+\item potenza del motore/dei freni
+\item peso dell'auto a secco
+\item peso del pilota
+\item peso del carburante
+\item stato di usura e tipo dei pneumatici
+\item condizioni atmosferiche
+\item inclinazione della pista
 \end{itemize}
 
-Passiamo ora a descrivere le operazioni che il processo \texttt{car} effettua nel momento in cui lo \texttt{scheduler} gli consente di eseguire una mossa.
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Simulation}
-\caption{Fase di Simulazione}
+\caption{Fase di simulazione}
 \label{fig:simulation}
 \end{figure}
-Come si può vedere in figura~\ref{fig:simulation}, la prima operazione che viene effettuata è l'eventuale ricalcolo della tabella di preelaborazione, successivamente viene controllato se è prevista una sosta ai \textit{box} per il giro corrente e poi si passa alla fase di simulazione.
-Nella fase di simulazione \texttt{car} richiede a \texttt{track} quali sono le corsie raggiungibili nel segmento che sta per percorrere e successivamente di simulare l'esito dello spostamento per ogni corsia che l'auto può raggiungere.
-La fase di simulazione, implementata con l'invocazione di \fun{track:simulate}, può ritornare diversi risultati a \texttt{car}:
+
+Passiamo ora a descrivere le operazioni che il processo \texttt{car} effettua nel momento in cui lo \texttt{scheduler} gli consente di eseguire una mossa.
+
+Come si può vedere in figura~\ref{fig:simulation}, la prima operazione è l'eventuale ricalcolo della tabella di preelaborazione; successivamente viene controllato se è prevista una sosta ai \textit{box} per il giro corrente; infine si passa alla fase di simulazione vera e propria. Nella fase di simulazione \texttt{car} richiede a \texttt{track} quali sono le corsie raggiungibili nel segmento che sta per percorrere e successivamente di simulare l'esito dello spostamento per ogni corsia che l'auto può raggiungere. Questa fase, implementata da \fun{track:simulate}, può restituire diversi risultati a \texttt{car}.
 \begin{itemize}
-\item \texttt{race\_ended}: l'auto nella mossa precedente ha superato il traguardo nell'ultimo giro e ha quindi terminato la sua gara,
-\item \texttt{fail}: l'auto non può effettuare la mossa richiesta poiché:
-  \begin{itemize}
-  \item ha esaurito il carburante;
-  \item i pneumatici sono esplosi per l'eccessiva usura,
-  \item il \texttt{team} ha ordinato il ritiro dell'auto dalla competizione,
-  \item non è possibile usare la corsia richiesta poiché il regolamento lo vieta,
-  \item si sta cercando di entrare nella \textit{pit lane} senza aver segnalato la sosta,
-  \item la corsia che si vuole usare è già occupata e la capacità di frenata dell'auto non è sufficiente ad accodarsi all'auto che la precede,
-  \item l'auto non è in grado di mantenersi in pista a causa della velocità eccessiva.
-  \end{itemize}
-\item \texttt{pits}: l'auto effettuerà una sosta ai \textit{box},
+\item \texttt{race\_ended}: l'auto nella mossa precedente ha superato il traguardo nell'ultimo giro e ha quindi terminato la sua gara.
+\item \texttt{fail}: l'auto non può effettuare la mossa richiesta a causa di uno dei seguenti motivi:
+	\begin{itemize}
+	\item il carburante è esaurito;
+	\item i pneumatici sono esplosi per l'eccessiva usura;
+	\item la scuderia ha ordinato il ritiro dell'auto dalla competizione;
+	\item non è possibile occupare la corsia richiesta poiché il regolamento lo vieta;
+	\item si sta cercando di entrare nella \textit{pit lane} senza aver segnalato la sosta;
+	\item la corsia che si vuole percorrere è già occupata e la capacità di frenata non è sufficiente ad accodarsi all'auto che precede;
+	\item l'auto non è in grado di mantenersi in pista a causa della velocità eccessiva.
+	\end{itemize}
+\item \texttt{pits}: l'auto effettuerà una sosta ai \textit{box}.
 \item \texttt{Time}: il tempo in cui l'auto uscirà da quel segmento calcolato come tempo di ingresso più tempo di percorrenza.
 \end{itemize}
-Una volta ottenuti i risultati della simulazione la logica di \texttt{car} decide quale sia la corsia migliore per effettuare lo spostamento, in particolare l'auto sceglierà la corsia la cui simulazione ritorna il valore (in ordine di priorità):
+Una volta ottenuti i risultati della simulazione, la logica di \texttt{car} decide quale sia la corsia migliore da percorrere, in particolare l'auto sceglierà la corsia la cui simulazione ritorna il valore (in ordine di priorità decrescente):
 \begin{itemize}
-\item \texttt{race\_ended},
-\item \texttt{pits},
-\item il valore \texttt{Time} minore,
-\item \texttt{fail}.
+\item \texttt{race\_ended}
+\item \texttt{pits}
+\item il valore \texttt{Time} minore
+\item \texttt{fail}
 \end{itemize}
 
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Move}
-\caption{Fase di Spostamento}
+\caption{Fase di spostamento}
 \label{fig:move}
 \end{figure}
 
-Una volta scelta la corsia migliore \texttt{car} effettua lo spostamento sulla pista grazie all'invocazione \fun{track:move} (figura~\ref{fig:move}) e resta in attesa del risultato che può essere o il tempo di uscita dal segmento che si sta percorrendo oppure \texttt{race\_ended} oppure \texttt{fail}. Nel primo caso l'auto provvederà a prenotarsi presso lo \texttt{scheduler} indicando il tempo di uscita, negli altri casi \texttt{car} non effettuerà alcuna prenotazione.
+Una volta scelta la corsia migliore \texttt{car} effettua lo spostamento sulla pista grazie all'invocazione \fun{track:move} (figura~\ref{fig:move}) e resta in attesa del risultato che può essere o il tempo di uscita dal segmento che si sta percorrendo oppure \texttt{race\_ended} oppure \texttt{fail}. Nel primo caso l'auto provvederà a prenotarsi presso lo \texttt{scheduler} indicando il tempo di uscita, negli altri casi \texttt{car} non effettuerà alcuna nuova prenotazione.
 
-La fase di spostamento nella prima parte è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita anche nel caso in cui si tratti di una sosta ai \textit{box}. Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso \texttt{event\_dispatcher}.
+La prima parte della fase di spostamento è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita anche nel caso in cui si tratti di una sosta ai \textit{box}. Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso \texttt{event\_dispatcher}.
 
 Il metodo \fun{move\_car} è particolarmente importante ai fini della simulazione poiché serve a individuare eventuali sorpassi avvenuti all'interno del segmento e notificarli. Individuare le auto sorpassate a seguito della mossa che un'auto (chiamiamola A) sta effettuando è semplice: detto $T_{en_X}$ il tempo di ingresso di un'auto X nel segmento e $T_{ex_X}$ il suo tempo di uscita, l'insieme delle auto $\mathcal{S}$ sorpassate da A in quel segmento sarà:
-\begin{center}
-$\mathcal{S} = \{ X \; | \; T_{en_X} \leq T_{en_A} \; \wedge \; T_{ex_X} > T_{ex_A}\}$
-\end{center}
+\[ \mathcal{S} = \{ X \mid T_{en_X} \leq T_{en_A} \;\wedge\; T_{ex_X} > T_{ex_A}\} \]
+
 Oltre a ciò deve anche calcolare i consumi dell'auto derivanti dall'aver percorso quel segmento.
 Il consumo di carburante è pari a una quantità fissa per segmento moltiplicata per un coefficiente derivante dall'inclinazione della pista in quel punto, mentre il consumo dei pneumatici dipende dalla curvatura del segmento, dal tipo di pneumatici usati e dalle condizioni atmosferiche.
 
-\begin{center}
 \begin{figure}
+\begin{center}
 \includegraphics[width=0.5\textwidth]{diagrammi/Surpass}
 \caption{Interazione tra auto nello stesso segmento}
 \label{fig:surpass}
-\end{figure}
 \end{center}
+\end{figure}
 La figura~\ref{fig:surpass} rappresenta le situazioni che si possono creare nel momento in cui un'auto percorre un segmento di pista in cui è presente un altra auto.
 
 Nel momento in cui l'auto A effettua il suo turno sono noti:
@@ -633,99 +662,90 @@ Nel momento in cui l'auto A effettua il suo turno sono noti:
 \item $L_{en_A}^{n+1}$: la corsia di ingresso di A nel segmento $n+1$,
 \item $L_{ex_A}^{n+1}$: la corsia di uscita di A dal segmento $n+1$ (scelta dall'auto quindi si può considerare fissata).
 \end{itemize}
-L'algoritmo deve quindi calcolare $T_{ex_A}^{n+1}$.
-$T_{lc}$ è il tempo che un'auto impiega a spostarsi da una corsia ad una adiacente è considerato fisso ed uguale per tutte le auto, ogni auto può spostarsi di una sola corsia per ogni segmento e, per semplificare la simulazione, si assume che lo spostamento venga effettuato solamente all'ingresso del segmento.
-Come precondizione si ha inoltre che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ poiché B si è spostata in quel segmento prima di A e che $T_{en_A}^{n+1} \leq T_{ex_B}^{n+1}$ altrimenti lo \texttt{scheduler} eleggerebbe B per l'esecuzione.
+Obiettivo dell'algoritmo è quindi il calcolo di $T_{ex_A}^{n+1}$. Sia $T_{lc}$ il tempo che un'auto impiega a spostarsi da una corsia ad una adiacente: esso è considerato fisso ed uguale per tutte le auto, ogni auto può spostarsi di una sola corsia per ogni segmento e, per semplificare la simulazione, si assume che lo spostamento venga effettuato solamente all'ingresso del segmento.
+Come precondizione si ha inoltre che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ poiché B si è spostata in quel segmento prima di A, e che $T_{en_A}^{n+1} \leq T_{ex_B}^{n+1}$ altrimenti lo \texttt{scheduler} avrebbe eletto B per l'esecuzione al posto di A.
 
 Per poter calcolare il tempo di uscita di A dal segmento $n+1$ è necessario prima valutare se B interferisce con la mossa di A.
-Considerando la situazione (a) di figura~\ref{fig:surpass} possiamo distinguere due casi:
+Considerando lo scenario~(a) di figura~\ref{fig:surpass} possiamo distinguere due casi:
 \begin{enumerate}
-\item $L_{ex_A}^{n+1} = m+2$: non vi è alcuna interferenza da parte di B poiché la corsia $m+2$ è libera,
+\item $L_{ex_A}^{n+1} = m+2$: non vi è alcuna interferenza da parte di B poiché la corsia $m+2$ è libera.
 \item $L_{ex_A}^{n+1} = m+1$:
-  \begin{enumerate}
-  \item $L_{en_B}^{n+1} = m+2$: A sta seguendo esattamente la stessa traiettoria che ha seguito B per percorrere il segmento $n+1$ ed è quindi corretto che a l'auto A si accodi a B e non possa superarla,
-  \item $L_{en_B}^{n+1}  = m+1$: A cerca di inserirsi davanti a B tagliandole la strada tuttavia, visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$, vale anche che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1} + T_{lc}$ e non è quindi possibile che A si posizioni davanti a B.
-  \item $L_{en_B}^{n+1} = m$: A e B si spostano entrambe sulla stessa corsia $m+1$ provenendo da corsie differenti ma visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ allora vale anche $T_{en_B}^{n+1} + T_{lc} \leq T_{en_A}^{n+1} + T_{lc}$ e di conseguenza A può solo accodarsi a B.
-  \end{enumerate}
+	\begin{enumerate}
+	\item $L_{en_B}^{n+1} = m+2$: A sta seguendo esattamente la stessa traiettoria che ha seguito B per percorrere il segmento $n+1$ ed è quindi corretto che l'auto A si accodi a B e non possa superarla.
+	\item $L_{en_B}^{n+1}  = m+1$: A cerca di inserirsi davanti a B tagliandole la strada; tuttavia, visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$, vale anche che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1} + T_{lc}$ e non è quindi possibile che A si posizioni davanti a B.
+	\item $L_{en_B}^{n+1} = m$: A e B si spostano entrambe sulla stessa corsia $m+1$ provenendo da corsie differenti ma visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ allora vale anche $T_{en_B}^{n+1} + T_{lc} \leq T_{en_A}^{n+1} + T_{lc}$ e di conseguenza A può solo accodarsi a B.
+	\end{enumerate}
 \end{enumerate}
 
-Per quanto riguarda la situazione (b) di figura~\ref{fig:surpass} vi sono due casi:
+Per quanto riguarda lo scenario~(b) di figura~\ref{fig:surpass} vi sono due casi:
 \begin{enumerate}
-\item $L_{ex_A}^{n+1} = m+2$ o $L_{ex_A}^{n+1} = m$: non vi è alcuna interferenza da parte di B poiché le corsie sono libere,
+\item $L_{ex_A}^{n+1} = m+2$ oppure $L_{ex_A}^{n+1} = m$: non vi è alcuna interferenza da parte di B poiché le corsie sono libere.
 \item $L_{ex_A}^{n+1} = m+1$:
-  \begin{enumerate}
-  \item $L_{en_B}^{n+1} = m+1$: A si accoda a B (vedi caso 1(a) della situazione (a)),
-  \item $L_{en_B}^{n+1} = m+2$ o $L_{en_B}^{n+1} = m$: A cerca di inserirsi davanti a B prima che questa le ha tagli la strada e se $T_{en_B}^{n+1} + T_{lc} < T_{en_A}^{n+1}$ vuol dire che non ci riesce e deve quindi accodarsi a B, altrimenti vuol dire che riesce a rimanere in testa e non viene quindi influenzata dalla presenza di B.
-  \end{enumerate}
+	\begin{enumerate}
+	\item $L_{en_B}^{n+1} = m+1$: A si accoda a B (vedi caso 1.a dello scenario (a)).
+	\item $L_{en_B}^{n+1} = m+2$ oppure $L_{en_B}^{n+1} = m$: A cerca di inserirsi davanti a B prima che questa le ha tagli la strada e se $T_{en_B}^{n+1} + T_{lc} < T_{en_A}^{n+1}$ vuol dire che non ci riesce e deve quindi accodarsi a B, altrimenti vuol dire che riesce a rimanere in testa e non viene quindi influenzata dalla presenza di B.
+	\end{enumerate}
 \end{enumerate}
 
 Nei casi in cui non vi è interferenza da parte di B nella mossa di A, $T_{ex_A}^{n+1}$ viene calcolato solo sulla base delle caratteristiche dell'auto e della pista.
 Nei casi in cui A deve accodarsi a B viene aggiunto il vincolo che $T_{ex_A}^{n+1} > T_{ex_B}^{n+1}$ e calcolata la velocità di uscita di conseguenza.
 
 \subsection{Intermedi Cronometrici}
-Gli intermedi cronometrici e il traguardo sono dei particolari segmenti a lunghezza zero, dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero non è necessario effettuare il calcolo del tempo di percorrenza infatti per questo tipo di segmenti vale, detto $n+1$ l'indice di tale segmento:
+Gli intermedi cronometrici e il traguardo sono dei particolari segmenti aventi lunghezza nulla. Dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero, non è necessario effettuare il calcolo del tempo di percorrenza: infatti per questo tipo di segmenti vale, detto $n+1$ l'indice di tale segmento:
 \begin{itemize}
-\item $L_{ex_A}^{n} = L_{ex_A}^{n+1}$: imposto dal modulo access poiché non è possibile cambiare corsia in un segmento di lunghezza nulla,
-\item $T_{ex_A}^{n} = T_{en_A}^{n+1} = T_{ex_A}^{n+1}$: poiché il tempo impiegato a percorrere un tratto di lunghezza nulla è nullo,
-\item la velocità di uscita dal segmento $n+1$ è uguale alla velocità di ingresso nel medesimo segmento,
-\item non possono avvenire sorpassi all'interno di tale segmento,
+\item $L_{ex_A}^{n} = L_{ex_A}^{n+1}$: imposto dal modulo \texttt{access} poiché non è possibile cambiare corsia in un segmento di lunghezza nulla;
+\item $T_{ex_A}^{n} = T_{en_A}^{n+1} = T_{ex_A}^{n+1}$: poiché il tempo impiegato a percorrere un tratto di lunghezza nulla è nullo;
+\item la velocità di uscita dal segmento $n+1$ è uguale alla velocità di ingresso nel medesimo segmento;
+\item non possono avvenire sorpassi all'interno di tale segmento;
 \item il percorrere tale segmento non causa consumo né di carburante né di pneumatici.
 \end{itemize}
 Come si può notare in figura~\ref{fig:move} in corrispondenza del transito di un'auto attraverso un intermedio cronometrico viene emessa da \texttt{track} una \texttt{chrono\_notif} verso \texttt{event\_dispatcher}. Questo tipo di messaggio contiene:
 \begin{itemize}
-\item ID dell'auto,
-\item ID dell'intermedio e numero del giro,
-\item tempo di gara in cui l'auto attraversa l'intermedio,
-\item velocità massima raggiunta dall'auto dopo l'intermedio precedente,
-\item stato carburante e pneumatici dell'auto.
+\item ID dell'auto
+\item ID dell'intermedio e numero del giro
+\item tempo di gara in cui l'auto attraversa l'intermedio
+\item velocità massima raggiunta dall'auto dopo l'intermedio precedente
+\item stato corrente di carburante e pneumatici dell'auto
 \end{itemize}
+
 \subsection{Pit Lane}
-\begin{center}
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/PitLane}
 \caption{Rappresentazione della zona dei \textit{box}}
 \label{fig:pitLane}
 \end{figure}
-\end{center}
 
-La sezione di pista indicata dall'utente come zona \textit{box} attraverso l'impostazione di \texttt{pitlane\_entrance} e \texttt{pitlane\_exit} nel file di configurazione viene rappresentata dalla componente \texttt{track} come mostra la figura~\ref{fig:pitLane}. Le corsie con indice maggiore o uguale a n sono quelle indicate dall'utente nel file di configurazione mentre le corsie -1 e -2 sono generate in modo automatico in fase di costruzione della pista.
+La sezione di pista indicata dall'utente come zona \textit{box} (attraverso l'impostazione di \texttt{pitlane\_entrance} e \texttt{pitlane\_exit} nel file di configurazione) viene rappresentata dalla componente \texttt{track} come mostra la figura~\ref{fig:pitLane}. Le corsie con indice maggiore o uguale a $n$ sono quelle indicate dall'utente nel file di configurazione mentre le corsie $-1$ e $-2$ sono generate in modo automatico in fase di costruzione della pista.
 
-Per ogni \texttt{team} che partecipa alla simulazione viene riservata una zona \textit{box} diversa della pista (indicata in figura come \textit{team area}) formata da due segmenti di tipo \texttt{pitlane} e uno di tipo \texttt{pitstop}. Per poter effettuare il rifornimento un'auto deve trovarsi nella corsia di indice -2 del segmento \texttt{pitstop} associato alla sua scuderia.
+Per ogni \texttt{team} che partecipa alla simulazione viene riservata una zona \textit{box} diversa (indicata in figura come \textit{team area}) formata da due segmenti di tipo \texttt{pitlane} ed uno di tipo \texttt{pitstop}. Per poter effettuare il rifornimento un'auto deve trovarsi nella corsia di indice $-2$ del segmento \texttt{pitstop} associato alla sua scuderia.
 
-I segmenti di tipo \texttt{pre\_pitlane}, \texttt{post\_pitlane}, \texttt{pitlane} e \texttt{pitstop} sono soggetti a regole di percorrenza aggiuntive definite nel modulo \texttt{access}:
+I segmenti di tipo \texttt{pre\_pitlane}, \texttt{post\_pitlane}, \texttt{pitlane} e \texttt{pitstop} sono soggetti a regole di percorrenza aggiuntive definite nel modulo \texttt{access}.
 \begin{itemize}
-\item \texttt{pre\_pitlane}: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n,
-\item \texttt{post\_pitlane}: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa,
-\item \texttt{pitlane}: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa,
-\item \texttt{pitstop}: non è possibile effettuare uno spostamento dalla corsia -1 verso la corsia n e viceversa, inoltre un'auto non può accedere alla corsia -2 dei segmenti \texttt{pitstop} appartenenti ad altre scuderie.
+\item \texttt{pre\_pitlane}: non è possibile effettuare uno spostamento dalla corsia $-1$ verso la corsia $n$.
+\item \texttt{post\_pitlane}: non è possibile effettuare uno spostamento dalla corsia $-1$ verso la corsia $n$ e viceversa.
+\item \texttt{pitlane}: non è possibile effettuare uno spostamento dalla corsia $-1$ verso la corsia $n$ e viceversa.
+\item \texttt{pitstop}: non è possibile effettuare uno spostamento dalla corsia $-1$ verso la corsia $n$ e viceversa; inoltre un'auto non può accedere alla corsia $-2$ dei segmenti \texttt{pitstop} appartenenti ad altre scuderie.
 \end{itemize}
 
-Il regolamento delle gare di formula uno impone un limite di velocità nella corsia dei \textit{box}, nel caso della simulazione questo limite è applicato nelle corsie di indice -1 e -2 dei segmenti di tipo \texttt{pitlane} e \texttt{pitstop} ed è imposto alle auto nel calcolo della velocità massima eseguito in fase di preelaborazione come precedentemente descritto.
+Il regolamento delle gare di Formula Uno impone un limite di velocità nella corsia dei \textit{box}, nel caso della simulazione questo limite è applicato nelle corsie di indice $-1$ e $-2$ dei segmenti di tipo \texttt{pitlane} e \texttt{pitstop} ed è imposto alle auto nel calcolo della velocità massima eseguito in fase di preelaborazione, come precedentemente descritto.
 La corsia aggiuntiva nei segmenti di tipo \texttt{pre\_pitlane} e \texttt{post\_pitlane} serve a rappresentare rispettivamente la corsia di decelerazione e la corsia di accelerazione e non sono quindi soggette a particolari limiti di velocità imposti dal regolamento.
 
 \subsection{Rifornimento}
-\label{txt:rifornimento}
-Per poter effettuare le operazioni di rifornimento e cambio pneumatici un'auto deve trovarsi a percorrere il segmento \texttt{pitstop} associato alla sua scuderia nella corsia di indice -2. Quando \texttt{car} effettua uno spostamento in tale posizione (vedi \fun{track:move}) è la componente \texttt{track} che si incarica di effettuare la chiamata alla componente \texttt{team} associata all'auto per richiedere quali operazioni siano da effettuare sull'auto durante la sosta.
+\label{sec:rifornimento}
+Per poter effettuare le operazioni di rifornimento e cambio pneumatici un'auto deve trovarsi a percorrere il segmento \texttt{pitstop} associato alla sua scuderia nella corsia di indice $-2$. Quando \texttt{car} effettua uno spostamento in tale posizione (vedi \fun{track:move}) è la componente \texttt{track} che si incarica di effettuare la chiamata alla componente \texttt{team} associata all'auto per richiedere quali operazioni siano da effettuare sull'auto durante la sosta. \texttt{track} invia quindi lo stato carburante e pneumatici dell'auto al \texttt{team}, il quale risponde con un messaggio indicante la quantità di carburante da aggiungere e quale tipo di pneumatici montare in caso di cambio gomme.
 
-\texttt{track} invia quindi lo stato carburante e pneumatici dell'auto al \texttt{team} il quale risponde con un messaggio contenente quanto carburante aggiungere e quale tipo di pneumatici montare in caso di cambio gomme, il tutto tramite l'invocazione del metodo \fun{team:pitstop\_operations}.
-
-Le componenti \texttt{team} sono in grado di calcolare questi valori sulla base dei dati ottenuti tramite \texttt{event\_dispatcher} e derivanti dalle \texttt{crono\_notif}, grazie a questo meccanismo \texttt{team} riesce a calcolare il consumo di carburante e gomme medio sul giro per ogni auto e ad adottare quindi una strategia di rifornimento ragionevole.
+Le componenti \texttt{team} sono in grado di calcolare questi valori sulla base dei dati ottenuti tramite \texttt{event\_dispatcher} e derivanti dalle \texttt{crono\_notif}. Grazie a questo meccanismo \texttt{team} riesce a calcolare il consumo di carburante e gomme medio sul giro per ogni auto e ad adottare quindi una strategia di rifornimento ragionevole.
 Il tempo necessario ad effettuare le operazioni è calcolato da \texttt{track} in base alle operazioni da effettuare.
 
 Visto che ogni scuderia può rifornire una sola auto alla volta il tempo di uscita dell'auto A è calcolato come segue:
-\begin{center}
-$T_{ex_A} = max(T_{en_A}, T_{ex_B}) + T_{ops}$
-\end{center}
-dove B è l'auto accodata nello stesso segmento e in corsia -2 con tempo di uscita maggiore (ovvero l'auto che eventualmente precede A nella sosta ai \textit{box}) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
+\[ T_{ex_A} = \max \left\{ T_{en_A}, T_{ex_B} \right\} + T_{ops} \]
+dove B è l'auto accodata nello stesso segmento e in corsia $-2$ con tempo di uscita maggiore (ovvero l'auto che eventualmente precede A nella sosta ai \textit{box}) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
 
-
-\begin{center}
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/NextPitstop}
 \caption{Algoritmo \texttt{set\_next\_pitstop} di \texttt{car}}
 \label{fig:nextPitstop}
 \end{figure}
-\end{center}
 
 Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 \begin{itemize}
@@ -734,62 +754,60 @@ Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 \end{itemize}
 
 Il primo tipo di richiesta arriva direttamente dalla componente Team GUI, mentre il secondo tipo arriva da \texttt{team} che comunica con l'auto attraverso l'invio di un messaggio di tipo \texttt{next\_pitstop} in modo asincrono per evitare possibili situazioni di \textit{deadlock}. Il fatto che il messaggio sia asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento \texttt{pitstop} di una scuderia vi sia un segmento di tipo \texttt{intermediate} e supponiamo anche che l'auto A di tale scuderia stia percorrendo la \textit{pit lane} per effettuare una sosta.
-E' possibile che si verifichi la seguente sequenza di eventi:
+\`E possibile che si verifichi la seguente sequenza di eventi:
 \begin{enumerate}
-\item A percorre il segmento intermediate e viene inviata una \texttt{chrono\_notif} a \texttt{event\_dispatcher},
-\item A percorre il segmento successivo ed effettua la sosta ai \textit{box},
-\item la \texttt{chrono\_notif} arriva al \texttt{team} di A, il quale in base ai dati ricevuti sullo stato dell'auto (ormai obsoleti a causa del rifornimento) decide per esempio di posticipare al giro successivo la sosta ai \textit{box},
-\item A riceve il messaggio e obbedisce al \texttt{team} rientrando ai \textit{box} nel giro successivo, effettuando quindi una sosta probabilmente inutile.
+\item A percorre il segmento \texttt{intermediate} e viene inviata una \texttt{chrono\_notif} a \texttt{event\_dispatcher};
+\item A percorre il segmento successivo ed effettua la sosta ai \textit{box};
+\item la \texttt{chrono\_notif} arriva alla scuderia di A che, in base ai dati ricevuti sullo stato dell'auto (ormai obsoleti a causa del rifornimento), decide, per esempio, di posticipare al giro successivo la sosta ai \textit{box};
+\item A riceve il messaggio e obbedisce alla scuderia, rientrando nuovamente ai \textit{box} nel giro successivo ed effettuando molto probabilmente una sosta inutile.
 \end{enumerate}
 
-La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che \texttt{car} e \texttt{team} mantengano un contatore delle soste effettuate dall'auto fino a quel momento e che \texttt{team} nel messaggio \fun{next\_pitstop} inserisca anche il valore di tale contatore. Di conseguenza nel momento in cui l'auto riceve il messaggio può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorare il messaggio. I messaggi provenienti dall'utente ovviamente non necessitano di tale contatore poiché sono considerati dall'auto sempre corretti.
+La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che \texttt{car} e \texttt{team} mantengano un contatore delle soste effettuate dall'auto fino a quel momento e che \texttt{team} nel messaggio \fun{next\_pitstop} inserisca anche il valore di tale contatore. Di conseguenza, nel momento in cui viene ricevuto il messaggio, l'auto può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorarlo. I messaggi provenienti dall'utente ovviamente non necessitano di tale contatore poiché sono considerati dall'auto sempre corretti.
 
-Lato \texttt{car} l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pitstop} è quello rappresentato in figura~\ref{fig:nextPitstop}.
-
-Il parametro \fun{new\_stop} presente nel messaggio \fun{next\_pitstop} può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare pitstop successivo se la sosta è richiesta dalla logica di \texttt{team}. Come si può notare dalla figura viene dato maggior peso alle decisioni dell'utente ignorando i messaggi dei \texttt{team} che potrebbero interferire.
-
-Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero e \fun{undefined}. Il valore \fun{undefined} serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai \texttt{team} o dall'utente.
+Lato \texttt{car}, l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pitstop} è quello rappresentato in figura~\ref{fig:nextPitstop}. Il parametro \fun{new\_stop} presente nel messaggio \fun{next\_pitstop} può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare il pitstop successivo se la sosta è richiesta dalla logica di \texttt{team}. Come si può notare dalla figura, viene data priorità maggiore alle decisioni dell'utente ignorando i messaggi dei \texttt{team} che potrebbero interferire. Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero positivo oppure \fun{undefined}. In particolare il valore \fun{undefined} serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai \texttt{team} o dall'utente.
 
 \subsection{Arrivo}
-Un'auto termina la competizione nel momento in cui va a percorrere il segmento successivo al traguardo nell'ultimo giro di gara oppure se esce di pista, come descritto in \ref{txt:percorrenza}. Come si può notare in figura~\ref{fig:move}, nel momento in cui un'auto esce dalla competizione viene invocato il metodo \fun{track:remove\_car} e successivamente termina la sua esecuzione.
+Un'auto termina la competizione nel momento in cui va a percorrere il segmento successivo al traguardo nell'ultimo giro di gara oppure se si ritira, come descritto in~\ref{sec:percorrenza}. Come si può notare in figura~\ref{fig:move}, nel momento in cui un'auto esce dalla competizione viene invocato il metodo \fun{track:remove\_car} e successivamente il processo termina la propria esecuzione.
 
 Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in gara interno alla componente \texttt{track}. Nel momento in cui questo contatore raggiunge il valore zero allora la gara è terminata e \texttt{track} può notificare questo evento al resto del sistema inviando a \texttt{event\_dispatcher} la notifica \fun{\#race\_notif\{event = finished\}}.
 
-In questo modo le componenti del sistema non più necessarie possono terminare la loro esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili e restare attiva per permettere all'utente di consultare i dati relativi alla simulazione.
-\subsection{Interazione con l'Utente}
-L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite le diverse interfacce.
+In questo modo le componenti del sistema non più necessarie possono terminare la propria esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili ma restare comunque attive per permettere all'utente di consultare i dati relativi alla simulazione.
+
+\subsection{Interazione con l'utente}
+L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite le diverse interfacce grafiche.
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-\multirow{3}{*}{\textbf{\texttt{race\_info}}} & Avvio della simulazione\\
-& Sospensione della simulazione\\
-& Cambio del fattore di \textit{speed-up}\\
+\multirow{3}{*}{\textbf{\texttt{race\_info}}} & Avvio della simulazione \\
+					& Sospensione della simulazione \\
+					& Modifica del fattore di \textit{speed-up} \\
 \hline
-\multirow{3}{*}{\textbf{\texttt{control\_panel}}} & Configurazione di una nuova simulazione\\
-& Terminazione della simulazione\\
-& Terminazione del sistema\\
+\multirow{3}{*}{\textbf{\texttt{control\_panel}}} & Configurazione di una nuova simulazione \\
+						& Terminazione della simulazione \\
+						& Terminazione del sistema \\
 \hline
-\multirow{2}{*}{\textbf{Team GUI}} & Imporre sosta ai \textit{box} ad un'auto\\
-& Imporre il ritiro ad un'auto\\
+\multirow{2}{*}{\textbf{Team GUI}} & Imporre sosta ai \textit{box} ad un'auto \\
+				& Imporre il ritiro ad un'auto \\
 \hline
-\textbf{\texttt{weather\_station}} & Modificare le condizioni atmosferiche dei settori\\
+\textbf{\texttt{weather\_station}} & Modificare le condizioni atmosferiche dei settori \\
 \hline
 \end{tabular}
 \end{center}
 
 L'avvio della simulazione avviene tramite la chiamata \fun{scheduler:start\_simulation} che fa in modo che lo \texttt{scheduler} conceda il permesso di eseguire in modo sequenziale ai processi in coda.
 
-La sospensione della simulazione avviene tramite l'invocazione a \fun{scheduler:pause\_simulation} che inibisce temporaneamente la valutazione della coda e di conseguenza le modifiche alla pista.
+La sospensione della simulazione avviene tramite l'invocazione a \fun{scheduler:pause\_simulation} che inibisce temporaneamente la valutazione della coda e di conseguenza ogni modifica alla pista.
 
 La velocità di evoluzione della simulazione può essere alterata dall'utente attraverso il metodo \fun{scheduler:set\_speedup} che va ad agire sul tempo che intercorre tra la fine dell'esecuzione di un'attività presente nella coda e l'inizio di quella successiva, non interferendo quindi in alcun modo con il tempo logico della simulazione.
 
 La terminazione della simulazione è coordinata dal \texttt{bootstrap\_server} che tramite \texttt{node\_manager} invoca \fun{application:stop} sulle diverse componenti della simulazione.
 
-La terminazione del sistema comporta la terminazione dell'eventuale simulazione in corso e successivamente la terminazione dei nodi tramite la funzione \fun{init:stop}.
+La terminazione del sistema comporta la terminazione dell'eventuale simulazione in corso e successivamente la terminazione dei nodi tramite la funzione di libreria \fun{init:stop}.
 
-L'utente può imporre una sosta ai \textit{box} ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \fun{\#next\_pitstop\{lap = now\}} che viene elaborato da \texttt{car} come descritto in \ref{txt:rifornimento}.
+L'utente può imporre una sosta ai \textit{box} ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \fun{\#next\_pitstop\{lap = now\}} che viene elaborato da \texttt{car} come descritto in~\ref{sec:rifornimento}.
 
-Tramite Team GUI l'utente può imporre il ritiro di un'auto dalla competizione grazie al metodo \fun{car:retire}.
+Tramite Team GUI l'utente può imporre il ritiro forzato di un'auto dalla competizione grazie al metodo \fun{car:retire}.
+
 \section{Event Dispatcher}
 \begin{landscape}
 \begin{figure}
@@ -805,9 +823,10 @@ Un compito molto importante di \texttt{event\_dispatcher} è quello di mantenere
 I messaggi in ingresso e in uscita da \texttt{event\_dispatcher} verso le altre componenti del sistema sono quindi veicolati da chiamate sincrone, tuttavia, al suo interno \texttt{event\_dispatcher} è composto da più processi che comunicano tra di loro in modo asincrono, mantenendo comunque invariato l'ordine delle notifiche.
 Questo è possibile poiché l'ordine di messaggi asincroni tra processi sullo stesso nodo è garantito dal linguaggio. Una funzione fondamentale di questa parte asincrona nel percorso che la notifica deve fare è quella di evitare possibili \textit{deadlock} intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso il \texttt{event\_dispatcher} non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
 Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \texttt{team} compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di \textit{deadlock} in cui \texttt{team}, durante la sincronizzazione con \texttt{event\_dispatcher}, tenta di sincronizzarsi con se stesso ottenendo come risultato un evidente fallimento.
+
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Dispatcher}
-\caption{Interno del \texttt{event\_dispatcher}}
+\caption{Funzionamento interno di \texttt{event\_dispatcher}}
 \label{fig:dispatcher}
 \end{figure}
 
@@ -818,8 +837,7 @@ Poiché è stato previsto che una \textit{GUI} possa registrarsi a simulazione i
 
 \chapter{Correttezza}
 \section{Avvio del sistema}
-L'avvio del sistema è coordinato da \texttt{bootstrap\_server} che stabilisce l'ordine di avvio delle componenti del sistema (\ref{txt:ordineAvvio}) e controlla che l'avvio delle stesse avvenga in modo corretto.
-
+L'avvio del sistema è coordinato da \texttt{bootstrap\_server} che stabilisce l'ordine di avvio delle componenti del sistema (come descritto nella sezione~\ref{sec:avvio}) e controlla che l'avvio delle stesse avvenga in modo corretto.
 
 \texttt{event\_dispatcher} è la prima componente ad essere avviata in modo da permettere l'invio di \fun{config\_notif} da parte delle componenti del sistema durante la loro fase di avvio.
 
@@ -828,6 +846,7 @@ Successivamente viene avviato lo \texttt{scheduler} di modo che i processi \text
 Nel caso in cui qualcuna delle componenti del sistema non riuscisse ad avviarsi questo sarebbe rilevato da \texttt{bootstrap\_server} e comunicato all'utente. Di conseguenza, se l'esecuzione del metodo \fun{bootstrap\_server:bootstrap} termina senza errori vuol dire che la simulazione è pronta ad essere avviata.
 
 Una possibile situazione di errore si può avere nel caso in cui vengano istanziati due nodi \textsl{Erlang} con lo stesso nome. Ciò tuttavia è molto improbabile poiché la  parte del nome che viene generata casualmente da \texttt{control\_panel} e \texttt{node\_configurator} è una stringa di 8 cifre esadecimali. Nel caso in cui si verifichi una situazione del genere non è possibile riparare all'errore ed è quindi necessario riavviare il sistema.
+
 \section{Accesso alla pista}
 L'accesso alla componente \texttt{track} è disciplinato dallo \texttt{scheduler} infatti le uniche componenti che vi possono accedere sono \texttt{car} e \texttt{weather}. Ogniqualvolta \texttt{car} o \texttt{weather} necessitino dell'accesso alla risorsa \texttt{track}, essi effettuano la procedura di prenotazione presso lo \texttt{scheduler} a cui è delegato il compito di gestire la modalità di accesso a \texttt{track}.
 
@@ -840,7 +859,7 @@ La componente \texttt{scheduler} utilizza una politica \textit{FIFO within prior
 Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impiegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente \texttt{track}.
 
 Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tanto meno influisce l'orologio di sistema.
-Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino, come descritto in modo accurato in \ref{txt:percorrenza}.
+Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino, come descritto in modo accurato in~\ref{sec:percorrenza}.
 La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
 
 Analizzando l'algoritmo ci si può facilmente convincere che non è possibile che avvenga il fenomeno dello ``scavalcamento'' tra auto.
@@ -855,9 +874,11 @@ Per quanto riguarda il non determinismo a livello di simulazione abbiamo deciso 
 L'unico caso in cui l'ordine di esecuzione può infatti influire con il risultato della simulazione è quello in cui anche nella realtà non si possa prevedere in modo certo l'esito dell'interazione tra due auto.
 
 \begin{figure}
+\begin{center}
 \includegraphics[width=0.6\textwidth]{diagrammi/NonDet}
 \caption{Situazione di non determinismo}
 \label{fig:nonDet}
+\end{center}
 \end{figure}
 
 Consideriamo infatti la situazione riportata in figura~\ref{fig:nonDet}, e assumiamo che:
@@ -869,7 +890,7 @@ Consideriamo infatti la situazione riportata in figura~\ref{fig:nonDet}, e assum
 
 Sotto queste ipotesi non vi sono problemi di interazione tra le auto finché $L_{ex_A}^{n+1} \neq L_{ex_B}^{n+1}$ poiché, avendo traiettorie che non si intersecano, i tempi di percorrenza dell'una non sono influenzabili in alcun modo dall'altra.
 
-Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in \ref{txt:percorrenza}, la seconda auto si dovrà accodare alla prima segnando un tempo di uscita dal segmento leggermente maggiore.
+Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in~\ref{sec:percorrenza}, la seconda auto si dovrà accodare alla prima segnando un tempo di uscita dal segmento leggermente maggiore.
 
 C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento del sistema in una generica simulazione ma bisogna invece creare una situazione ad-hoc per ottenere dei test ripetibili e poter apprezzare quindi la presenza del non determinismo.
 
@@ -906,6 +927,7 @@ Consumo di carburante & Inclinazione del tratto\\
 
 Considerando la fase di decelerazione che un'auto deve intraprendere generalmente prima di entrare in curva o prima di accedere alla \textit{pit lane}, è stato necessario introdurre nelle meccaniche di simulazione il calcolo della tabella di preelaborazione.
 Questo principalmente per evitare che le auto arrivassero all'entrata della curva e, non avendo il tempo di frenare, uscissero di pista sistematicamente.
+
 \subsection*{Dinamiche di gara}
 Per quanto riguarda il realismo nelle dinamiche di gara abbiamo considerato la possibilità per un'auto di ritirarsi dalla competizione ed essere quindi rimossa dalla pista a seguito di:
 \begin{itemize}
@@ -929,9 +951,11 @@ Una volta che le componenti di simulazione sono state terminate è possibile ter
 
 \appendix
 
+
 \chapter{File di configurazione}
 \section*{Team e Car}
 Le impostazioni delle scuderie, delle auto e dei piloti sono contenuti in uno stesso file di configurazione.
+
 \begin{lstlisting}
 [
         {team_name, "McLaren"},
@@ -1026,8 +1050,8 @@ Le tuple sono nella forma
 \item \texttt{RAIN}: Quantità di pioggia presente nel settore, un intero nell'intervallo [0;10].
 \end{itemize}
 
-\chapter{Avvio del prototipo}
 
+\chapter{Avvio del prototipo}
 
 
 \chapter{Glossario}
