@@ -23,6 +23,8 @@
 \date{}
 
 \newcommand{\term}[2]{\textbf{#1} & #2 \\}
+\newcommand{\Erlang}{\textsl{Erlang}}
+\newcommand{\Python}{\textsl{Python}}
 \newcommand{\fun}[1]{\texttt{#1}}
 
 
@@ -41,9 +43,9 @@ La presente relazione, unitamente al software \textsl{FORSE}, è stata realizzat
 I requisiti considerati in fase di progettazione sono stati ricavati da quelli proposti dal docente (\url{http://www.math.unipd.it/~tullio/SCD/2008/Progetto.html})
 secondo le clausole di partecipazione di livello 3.
 
-\textsl{Formula One Race Simulation Engine} è realizzato utilizzando i linguaggi \textsl{Erlang} e \textsl{Python}. Per la distribuzione dell'applicazione abbiamo
-usato il protocollo di distribuzione \textsl{Erlang}, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{TwOTP} per il linguaggio
-\textsl{Python}.
+\textsl{Formula One Race Simulation Engine} è realizzato utilizzando i linguaggi \Erlang{} e \Python{}. Per la distribuzione dell'applicazione abbiamo
+usato il protocollo di distribuzione \Erlang{}, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{TwOTP} per il linguaggio
+\Python{}.
 Per la creazione di interfacce grafiche è stata utilizzata la libreria \textsl{Qt}.
 
 Nelle fasi di progettazione e realizzazione del prototipo è stata posta maggiore attenzione riguardo le tematiche inerenti distribuzione e concorrenza, nozioni
@@ -57,46 +59,46 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
 
 \chapter{Requisiti}
 \begin{enumerate}
-    \item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
-    \item La simulazione evolve in modo deterministico.
-    \item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
-    \begin{itemize}
-        \item[--] tipo di settore (rettilineo, curvilineo, entrata e uscita dai \textit{box}, intermedio cronometrico, traguardo);
-        \item[--] lunghezza e larghezza del segmento;
-        \item[--] se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
-        \item[--] pendenza del suolo;
-        \item[--] tempo atmosferico iniziale;
-        \item[--] eventuali variazioni del tempo atmosferico nel corso della gara.
-    \end{itemize}
-    \item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
-    \begin{itemize}
+\item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
+\item La simulazione evolve in modo deterministico.
+\item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
+	\begin{itemize}
+	\item[--] tipo di settore (rettilineo, curvilineo, entrata e uscita dai \textit{box}, intermedio cronometrico, traguardo);
+	\item[--] lunghezza e larghezza del segmento;
+	\item[--] se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
+	\item[--] pendenza del suolo;
+	\item[--] tempo atmosferico iniziale;
+	\item[--] eventuali variazioni del tempo atmosferico nel corso della gara.
+	\end{itemize}
+\item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
+	\begin{itemize}
 	\item[--] numero identificativo;
 	\item[--] nome;
-        \item[--] una scuderia di appartenenza;
-        \item[--] esperienza/bravura;
-        \item[--] peso;
-        \item[--] vettura utilizzata.
-    \end{itemize}
-    \item Parametri di configurazione delle auto:
-    \begin{itemize}
-        \item[--] capienza del serbatoio;
+	\item[--] una scuderia di appartenenza;
+	\item[--] esperienza/bravura;
+	\item[--] peso;
+	\item[--] vettura utilizzata.
+	\end{itemize}
+\item Parametri di configurazione delle auto:
+	\begin{itemize}
+	\item[--] capienza del serbatoio;
 	\item[--] quantità di carburante presente nel serbatoio a inizio gara;
-        \item[--] tipo di pneumatici montato ad inizio gara (da asciutto, intermedio, da bagnato);
-        \item[--] potenza del motore;
-        \item[--] potenza dei freni;
-        \item[--] peso a secco.
-    \end{itemize}
-    \item Parametri di configurazione di una competizione:
-    \begin{itemize}
-        \item[--] numero totale di giri da effettuare nella gara;
+	\item[--] tipo di pneumatici montato ad inizio gara (da asciutto, intermedio, da bagnato);
+	\item[--] potenza del motore;
+	\item[--] potenza dei freni;
+	\item[--] peso a secco.
+	\end{itemize}
+\item Parametri di configurazione di una competizione:
+	\begin{itemize}
+	\item[--] numero totale di giri da effettuare nella gara;
 	\item[--] ordine di partenza dei piloti nella griglia di partenza;
-    \end{itemize}
-    \item Sistema di controllo (\textit{logging}):
-    \begin{itemize}
-        \item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale sul giro e tempo migliore sul giro;
-        \item[--] situazione atmosferica della pista;
-        \item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali.
-    \end{itemize}
+	\end{itemize}
+\item Sistema di controllo (\textit{logging}):
+	\begin{itemize}
+	\item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale sul giro e tempo migliore sul giro;
+	\item[--] situazione atmosferica della pista;
+	\item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali.
+	\end{itemize}
 \end{enumerate}
 
 
@@ -338,11 +340,11 @@ Attraverso questa componente l'utente può interagire con lo stato della simulaz
 \begin{itemize}
 \item avvio,
 \item pausa,
-\item cambio del fattore di \textit{speed-up}.
+\item cambio del fattore di \textit{speedup}.
 \end{itemize}
 
 \subsection*{Interfaccia Fornita}
-Essendo \texttt{race\_info} una \textit{GUI} dal punto di vista funzionale espone sicuramente un'interfaccia verso l'utente con lo scopo di rendere facilmente fruibili i dati riguardanti l'evolvere della simulazione.
+Essendo \texttt{race\_info} una GUI dal punto di vista funzionale espone sicuramente un'interfaccia verso l'utente con lo scopo di rendere facilmente fruibili i dati riguardanti l'evolvere della simulazione.
 Questa componente, conformemente a quanto avviene nel resto del sistema, riceve le informazioni sulla competizione da \texttt{event\_dispatcher}. Per questo motivo deve fornire ad\texttt{event\_dispatcher} almeno un canale di comunicazione (metodo di \textit{callback}).
 
 \subsection*{Interfaccia Richiesta}
@@ -388,10 +390,10 @@ L'utente dovrà interagire con due tipi di interfacce di configurazione:
 \end{itemize}
 Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \texttt{bootstrap\_server} che non partecipa alla simulazione e dei nodi gestiti da \texttt{node\_manager} sui quali vengono eseguite le componenti di simulazione.
 
-Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \textsl{Erlang} alla chiusura del sistema.
+Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \Erlang{} alla chiusura del sistema.
 
 \subsection*{Control Panel e Bootstrap Server}
-\texttt{control\_panel} ha il compito di avviare un nodo \textsl{Erlang} sul quale far eseguire la componente \texttt{bootstrap\_server} e acquisire le informazioni necessarie alla simulazione dall'utente.
+\texttt{control\_panel} ha il compito di avviare un nodo \Erlang{} sul quale far eseguire la componente \texttt{bootstrap\_server} e acquisire le informazioni necessarie alla simulazione dall'utente.
 \texttt{control\_panel} deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
 
 La funzione di \texttt{bootstrap\_server} è fondamentale per l'avvio e la terminazione del sistema e di conseguenza non deve essere terminato finché gli altri nodi del sistema sono attivi.
@@ -404,7 +406,7 @@ Una volta che \texttt{bootstrap\_server} ha istanziato nel giusto ordine le comp
 Una volta effettuata la fase di bootstrap del sistema \texttt{bootstrap\_server} rimane in attesa del comando di terminazione da parte di \texttt{control\_panel} per coordinare la terminazione dei nodi del sistema distribuiti.
 
 \subsection*{Node Configurator e Node Manager}
-Una volta avviato \texttt{node\_configurator} questo istanzia un nodo \textsl{Erlang} che andrà a fare parte del sistema distribuito e ivi avvia \texttt{node\_manager}. L'utente deve indicare tramite \texttt{node\_configurator} la disponibilità di risorse del nodo \textsl{Erlang} appena avviato in modo che \texttt{node\_manager} possa comunicarlo a \texttt{bootstrap\_server}.
+Una volta avviato \texttt{node\_configurator} questo istanzia un nodo \Erlang{} che andrà a fare parte del sistema distribuito e ivi avvia \texttt{node\_manager}. L'utente deve indicare tramite \texttt{node\_configurator} la disponibilità di risorse del nodo \Erlang{} appena avviato in modo che \texttt{node\_manager} possa comunicarlo a \texttt{bootstrap\_server}.
 
 La componente \texttt{node\_manager} ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del \texttt{bootstrap\_server}.
 
@@ -435,7 +437,7 @@ Dividendo in questo modo la fase di terminazione è possibile effettuare più si
 
 \chapter{Implementazione}
 \section{Tecnologie utilizzate}
-Il prototipo è realizzato in \textsl{Erlang} e \textsl{Python} con l'utilizzo delle librerie \textsl{TwOTP} e \textsl{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \textsl{Erlang} su nodi \textsl{Python} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}.
+Il prototipo è realizzato in \Erlang{} e \Python{} con l'utilizzo delle librerie \textsl{TwOTP} e \textsl{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \Erlang{} su nodi \Python{} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}.
 
 Di seguito le versioni del software utilizzato:
 \begin{center}
@@ -454,7 +456,7 @@ PyQt & 4.7 \\
 \end{tabular}
 \end{center}
 
-Il criterio che abbiamo usato per decidere se implementare una componente del sistema in \textsl{Erlang} o \textsl{Python} è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \textsl{Python} più le librerie sopra citate, \textsl{Erlang} altrimenti. Risulta dunque la seguente suddivisione:
+Il criterio che abbiamo usato per decidere se implementare una componente del sistema in \Erlang{} o \Python{} è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \Python{} più le librerie sopra citate, \Erlang{} altrimenti. Risulta dunque la seguente suddivisione:
 \begin{center}
 \begin{tabular}{|p{0.2\textwidth}|p{0.3\textwidth}|}
 \hline
@@ -474,21 +476,21 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \end{center}
 
 \subsection*{Caratteristiche di Erlang}
-\textsl{Erlang} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \textsl{Erlang}.
+\Erlang{} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \Erlang{}.
 
-I processi \textsl{Erlang} sono estremamente leggeri dal punto di vista dell'occupazione memoria e per questo il linguaggio si presta bene ad applicazioni che usano un gran numero di processi concorrenti. Non vi è memoria condivisa e i processi comunicano tramite scambio di messaggi asincrono.
+I processi \Erlang{} sono estremamente leggeri dal punto di vista dell'occupazione memoria e per questo il linguaggio si presta bene ad applicazioni che usano un gran numero di processi concorrenti. Non vi è memoria condivisa e i processi comunicano tramite scambio di messaggi asincrono.
 
-Una singola istanza di una macchina virtuale \textsl{Erlang} è detta anche nodo \textsl{Erlang} e un sistema \textsl{Erlang} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \textsl{Erlang} che permette la comunicazione tra due nodi \textsl{Erlang} grazie anche a \textit{EPMD} (\textit{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre al protocollo nativo, \textsl{Erlang} supporta anche CORBA v2.0 tramite il modulo \texttt{orber}.
+Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre al protocollo nativo, \Erlang{} supporta anche CORBA v2.0 tramite il modulo \texttt{orber}.
 
 Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
 
 \subsection*{Mnesia}
-\textsl{Mnesia} è un database distribuito per \textsl{Erlang} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa.
+\textsl{Mnesia} è un database distribuito per \Erlang{} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato in diverse componenti per salvare dati relativi allo stato della componente stessa.
 
-Il linguaggio usato per le query è \textsl{Erlang} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente \textsl{Mnesia} supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
+Il linguaggio usato per le query è \Erlang{} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente \textsl{Mnesia} supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
 
-\subsection*{Interazione Erlang--Python: TwOTP}
-\textsl{TwOTP} (\textit{Twisted interface to Erlang/OTP}) è una libreria che implementa il protocollo di distribuzione \textsl{Erlang} in linguaggio \textsl{Python} con l'ausilio di \textsl{Twisted}.
+\subsection*{Interazione Erlang $\leftrightarrow$ Python: TwOTP}
+\textsl{TwOTP} (\textit{Twisted interface to Erlang/OTP}) è una libreria che implementa il protocollo di distribuzione \Erlang{} in linguaggio \Python{} con l'ausilio di \textsl{Twisted}.
 
 \textsl{Twisted} è un framework per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} asincrono basato su eventi e \textit{callbacks}.
 
@@ -506,18 +508,18 @@ Affermare che due processi comunichino allo stesso modo, indipendentemente dal f
 \end{figure}
 \end{landscape}
 
-Il diagramma di comunicazione\footnote{Per poter evidenziare efficacemente il comportamento parallelo delle entità, si è reso necessario deviare leggermente dallo standard UML sui diagrammi di comunicazione. Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo se indicate da lettere diverse, secondo la numerazione se iniziano con la stessa lettera.} in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \textsl{Erlang} sullo stesso elaboratore.
+Il diagramma di comunicazione\footnote{Per poter evidenziare efficacemente il comportamento parallelo delle entità, si è reso necessario deviare leggermente dallo standard UML sui diagrammi di comunicazione. Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo se indicate da lettere diverse, secondo la numerazione se iniziano con la stessa lettera.} in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \Erlang{} sullo stesso elaboratore.
 
-Nel nodo \textsl{Erlang} istanziato da \texttt{control\_panel} viene eseguito \texttt{bootstrap\_server} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \texttt{node\_manager}. Durante l'avvio di \texttt{node\_manager} viene consultato il file \texttt{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
+Nel nodo \Erlang{} istanziato da \texttt{control\_panel} viene eseguito \texttt{bootstrap\_server} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \texttt{node\_manager}. Durante l'avvio di \texttt{node\_manager} viene consultato il file \texttt{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
 
 Tramite \texttt{control\_panel} l'utente deve indicare:
 \begin{itemize}
 \item percorso dei file di configurazione,
 \item numero di giri della simulazione,
-\item fattore di \textit{speed-up} iniziale.
+\item fattore di \textit{speedup} iniziale.
 \end{itemize}
 
-Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti necessarie alla simulazione possono essere istanziate sul nodo \textsl{Erlang} che ha istanziato. Queste componenti sono:
+Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti necessarie alla simulazione possono essere istanziate sul nodo \Erlang{} che ha istanziato. Queste componenti sono:
 \begin{itemize}
 \item \texttt{scheduler}
 \item \texttt{event\_dispatcher}
@@ -526,7 +528,7 @@ Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti
 \item \texttt{weather}
 \end{itemize}
 
-Una volta che queste informazioni sono state inserite, queste vengono comunicate alle rispettive componenti \textsl{Erlang} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
+Una volta che queste informazioni sono state inserite, queste vengono comunicate alle rispettive componenti \Erlang{} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
 
 Effettuando il \textit{parsing} dei file di configurazione, \fun{bootstrap\_server:read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
 
@@ -769,7 +771,7 @@ Lato \texttt{car}, l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pits
 \subsection{Arrivo}
 Un'auto termina la competizione nel momento in cui va a percorrere il segmento successivo al traguardo nell'ultimo giro di gara oppure se si ritira, come descritto in~\ref{sec:percorrenza}. Come si può notare in figura~\ref{fig:move}, nel momento in cui un'auto esce dalla competizione viene invocato il metodo \fun{track:remove\_car} e successivamente il processo termina la propria esecuzione.
 
-Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in gara interno alla componente \texttt{track}. Nel momento in cui questo contatore raggiunge il valore zero allora la gara è terminata e \texttt{track} può notificare questo evento al resto del sistema inviando a \texttt{event\_dispatcher} la notifica \fun{\#race\_notif\{event = finished\}}.
+Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in gara interno alla componente \texttt{track}. Nel momento in cui questo contatore raggiunge il valore zero allora la gara è terminata e \texttt{track} può notificare questo evento al resto del sistema inviando a \texttt{event\_dispatcher} la notifica \verb!#race_notif{event = finished}!.
 
 In questo modo le componenti del sistema non più necessarie possono terminare la propria esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili ma restare comunque attive per permettere all'utente di consultare i dati relativi alla simulazione.
 
@@ -780,7 +782,7 @@ L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite l
 \hline
 \multirow{3}{*}{\textbf{\texttt{race\_info}}} & Avvio della simulazione \\
 					& Sospensione della simulazione \\
-					& Modifica del fattore di \textit{speed-up} \\
+					& Modifica del fattore di \textit{speedup} \\
 \hline
 \multirow{3}{*}{\textbf{\texttt{control\_panel}}} & Configurazione di una nuova simulazione \\
 						& Terminazione della simulazione \\
@@ -804,7 +806,7 @@ La terminazione della simulazione è coordinata dal \texttt{bootstrap\_server} c
 
 La terminazione del sistema comporta la terminazione dell'eventuale simulazione in corso e successivamente la terminazione dei nodi tramite la funzione di libreria \fun{init:stop}.
 
-L'utente può imporre una sosta ai \textit{box} ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \fun{\#next\_pitstop\{lap = now\}} che viene elaborato da \texttt{car} come descritto in~\ref{sec:rifornimento}.
+L'utente può imporre una sosta ai \textit{box} ad un'auto attraverso l'interfaccia utente associata alla scuderia a cui tale auto appartiene con l'invocazione al metodo \fun{car:force\_pitstop} che causa l'invio di un messaggio \verb!#next_pitstop{lap = now}! che viene elaborato da \texttt{car} come descritto in~\ref{sec:rifornimento}.
 
 Tramite Team GUI l'utente può imporre il ritiro forzato di un'auto dalla competizione grazie al metodo \fun{car:retire}.
 
@@ -819,7 +821,7 @@ Tramite Team GUI l'utente può imporre il ritiro forzato di un'auto dalla compet
 
 In figura~\ref{fig:notifFlow}, sulla sinistra si possono vedere quali sono i tipi di notifica presenti nel sistema e da che componenti sono inviati, mentre sulla destra sono rappresentate le componenti che ricevono i dati, eventualmente rielaborati, derivanti dalle notifiche.
 
-Un compito molto importante di \texttt{event\_dispatcher} è quello di mantenere l'ordine delle notifiche rispetto ogni destinazione, non è quindi possibile affidarsi a comunicazione asincrona.
+Un compito molto importante di \texttt{event\_dispatcher} è quello di mantenere l'ordine delle notifiche rispetto ogni destinazione, non è quindi possibile affidarsi a comunicazioni asincrone.
 I messaggi in ingresso e in uscita da \texttt{event\_dispatcher} verso le altre componenti del sistema sono quindi veicolati da chiamate sincrone, tuttavia, al suo interno \texttt{event\_dispatcher} è composto da più processi che comunicano tra di loro in modo asincrono, mantenendo comunque invariato l'ordine delle notifiche.
 Questo è possibile poiché l'ordine di messaggi asincroni tra processi sullo stesso nodo è garantito dal linguaggio. Una funzione fondamentale di questa parte asincrona nel percorso che la notifica deve fare è quella di evitare possibili \textit{deadlock} intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso il \texttt{event\_dispatcher} non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
 Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \texttt{team} compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di \textit{deadlock} in cui \texttt{team}, durante la sincronizzazione con \texttt{event\_dispatcher}, tenta di sincronizzarsi con se stesso ottenendo come risultato un evidente fallimento.
@@ -830,9 +832,9 @@ Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \t
 \label{fig:dispatcher}
 \end{figure}
 
-Come si può vedere in figura~\ref{fig:dispatcher}, \texttt{event\_dispatcher} è composto di un processo detto \textit{front-end} che ha il compito di ricevere ogni notifica in ingresso e spedirla ai \textit{back-end} interessati in modo asincrono. Oltre a ciò, il \textit{front-end} deve anche ricevere le richieste di \textit{subscription} e registrare quindi i processi richiedenti presso il corretto \textit{back-end}. Al ricevimento di una notifica un \textit{back-end} provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di \textit{subscribers}.
+Come si può vedere in figura~\ref{fig:dispatcher}, \texttt{event\_dispatcher} è composto di un processo detto \textit{front-end} che ha il compito di ricevere ogni notifica in ingresso e inoltrarla ai \textit{back-ends} interessati in modo asincrono. Oltre a ciò, il \textit{front-end} deve anche ricevere le richieste di \textit{subscription} e registrare quindi i processi richiedenti presso il corretto \textit{back-end}. Al ricevimento di una notifica un \textit{back-end} provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di \textit{subscribers}.
 
-Poiché è stato previsto che una \textit{GUI} possa registrarsi a simulazione iniziata è necessario che i \textit{back-ends} abbiano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della \textit{subscription}. Successivamente, al processo richiedente, verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
+Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i \textit{back-ends} mantengano uno stato interno in modo da poter inviare al processo che si registra un'immagine parziale dello stato della competizione fino al momento della \textit{subscription}. Successivamente, al processo richiedente verranno inviate solo le informazioni sul cambiamento relativo allo stato della competizione in modo da evitare l'invio di dati ridondanti.
 
 
 \chapter{Correttezza}
@@ -845,33 +847,24 @@ Successivamente viene avviato lo \texttt{scheduler} di modo che i processi \text
 
 Nel caso in cui qualcuna delle componenti del sistema non riuscisse ad avviarsi questo sarebbe rilevato da \texttt{bootstrap\_server} e comunicato all'utente. Di conseguenza, se l'esecuzione del metodo \fun{bootstrap\_server:bootstrap} termina senza errori vuol dire che la simulazione è pronta ad essere avviata.
 
-Una possibile situazione di errore si può avere nel caso in cui vengano istanziati due nodi \textsl{Erlang} con lo stesso nome. Ciò tuttavia è molto improbabile poiché la  parte del nome che viene generata casualmente da \texttt{control\_panel} e \texttt{node\_configurator} è una stringa di 8 cifre esadecimali. Nel caso in cui si verifichi una situazione del genere non è possibile riparare all'errore ed è quindi necessario riavviare il sistema.
+Una possibile situazione di errore si può avere nel caso in cui vengano istanziati due nodi \Erlang{} con lo stesso nome. Ciò tuttavia è estremamente improbabile poiché la parte del nome che viene generata casualmente da \texttt{node\_configurator} è una stringa di 8 cifre esadecimali. Nel caso in cui si verifichi una situazione del genere non è possibile riparare all'errore ed è quindi necessario riavviare il sistema.
 
 \section{Accesso alla pista}
-L'accesso alla componente \texttt{track} è disciplinato dallo \texttt{scheduler} infatti le uniche componenti che vi possono accedere sono \texttt{car} e \texttt{weather}. Ogniqualvolta \texttt{car} o \texttt{weather} necessitino dell'accesso alla risorsa \texttt{track}, essi effettuano la procedura di prenotazione presso lo \texttt{scheduler} a cui è delegato il compito di gestire la modalità di accesso a \texttt{track}.
+L'accesso alla componente \texttt{track} è disciplinato dallo \texttt{scheduler}; gli unici processi che vi possono accedere sono \texttt{car} e \texttt{weather}. Ogniqualvolta \texttt{car} o \texttt{weather} necessitino dell'accesso alla risorsa \texttt{track}, essi effettuano la procedura di prenotazione presso lo \texttt{scheduler} a cui è delegato il compito di gestire il protocollo di accesso a \texttt{track}.
 
-La componente \texttt{scheduler} utilizza una politica \textit{FIFO within priorities} per gestire la coda dei processi prenotati assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione.
-\texttt{scheduler} elegge quindi un solo processo alla volta (la testa della coda) per l'accesso a \texttt{track} e non permette l'accesso ad altri processi. Questo finché il processo che sta utilizzando \texttt{track} non notifica allo \texttt{scheduler} di non aver più bisogno della risorsa.
+La componente \texttt{scheduler} utilizza una politica \textit{FIFO within priorities} per gestire la coda dei processi prenotati, assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione. Viene eletto un solo processo alla volta (la testa della coda) per l'accesso a \texttt{track} e non è permesso l'accesso ad altri processi. Questo finché il processo che sta utilizzando \texttt{track} non notifica allo \texttt{scheduler} di non aver più bisogno della risorsa.
 
-\texttt{scheduler} garantisce quindi un accesso sequenziale a \texttt{track} e assicura l'assenza di stati inconsistenti della pista.
+Lo \texttt{scheduler} garantisce quindi un accesso sequenziale a \texttt{track} e assicura che la pista si trovi sempre in uno stato consistente.
 
 \section{Tempo di percorrenza}
-Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impiegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente \texttt{track}.
-
-Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tanto meno influisce l'orologio di sistema.
-Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino, come descritto in modo accurato in~\ref{sec:percorrenza}.
-La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
+Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impiegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente \texttt{track}. Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tanto meno influisce l'orologio di sistema. Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino, come descritto accuratamente in~\ref{sec:percorrenza}. La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
 
 Analizzando l'algoritmo ci si può facilmente convincere che non è possibile che avvenga il fenomeno dello ``scavalcamento'' tra auto.
 
-L'ultima considerazione riguarda l'influenza che il fattore di \textit{speed-up} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto.
-
-Il fattore di \textit{speed-up} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro.
-Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
+L'ultima considerazione riguarda l'influenza che il fattore di \textit{speedup} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto. Il fattore di \textit{speedup} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro. Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
 
 \section{Non determinismo}
-Per quanto riguarda il non determinismo a livello di simulazione abbiamo deciso di limitarlo alle sole situazioni in cui esso sia desiderabile.
-L'unico caso in cui l'ordine di esecuzione può infatti influire con il risultato della simulazione è quello in cui anche nella realtà non si possa prevedere in modo certo l'esito dell'interazione tra due auto.
+Per quanto riguarda il non determinismo a livello di simulazione, abbiamo deciso di limitarlo alle sole situazioni in cui esso sia desiderabile. L'unico caso in cui l'ordine di esecuzione può infatti influire sul risultato della simulazione è quello in cui anche nella realtà non si riesce a prevedere in modo certo l'esito dell'interazione tra due auto.
 
 \begin{figure}
 \begin{center}
@@ -881,29 +874,29 @@ L'unico caso in cui l'ordine di esecuzione può infatti influire con il risultat
 \end{center}
 \end{figure}
 
-Consideriamo infatti la situazione riportata in figura~\ref{fig:nonDet}, e assumiamo che:
+Consideriamo lo scenario riportato in figura~\ref{fig:nonDet}, e assumiamo che:
 \begin{itemize}
-\item le auto e i piloti abbiano caratteristiche identiche,
-\item $T_{en_A}^{n+1} = T_{en_B}^{n+1}$: le auto abbiano tempi di ingresso uguali,
+\item le auto e i piloti abbiano caratteristiche identiche;
+\item $T_{en_A}^{n+1} = T_{en_B}^{n+1}$: le auto abbiano tempi di ingresso uguali;
 \item $V_{en_A}^{n+1} = V_{en_B}^{n+1}$: le auto abbiano velocità di ingresso uguali.
 \end{itemize}
 
 Sotto queste ipotesi non vi sono problemi di interazione tra le auto finché $L_{ex_A}^{n+1} \neq L_{ex_B}^{n+1}$ poiché, avendo traiettorie che non si intersecano, i tempi di percorrenza dell'una non sono influenzabili in alcun modo dall'altra.
 
-Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in~\ref{sec:percorrenza}, la seconda auto si dovrà accodare alla prima segnando un tempo di uscita dal segmento leggermente maggiore.
+Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo, in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in~\ref{sec:percorrenza}, la seconda auto si dovrà accodare alla prima, facendo registrare un tempo di uscita dal segmento leggermente maggiore.
 
-C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento del sistema in una generica simulazione ma bisogna invece creare una situazione ad-hoc per ottenere dei test ripetibili e poter apprezzare quindi la presenza del non determinismo.
+C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento in una generica simulazione ma bisogna invece creare una situazione \textit{ad-hoc} per ottenere dei test ripetibili e poter apprezzare la presenza del non determinismo.
 
 \section{Realismo}
 \subsection*{Fisico}
-Al fine di ottenere buon livello di realismo della simulazione da un punto di vista fisico abbiamo deciso di far dipendere le \textit{performance} dell'auto da diversi fattori modellando i fenomeni fisici coinvolti nel miglior modo possibile, con particolare attenzione alla decelerazione.
+Al fine di ottenere un buon livello di realismo della simulazione da un punto di vista fisico, abbiamo deciso di far dipendere le \textit{performance} dell'auto da diversi fattori modellando i fenomeni fisici coinvolti nel miglior modo possibile, con particolare attenzione alla decelerazione.
 
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
 \multirow{5}{*}{Velocità massima in curva} & Raggio di curvatura\\
 & Inclinazione del tratto\\
-& Condizione atmosferica\\
+& Condizioni atmosferiche\\
 & Tipo di pneumatici\\
 & Usura dei pneumatici\\
 \hline
@@ -912,33 +905,32 @@ Al fine di ottenere buon livello di realismo della simulazione da un punto di vi
 & Peso del carburante\\
 & Peso del pilota\\
 & Inclinazione del tratto\\
-& Condizione atmosferica\\
+& Condizioni atmosferiche\\
 & Tipo di pneumatici\\
 & Usura dei pneumatici\\
 \hline
 \multirow{3}{*}{Consumo dei pneumatici} & Raggio di curvatura\\
 & Tipo di pneumatici\\
-& Condizione atmosferica\\
+& Condizioni atmosferiche\\
 \hline
 Consumo di carburante & Inclinazione del tratto\\
 \hline
 \end{tabular}
 \end{center}
 
-Considerando la fase di decelerazione che un'auto deve intraprendere generalmente prima di entrare in curva o prima di accedere alla \textit{pit lane}, è stato necessario introdurre nelle meccaniche di simulazione il calcolo della tabella di preelaborazione.
-Questo principalmente per evitare che le auto arrivassero all'entrata della curva e, non avendo il tempo di frenare, uscissero di pista sistematicamente.
+Considerando la fase di decelerazione che un'auto deve generalmente intraprendere prima di entrare in curva o prima di accedere alla \textit{pit lane}, è stato necessario introdurre nelle meccaniche di simulazione il calcolo della tabella di preelaborazione. Questo principalmente per evitare che le auto arrivassero all'entrata della curva e, non avendo il tempo di frenare, uscissero di pista sistematicamente.
 
 \subsection*{Dinamiche di gara}
-Per quanto riguarda il realismo nelle dinamiche di gara abbiamo considerato la possibilità per un'auto di ritirarsi dalla competizione ed essere quindi rimossa dalla pista a seguito di:
+Per quanto riguarda il realismo nelle dinamiche di gara, abbiamo considerato la possibilità per un'auto di ritirarsi dalla competizione a seguito di:
 \begin{itemize}
-\item Uscita di pista per velocità troppo elevata,
-\item Uscita di pista per evitare incidenti qualora l'auto non riesca a frenare in tempo per evitare le altre auto,
-\item Esplosione pneumatici a causa di un'eccessiva usura,
-\item Esaurimento del carburante,
-\item Potenza del motore insufficiente a percorrere il tratto.
+\item uscita di pista per velocità troppo elevata;
+\item uscita di pista per evitare incidenti qualora l'auto non riesca a frenare in tempo per evitare gli altri concorrenti;
+\item esplosione pneumatici a causa di un'eccessiva usura;
+\item esaurimento del carburante;
+\item potenza del motore insufficiente a percorrere il tratto.
 \end{itemize}
 
-Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento in base anche alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
+Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento anche in base alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
 
 Per avere una simulazione a grana fine abbiamo deciso di impostare la lunghezza di un segmento a 5 metri, in questo modo siamo riusciti anche ad ottenere una presentazione grafica della simulazione abbastanza fluida.
 
@@ -948,6 +940,7 @@ La terminazione del sistema avviene in due fasi: nella prima \texttt{bootstrap\_
 Nella prima fase \texttt{bootstrap\_server} termina le componenti di simulazione in ordine inverso rispetto all'avvio, questo per non violare i vincoli di dipendenza tra componenti.
 
 Una volta che le componenti di simulazione sono state terminate è possibile terminare anche i processi di controllo e tutti i nodi del sistema sempre sotto la supervisione di \texttt{bootstrap\_server}.
+
 
 \appendix
 
@@ -979,7 +972,7 @@ Le impostazioni delle scuderie, delle auto e dei piloti sono contenuti in uno st
 ].
 \end{lstlisting}
 
-I parametri di configurazione sono descritti in \textsl{Erlang} per risparmiare tempo sfruttando le funzioni di \textit{parsing} offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore il cui significato è spiegato nella seguente tabella:
+I parametri di configurazione sono descritti in \Erlang{} per risparmiare tempo sfruttando le funzioni di \textit{parsing} offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore il cui significato è spiegato nella seguente tabella:
 
 \begin{center}
 \begin{tabular}{|p{0.15\textwidth}|p{0.75\textwidth}|}
@@ -1010,44 +1003,40 @@ Il file di configurazione di \texttt{track} contiene le informazioni riguardanti
 Di seguito la sintassi per descrivere i tipi di settore possibili e i parametri consentiti.
 
 \begin{itemize}
-\item \texttt{\{straight, LEN, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Rettilineo
-\item \texttt{\{right, LEN, CURVE\_RAD, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Curva a destra
-\item \texttt{\{left, LEN, CURVE\_RAD, MIN\_LANE, MAX\_LANE, INC, RAIN\}}\\ Curva a sinistra
-\item \texttt{\{finish\_line\}}\\ Traguardo
-\item \texttt{\{intermediate\}}\\ Intermedio cronometrico
-\item \texttt{\{pitlane\_entrance\}}\\ Inizio della zona \textit{box}
-\item \texttt{\{pitlane\_exit\}}\\ Fine della zona \textit{box}
+\item \verb!{straight, LENGTH, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Rettilineo
+\item \verb!{right, LENGTH, RADIUS, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Curva a destra
+\item \verb!{left, LENGTH, RADIUS, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Curva a sinistra
+\item \verb!{finish_line}!\\ Traguardo
+\item \verb!{intermediate}!\\ Intermedio cronometrico
+\item \verb!{pitlane_entrance}!\\ Inizio della zona dei \textit{box}
+\item \verb!{pitlane_exit}!\\ Fine della zona dei \textit{box}
 \end{itemize}
 
-\begin{center}
-\begin{tabular}{|p{0.2\textwidth}|p{0.7\textwidth}|}
+\begin{tabularx}{\textwidth}{|l|X|}
 \hline
-\texttt{LEN} & Lunghezza del settore in metri, possibilmente un valore multiplo di 5\\
+\texttt{LENGTH} & Lunghezza del settore in metri, possibilmente un valore multiplo di 5\\
 \hline
-\texttt{CURVE\_RAD} & Raggio di curvatura in metri\\
+\texttt{RADIUS} & Raggio di curvatura in metri\\
 \hline
-\texttt{MIN\_LANE} & Minimo indice di corsia consentito\\
+\texttt{MIN\_LANE} & Minimo indice di corsia consentito, intero positivo\\
 \hline
-\texttt{MAX\_LANE} & Massimo indice di corsia consentito\\
+\texttt{MAX\_LANE} & Massimo indice di corsia consentito, intero positivo\\
 \hline
-\texttt{INC} & Inclinazione della pista [-89.9; 89.9]\\
+\texttt{INCL} & Inclinazione della pista, deve appartenere all'intervallo $(-90^\circ, +90^\circ)$\\
 \hline
-\texttt{RAIN} & Condizioni atmosferiche all'inizio della gara, un intero tra 0 e 10\\
+\texttt{RAIN} & Condizioni atmosferiche all'inizio della gara, intero tra 0 e 10 inclusi\\
 \hline
-\end{tabular}
-\end{center}
+\end{tabularx}
 
 \section*{Weather}
 Questo file contiene una lista di tuple, ciascuna delle quali rappresenta le variazioni del tempo atmosferico in un istante di gara.
 
-Le tuple sono nella forma
-\begin{center}
-\texttt{\{WHEN, [\{WHERE, RAIN\}, \dots $\;$]\}}
-\end{center}
+Le tuple sono nella forma:
+\[ \{\mbox{\texttt{WHEN}},\;\: [\{\mbox{\texttt{WHERE}},\; \mbox{\texttt{RAIN}}\},\; \ldots\;\: ]\} \]
 \begin{itemize}
-\item \texttt{WHEN}: Quando, rispetto il tempo di gara, avverrà il cambiamento. Può essere espresso in secondi oppure nel formato \{h,m,s\}.
-\item \texttt{WHERE}: In che settore avverrà il cambiamento, l'indice si riferisce alla posizione del settore nel file di configurazione della pista.
-\item \texttt{RAIN}: Quantità di pioggia presente nel settore, un intero nell'intervallo [0;10].
+\item \texttt{WHEN}: quando, rispetto al tempo di gara, avverrà il cambiamento. Può essere espresso in secondi oppure nel formato $\{h,m,s\}$.
+\item \texttt{WHERE}: in che settore avverrà il cambiamento, l'indice si riferisce alla posizione del settore nel file di configurazione della pista.
+\item \texttt{RAIN}: quantità di pioggia presente nel settore, un intero nell'intervallo $[0, 10]$.
 \end{itemize}
 
 
@@ -1061,7 +1050,7 @@ Le tuple sono nella forma
 \term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con \textit{pit stop}) per ogni segmento della pista.}
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
-\term{Speed-up}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
+\term{Speedup}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
 \end{tabularx}
 
 \end{document}
