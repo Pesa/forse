@@ -77,7 +77,6 @@ pitstop_operations(TeamId, CarId, CarStatus, Lap, PSCount)
 update(TeamId, {init, {rain_sum, RainSum}}) ->
 	gen_server:call(?TEAM_NAME(TeamId), {set_rain_sum, RainSum});
 
-
 update(TeamId, {init, Status}) when is_record(Status, consumption) ->
 	case Status#consumption.lap of
 		start ->
@@ -86,7 +85,7 @@ update(TeamId, {init, Status}) when is_record(Status, consumption) ->
 			gen_server:call(?TEAM_NAME(TeamId), {status_update, Status})
 	end;
 
-update(_TeamId, _Msg) ->
+update(_TeamId, _) ->
 	ok.
 
 
@@ -107,8 +106,8 @@ init(Config) ->
 			   ({id, Id}, CT)
 				 when is_integer(Id), Id > 0 ->
 					CB = #callback{mod = ?MODULE, func = update, args = [Id]},
-					Opt = [utils:int_to_atom(Id)],
-					ok = event_dispatcher:subscribe(team, CB, Opt),
+					Opts = [utils:build_id_atom("", Id)],
+					ok = event_dispatcher:subscribe(team, CB, Opts),
 					CT#car_type{id = Id};
 			   ({team_name, Name}, CT)
 				 when is_list(Name) ->
