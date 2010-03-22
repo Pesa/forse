@@ -141,7 +141,7 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 										OldBestLap == undefined;
 										LapTime < element(3, OldBestLap) ->
 											NewLapRecord = {Car, Lap, LapTime},
-											Subs6 = event_dispatcher:notify_init({lap_time_record, 
+											Subs6 = event_dispatcher:notify_init({bast_lap,
 																				  NewLapRecord},
 																				 Subs3),
 											{NewLapRecord, NewLF, Subs6};

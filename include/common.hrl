@@ -90,10 +90,12 @@
 %% ------------------------------------------------------------
 %% chrono_car_status
 %% ------------------------------------------------------------
--record(chrono_car_status, {car				:: car(),
-							intermediate	:: pos_integer(),
-							lap				:: non_neg_integer(),
-							status			:: #car_status{}}).
+-record(consumption, {car 				:: car(),
+					  intermediate		:: pos_integer() | 'start',
+					  lap				:: non_neg_integer() | 'start',
+					  fuel				:: float(),
+					  tyres_consumption	:: float(),
+					  tyres_type		:: tyres()}).
 
 
 

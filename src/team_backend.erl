@@ -15,9 +15,22 @@
 
 -include("db_schema.hrl").
 
+-record(pilot_info, {msg_opt					:: atom(),
+					 id 						:: car(),
+					 name 						:: string(),
+					 status						:: 'running' | 'retired',
+					 car_status 				:: #consumption{},
+					 pit_count 					:: non_neg_integer(),
+					 pit_ops 					:: #pitstop_ops{},
+					 records 					:: [{Id :: pos_integer(), Time :: time(), Speed :: float()} 
+													| {'lap', Lap :: non_neg_integer(), Time :: time()}],
+					 last_interm = undefined 	:: 'undefined' | time(),
+					 last_finish = undefined 	:: 'undefined' | time()}).
+
 -record(state, {subscribers	= []	:: [#subscriber{}],
 				rain_sum			:: non_neg_integer(),
-				association = []	:: [{car(), team()}]}).
+				pilots = []			:: [#pilot_info{}],
+				finish_line_index	:: integer()}).
 
 
 %% ====================================================================
@@ -66,40 +79,96 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	List = [{rain_sum, State#state.rain_sum}],
+	Pred = fun(E) when is_record(E, pilot_info) ->
+				   lists:member(E#pilot_info.msg_opt, S#subscriber.opts)
+		   end,
+	% Search pilot list
+	Pilots = lists:filter(Pred, State#state.pilots),
+	PilotMsgs = lists:flatmap(fun build_sub_msgs/1, Pilots),
+	List = [{rain_sum, State#state.rain_sum} | PilotMsgs],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
-	Status = #chrono_car_status{car = Msg#chrono_notif.car,
-								intermediate = Msg#chrono_notif.intermediate,
-								lap = Msg#chrono_notif.lap,
-								status = Msg#chrono_notif.status},
-	{_, Team} = lists:keyfind(Msg#chrono_notif.car, 1, State#state.association),
-	Opt = utils:int_to_atom(Team),
-	NewSubs = event_dispatcher:notify_update(Opt, Status, State#state.subscribers),
-	{noreply, State#state{subscribers = NewSubs}};
+	Car = Msg#chrono_notif.car,
+	PInfo = lists:keyfind(Car, #pilot_info.id, State#state.pilots),
+	CNStatus = Msg#chrono_notif.status,
+	% notify car status
+	Status = #consumption{car = Car,
+						  intermediate = Msg#chrono_notif.intermediate,
+						  lap = Msg#chrono_notif.lap,
+						  fuel = CNStatus#car_status.fuel,
+						  tyres_consumption = CNStatus#car_status.tyres_consumption,
+						  tyres_type = CNStatus#car_status.tyres_type},
+	Opt = PInfo#pilot_info.msg_opt,
+	Subs1 = event_dispatcher:notify_init(Opt, Status, State#state.subscribers),
+	
+	PInfoUp = PInfo#pilot_info{car_status = Status},
+	{NewPInfo, Subs2} = calculate_time(Msg, PInfoUp, Subs1, State#state.finish_line_index),
+	Pilots = lists:keyreplace(Car, #pilot_info.id, State#state.pilots, NewPInfo),
+	{noreply, State#state{subscribers = Subs2,
+						  pilots = Pilots}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{initial_rain_sum, RainSum} = lists:keyfind(initial_rain_sum, 1, Config),
 	NewSubs = event_dispatcher:notify_init({rain_sum, RainSum},
 										   State#state.subscribers),
+	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
 	{noreply, State#state{subscribers = NewSubs,
-						  rain_sum = RainSum}};
+						  rain_sum = RainSum,
+						  finish_line_index = FLI}};
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	PilotId = Pilot#pilot.id,
 	TeamId = Pilot#pilot.team,
-	PTT = {PilotId, TeamId},
-	{noreply, State#state{association = [PTT | State#state.association]}};
+	CNStatus = Pilot#pilot.car_status,
+	CS = #consumption{car = PilotId,
+					  intermediate = start,
+					  lap = start,
+					  fuel = CNStatus#car_status.fuel,
+					  tyres_consumption = CNStatus#car_status.tyres_consumption,
+					  tyres_type = CNStatus#car_status.tyres_type},
+	Opt = utils:int_to_atom(TeamId),
+	PInfo = #pilot_info{id = PilotId,
+						name = Pilot#pilot.name,
+						status = running,
+						car_status = CS,
+						pit_count = Pilot#pilot.pitstop_count,
+						msg_opt = Opt},
+	%% Dispatch info about new pilot
+	InitMsg = build_new_pilot_msg(PInfo),
+	Subs1 = event_dispatcher:notify_init(Opt, InitMsg, State#state.subscribers),
+	Subs2 = event_dispatcher:notify_init(Opt, CS, Subs1),
+	
+	{noreply, State#state{pilots = [PInfo | State#state.pilots],
+						  subscribers = Subs2}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from apps other than track
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
-	% TODO: probabilmente solo le GUI sono interessate ai ritiri
-	{noreply, State};
+	PInfo = lists:keyfind(Msg#retire_notif.car, #pilot_info.id, State#state.pilots),
+	Pilots = lists:keyreplace(Msg#retire_notif.car, #pilot_info.id,
+							  State#state.pilots, PInfo#pilot_info{status = retired}),
+	% {retire, CarId}
+	RetMsg = {retire, Msg#retire_notif.car},
+	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, RetMsg, State#state.subscribers),
+	{noreply, State#state{pilots = Pilots, subscribers = Subs}};
+
+handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
+	Car = Msg#pitstop_notif.car,
+	PInfo = lists:keyfind(Car, #pilot_info.id, State#state.pilots),
+	
+	PC = PInfo#pilot_info.pit_count + 1,
+	Ops = Msg#pitstop_notif.ops,
+	Pilots = lists:keyreplace(Car, #pilot_info.id, State#state.pilots,
+							  PInfo#pilot_info{pit_count = PC,
+											   pit_ops = Ops}),
+	%{pitstop, {CarId, PitCount, AddedFuel, Tyres}}
+	PitMsg = {pitstop, {Car, PC, Ops#pitstop_ops.fuel, Ops#pitstop_ops.tyres}},
+	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, PitMsg, State#state.subscribers),
+	{noreply, State#state{pilots = Pilots, subscribers = Subs}};
 
 handle_cast(#weather_notif{changes = Changes}, State) ->
 	F = fun(#weather_change{old_weather = W1, new_weather = W2}, Sum) ->
@@ -136,3 +205,146 @@ terminate(_Reason, _State) ->
 %% --------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
+
+%% Internal Functions
+calculate_time(Chrono, PInfo, Subs, FLI) ->
+	Car = Chrono#chrono_notif.car,
+	Lap = Chrono#chrono_notif.lap,
+	Int = Chrono#chrono_notif.intermediate,
+	Time = Chrono#chrono_notif.time,
+	Speed = Chrono#chrono_notif.max_speed,
+	Opt = PInfo#pilot_info.msg_opt,
+	
+	IntTime = case PInfo#pilot_info.last_interm of
+				  undefined ->
+					  undefined;
+				  N ->
+					  Time - N
+			  end,
+	{Rec1, Subs2} = if
+						IntTime == undefined ->
+							{PInfo#pilot_info.records, Subs};
+						true ->
+							%{chrono, {CarId, Interm, Lap, Time, Speed}}
+							Msg = {chrono, {Car, Int, Lap, IntTime, Speed}},
+							Subs1 = event_dispatcher:notify_init(Opt, Msg, Subs),
+							calculate_int_records(Car, Int, IntTime, Speed,
+												  PInfo#pilot_info.records, Subs1, Opt)
+					end,
+	
+	
+	LastFinish = PInfo#pilot_info.last_finish,
+	{Rec2, Subs3, LF} = if
+							Int /= FLI ->
+								{Rec1, Subs2, LastFinish};
+							LastFinish == undefined ->
+								{Rec1, Subs2, Time};
+							true ->
+								{R, S} = calculate_lap_records(Car, Lap, LastFinish, Time, Rec1, Subs2, Opt),
+								{R, S, Time}
+						end,
+	NewPInfo = PInfo#pilot_info{records = Rec2,
+								last_interm = Time,
+								last_finish = LF},
+	{NewPInfo, Subs3}.
+
+
+% Calculate and notify new intermediate records
+calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
+	BestInt = lists:keyfind(Int, 1, Records),
+	if 
+		BestInt == false ->
+			%{best_time, {CarId, Int, Time}}
+			BTMsg = {best_time, {CarId, Int, Time}},
+			Subs1 = event_dispatcher:notify_init(Opt, BTMsg, Subs),
+			
+			%{best_speed, {CarId, Int, Speed}}
+			BSMsg = {best_speed, {CarId, Int, Speed}},
+			Subs2 = event_dispatcher:notify_init(Opt, BSMsg, Subs1),
+			
+			{[{Int, Time, Speed} | Records], Subs2};
+		
+		element(2, BestInt) > Time  orelse element(3, BestInt) < Speed ->
+			{_, T, S} = BestInt,
+			
+			RT = if
+					 T > Time -> Time;
+					 true -> false
+				 end,
+			RS = if
+					 S < Speed -> Speed;
+					 true -> false
+				 end,
+			
+			%% Notify new records
+			Subs1 = case RT of
+						false ->
+							Subs;
+						_ ->
+							%{best_time, {CarId, Int, Time}}
+							BTMsg = {best_time, {CarId, Int, RT}},
+							event_dispatcher:notify_init(Opt, BTMsg, Subs)
+					end,
+			Subs2 = case RS of
+						false ->
+							Subs1;
+						_ ->
+							%{best_speed, {CarId, Int, Speed}}
+							BSMsg = {best_speed, {CarId, Int, RS}},
+							event_dispatcher:notify_init(Opt, BSMsg, Subs1)
+					end,
+			
+			NewBestInt = {Int, erlang:min(T, Time), erlang:max(S, Speed)},
+			NewRecords = lists:keyreplace(Int, 1, Records, NewBestInt),
+			{NewRecords, Subs2};
+		true ->
+			{Records, Subs}
+	end.
+
+calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
+	LapTime = Time - LastFinish,
+	Rec = lists:keyfind(lap, 1, Records),
+	case Rec of
+		false ->
+			%{best_lap, {Car, Lap, LapTime}}
+			BLMsg = {best_lap, {Car, Lap, LapTime}},
+			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
+			{[{lap, Lap, LapTime} | Records], Subs1};
+		{lap, BestTime} when BestTime > LapTime ->
+			%{best_lap, {Car, Lap, LapTime}}
+			BLMsg = {best_lap, {Car, Lap, LapTime}},
+			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
+			{lists:keyreplace(lap, 1, Records, {lap, Lap, LapTime}), Subs1};
+		_ ->
+			{Records, Subs}
+	end.
+
+%{new_pilot, {Id, Name, Status, PitCount}}
+%{chrono, {CarId, Interm, Lap, Time, Speed}}
+%{retire, CarId}
+%{best_time, {CarId, Interm, Time}}
+%{best_speed, {CarId, Interm, Speed}}
+%{best_lap, {Car, Lap, LapTime}}
+%{pitstop, {CarId, PitCount, Fuel, Tyres}}
+%#consumption{}
+
+build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
+	%% {new_pilot, {Id, Name, Status, PitCount}}
+	{new_pilot, {PInfo#pilot_info.id,
+				 PInfo#pilot_info.name,
+				 PInfo#pilot_info.status,
+				 PInfo#pilot_info.pit_count}}.
+
+build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
+	Car = PInfo#pilot_info.id,
+	MapFun = fun({lap, Lap, Time}) ->
+					 [{best_lap, {Car, Lap, Time}}];
+				({Int, Time, Speed}) ->
+					 [{best_time, {Car, Int, Time}},
+					  {best_speed, {Car, Int, Speed}}];
+				(_) ->
+					 []
+			 end,
+	RecMsg = lists:flatmap(MapFun, PInfo#pilot_info.records),
+	AddC = [PInfo#pilot_info.car_status | RecMsg],
+	[build_new_pilot_msg(PInfo) | AddC].
