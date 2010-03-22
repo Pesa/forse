@@ -7,7 +7,7 @@ In order to use this support, simply do the following::
     |  app = QApplication(sys.argv) # your code to init Qt
     |  import qt4reactor
     |  qt4reactor.install()
-    
+
 alternatively:
 
     |  from twisted.application import reactors
