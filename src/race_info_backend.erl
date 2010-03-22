@@ -16,17 +16,18 @@
 -include("db_schema.hrl").
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
-				cars_pos	= []	:: [{Id :: car(), Pos :: non_neg_integer(), Pit :: boolean()}],
+				finish_line_index	:: integer(),
 				race_state			:: race_event(),
 				sectors		= []	:: [sector()],
-				pilots = []			:: [{Id :: car(), TeamID :: team(), Name :: string(), TeamName :: string() | 'undefined'}],
-				teams = []			:: [{Id :: team(), Name :: string()}],
-				standings = []		:: [{Id :: car(), Pos :: non_neg_integer(), Status :: 'running' | 'retired'}],
-				finish_line_index	:: integer(),
-				last_interm	= undefined	:: 'undefined' | {Int :: integer(), Lap :: integer()},
-				max_speed = undefined	:: 'undefined' | {car(), Int :: integer(), Lap :: integer(), number()},
-				best_lap = undefined	:: 'undefined' | {car(), Lap :: integer(), time()},
-				last_finish = []		:: [{car(), Lap :: integer(), time()}]}).
+				cars_pos	= []	:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
+				pilots		= []	:: [{car(), team(), CarName :: string(),
+										 TeamName :: string() | 'undefined'}],
+				teams		= []	:: [{team(), Name :: string()}],
+				standings	= []	:: [{car(), Pos :: non_neg_integer(), 'running' | 'retired'}],
+				best_lap			:: {car(), Lap :: integer(), time()},
+				max_speed			:: {car(), Int :: integer(), Lap :: integer(), number()},
+				last_interm			:: {Int :: integer(), Lap :: integer()},
+				last_finish	= []	:: [{car(), Lap :: integer(), time()}]}).
 
 
 %% ====================================================================
@@ -90,7 +91,8 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	Lap = Msg#chrono_notif.lap,
 	Time = Msg#chrono_notif.time,
 	Subs = State#state.subscribers,
-	% Check if there's a new speed record
+	
+	% check if there's a new speed record
 	{MaxSpeed, Subs1} = case State#state.max_speed of
 							_ when Lap == 0 ->
 								{undefined, Subs};
@@ -107,58 +109,60 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 							_ ->
 								{State#state.max_speed, Subs}
 						end,
+	
+	% send intermediate results
 	LI = State#state.last_interm,
-	% Send intermediate results
-	{LastInterm, Subs3} = if
-					 Lap == 0 ->
-						 {undefined, Subs1};
-					 LI == undefined;
-					 Lap > element(2, LI);
-					 Int > element(1, LI) andalso Lap >= element(2, LI) ->
-						 {_, _, LineTime} = lists:keyfind(Car, 1, State#state.last_finish),
-						 RelTime = Time - LineTime,
-						 M = {chrono, {Car, Int, Lap, RelTime, Time}},
-						 Subs4 = event_dispatcher:notify_init(M, Subs1),
-						 {{Int, Lap}, Subs4};
-					 true ->
-						 M = {chrono, {Car, Int, Lap, Time}},
-						 Subs4 = event_dispatcher:notify_update(M, Subs1),
-						 {LI, Subs4}
-				 end,
+	{NewLI, Subs3} = if
+						 Lap == 0 ->
+							 {undefined, Subs1};
+						 LI == undefined;
+						 Lap > element(2, LI);
+						 Int > element(1, LI) andalso Lap >= element(2, LI) ->
+							 {_, _, LineTime} = lists:keyfind(Car, 1, State#state.last_finish),
+							 RelTime = Time - LineTime,
+							 Msg = {chrono, {Car, Int, Lap, RelTime, Time}},
+							 Subs4 = event_dispatcher:notify_init(Msg, Subs1),
+							 {{Int, Lap}, Subs4};
+						 true ->
+							 Msg = {chrono, {Car, Int, Lap, Time}},
+							 Subs4 = event_dispatcher:notify_update(Msg, Subs1),
+							 {LI, Subs4}
+					 end,
+	
+	% check if there's a new time record
 	FinishLine = Int == State#state.finish_line_index,
-	OldLF = State#state.last_finish,
+	LF = State#state.last_finish,
 	OldBestLap = State#state.best_lap,
+	{BestLap, NewLF, Subs5} = if
+								  Lap == 0 andalso FinishLine ->
+									  {OldBestLap, [{Car, Lap, Time} | LF], Subs3};
+								  FinishLine ->
+									  {_, _, LineTime1} = lists:keyfind(Car, 1, LF),
+									  LF2 = lists:keyreplace(Car, 1, LF, {Car, Lap, Time}),
+									  LapTime = Time - LineTime1,
+									  if
+										  OldBestLap == undefined;
+										  LapTime < element(3, OldBestLap) ->
+											  NewBestLap = {Car, Lap, LapTime},
+											  Subs6 = event_dispatcher:notify_init({best_lap, NewBestLap},
+																				   Subs3),
+											  {NewBestLap, LF2, Subs6};
+										  true ->
+											  {OldBestLap, LF2, Subs3}
+									  end;
+								  true ->
+									  {OldBestLap, LF, Subs3}
+							  end,
 	
-	% Check if there's a new time record
-	{BestLap, LastFinish, Subs5} = if
-								Lap == 0 andalso FinishLine ->
-									{OldBestLap, [{Car, Lap, Time} | OldLF], Subs3};
-								FinishLine ->
-									{_, _, LineTime1} = lists:keyfind(Car, 1, OldLF),
-									NewLF = lists:keyreplace(Car, 1, OldLF, {Car, Lap, Time}),
-									LapTime = Time - LineTime1,
-									if
-										OldBestLap == undefined;
-										LapTime < element(3, OldBestLap) ->
-											NewLapRecord = {Car, Lap, LapTime},
-											Subs6 = event_dispatcher:notify_init({bast_lap,
-																				  NewLapRecord},
-																				 Subs3),
-											{NewLapRecord, NewLF, Subs6};
-										true ->
-											{OldBestLap, NewLF, Subs3}
-									end;
-								true ->
-									{OldBestLap, OldLF, Subs3}
-							end,
-	
-	{noreply, State#state{max_speed = MaxSpeed,
-						  last_interm = LastInterm,
-						  last_finish = LastFinish,
+	{noreply, State#state{subscribers = Subs5,
 						  best_lap = BestLap,
-						  subscribers = Subs5}};
+						  max_speed = MaxSpeed,
+						  last_interm = NewLI,
+						  last_finish = NewLF}};
 
 handle_cast(#config_notif{app = track, config = Config}, State) ->
+	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
+	
 	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
 	Subs1 = event_dispatcher:notify_init({sectors, Sectors}, State#state.subscribers),
 	{starting_pos, StartPos} = lists:keyfind(starting_pos, 1, Config),
@@ -167,19 +171,17 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 						end, lists:reverse(lists:keysort(2, StartPos))),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
 	
-	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
-	
 	% use cars_pos to build initial standings
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
-	
 	Subs3 = event_dispatcher:notify_init({standings, Standings}, Subs2),
+	
 	{noreply, State#state{subscribers = Subs3,
+						  finish_line_index = FLI,
 						  cars_pos = CarsPos,
 						  sectors = Sectors,
-						  standings = Standings,
-						  finish_line_index = FLI}};
+						  standings = Standings}};
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	TeamName = case lists:keyfind(Pilot#pilot.team, 1, State#state.teams) of
@@ -205,7 +207,9 @@ handle_cast(#config_notif{app = team, config = CarType}, State) ->
 			  end,
 	{Pilots, Subs} = lists:mapfoldl(SetTeam, State#state.subscribers, State#state.pilots),
 	Teams = [{CarType#car_type.id, CarType#car_type.team_name} | State#state.teams],
-	{noreply, State#state{pilots = Pilots, teams = Teams, subscribers = Subs}};
+	{noreply, State#state{subscribers = Subs,
+						  pilots = Pilots,
+						  teams = Teams}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	{noreply, State};
@@ -220,13 +224,11 @@ handle_cast(#race_notif{event = Ev}, State) ->
 						  race_state = Ev}};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
-	%TODO elaborare i dati ricevuti
 	{_, RetPos, running} = lists:keyfind(Msg#retire_notif.car, 1, State#state.standings),
 	Sort = lists:keysort(2, State#state.standings),
 	{LRun, LRet} = lists:splitwith(fun({_, _, running}) -> true;
 									  (_) -> false
-								   end,
-								   Sort),
+								   end, Sort),
 	F = fun({_Id, Pos, running} = T, Acc) when Pos < RetPos ->
 				{T, Acc};
 		   ({Id, Pos, running}, Acc) when Pos == RetPos ->
@@ -239,7 +241,8 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
 	Standings = lists:append(NewRunStand, LRet),
 	Subs = event_dispatcher:notify_update({standings, ChangeList}, State#state.subscribers),
-	{noreply, State#state{standings = Standings, subscribers = Subs}};
+	{noreply, State#state{subscribers = Subs,
+						  standings = Standings}};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
@@ -252,7 +255,8 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
 			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, 
 												  State#state.subscribers),
-			{noreply, State#state{standings = S2, subscribers = Subs}};
+			{noreply, State#state{subscribers = Subs,
+								  standings = S2}};
 		true ->
 			{noreply, State}
 	end.

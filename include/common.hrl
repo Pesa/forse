@@ -86,9 +86,9 @@
 					 tyres_consumption	= 0.0		:: float(),
 					 tyres_type			= slick		:: tyres()}).
 
-
 %% ------------------------------------------------------------
-%% chrono_car_status
+%% consumption
+%% TODO: write fields documentation
 %% ------------------------------------------------------------
 -record(consumption, {car 				:: car(),
 					  intermediate		:: pos_integer() | 'start',
@@ -96,8 +96,6 @@
 					  fuel				:: float(),
 					  tyres_consumption	:: float(),
 					  tyres_type		:: tyres()}).
-
-
 
 %% ------------------------------------------------------------
 %% pitstop_ops

@@ -40,7 +40,8 @@ init(TrackConfig, TeamsList, CarsList)
 		utils:set_setting(intermediate_map, Map),
 		
 		% notify the final configuration
-		C = [{finish_line_index, erlang:length(Map)}, {starting_pos, StartPos} | Config],
+		C = [{finish_line_index, length(Map)},
+			 {starting_pos, StartPos} | Config],
 		event_dispatcher:notify(#config_notif{app = ?MODULE, config = C})
 	catch
 		error : {badmatch, _} = Error ->
