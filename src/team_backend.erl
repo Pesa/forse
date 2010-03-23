@@ -15,17 +15,17 @@
 
 -include("db_schema.hrl").
 
--record(pilot_info, {msg_opt		:: atom(),
-					 id				:: car(),
-					 name			:: string(),
-					 status			:: 'running' | 'retired',
-					 car_status		:: #consumption{},
-					 pit_count		:: non_neg_integer(),
-					 pit_ops		:: #pitstop_ops{},
-					 records		:: [{Id :: pos_integer(), Time :: time(), Speed :: float()} 
-										| {'lap', Lap :: non_neg_integer(), Time :: time()}],
-					 last_interm	:: time(),
-					 last_finish	:: time()}).
+-record(pilot_info, {msg_opt			:: atom(),
+					 id					:: car(),
+					 name				:: string(),
+					 status				:: 'running' | 'retired',
+					 car_status			:: #consumption{},
+					 pit_count			:: non_neg_integer(),
+					 pit_ops			:: #pitstop_ops{},
+					 records	= []	:: [{Id :: pos_integer(), Time :: time(), Speed :: float()}
+											| {'lap', Lap :: non_neg_integer(), Time :: time()}],
+					 last_interm		:: time(),
+					 last_finish		:: time()}).
 
 -record(state, {subscribers		= []	:: [#subscriber{}],
 				finish_line_index		:: integer(),
@@ -253,7 +253,7 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 %% Calculates and notifies new intermediate records.
 calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 	BestInt = lists:keyfind(Int, 1, Records),
-	if 
+	if
 		BestInt == false ->
 			% {best_time, {CarId, Int, Time}}
 			BTMsg = {best_time, {CarId, Int, Time}},
@@ -265,7 +265,7 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 			
 			{[{Int, Time, Speed} | Records], Subs2};
 		
-		element(2, BestInt) > Time  orelse element(3, BestInt) < Speed ->
+		element(2, BestInt) > Time orelse element(3, BestInt) < Speed ->
 			{_, T, S} = BestInt,
 			
 			RT = if
@@ -298,6 +298,7 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 			NewBestInt = {Int, erlang:min(T, Time), erlang:max(S, Speed)},
 			NewRecords = lists:keyreplace(Int, 1, Records, NewBestInt),
 			{NewRecords, Subs2};
+
 		true ->
 			{Records, Subs}
 	end.

@@ -253,8 +253,7 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
-			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, 
-												  State#state.subscribers),
+			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, State#state.subscribers),
 			{noreply, State#state{subscribers = Subs,
 								  standings = S2}};
 		true ->
