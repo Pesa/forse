@@ -25,7 +25,9 @@
 -type car()				:: pos_integer().
 -type conf()			:: {Key :: atom(), Value :: term()}.
 -type conflist()		:: [conf()].
+-type intermediate()	:: pos_integer().
 -type lane()			:: pos_integer() | -1 | -2.
+-type lap()				:: non_neg_integer().
 -type pitstop_lap()		:: pos_integer() | 'now' | 'undefined'.
 -type race_event()		:: 'started' | 'paused' | 'resumed'
 						 | 'finished' | 'terminated'.
@@ -91,8 +93,8 @@
 %% TODO: write fields documentation
 %% ------------------------------------------------------------
 -record(consumption, {car 				:: car(),
-					  intermediate		:: pos_integer() | 'start',
-					  lap				:: non_neg_integer() | 'start',
+					  intermediate		:: intermediate() | 'start',
+					  lap				:: lap() | 'start',
 					  fuel				:: float(),
 					  tyres_consumption	:: float(),
 					  tyres_type		:: tyres()}).
@@ -124,8 +126,8 @@
 %% status: car status at the end of the intermediate
 %% ------------------------------------------------------------
 -record(chrono_notif, {car							:: car(),
-					   lap							:: non_neg_integer(),
-					   intermediate					:: pos_integer(),
+					   lap							:: lap(),
+					   intermediate					:: intermediate(),
 					   time							:: float(),
 					   max_speed					:: float(),
 					   status		= #car_status{}	:: #car_status{}}).

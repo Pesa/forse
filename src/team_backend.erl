@@ -15,6 +15,9 @@
 
 -include("db_schema.hrl").
 
+-type time_speed_record() :: {intermediate(), Time :: time(), Speed :: float()}
+						   | {'lap', lap(), Time :: time()}.
+
 -record(pilot_info, {msg_opt			:: atom(),
 					 id					:: car(),
 					 name				:: string(),
@@ -22,13 +25,12 @@
 					 car_status			:: #consumption{},
 					 pit_count			:: non_neg_integer(),
 					 pit_ops			:: #pitstop_ops{},
-					 records	= []	:: [{Id :: pos_integer(), Time :: time(), Speed :: float()}
-											| {'lap', Lap :: non_neg_integer(), Time :: time()}],
+					 records	= []	:: [time_speed_record()],
 					 last_interm		:: time(),
 					 last_finish		:: time()}).
 
 -record(state, {subscribers		= []	:: [#subscriber{}],
-				finish_line_index		:: integer(),
+				finish_line_index		:: intermediate(),
 				rain_sum				:: non_neg_integer(),
 				pilots			= []	:: [#pilot_info{}]}).
 
@@ -115,8 +117,8 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 										   State#state.subscribers),
 	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
 	{noreply, State#state{subscribers = NewSubs,
-						  rain_sum = RainSum,
-						  finish_line_index = FLI}};
+						  finish_line_index = FLI,
+						  rain_sum = RainSum}};
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	PilotId = Pilot#pilot.id,

@@ -806,18 +806,18 @@ is_pit_area(Sgm) when is_record(Sgm, segment) ->
 
 %% Takes the id of an intermediate segment as input and returns its
 %% index. The finish line is the intermediate with the maximum index.
--spec intermediate_index(sgm_id()) -> pos_integer().
+-spec intermediate_index(sgm_id()) -> intermediate().
 intermediate_index(Id) when is_integer(Id), Id >= 0 ->
 	Map = utils:get_setting(intermediate_map),
 	{Id, Index} = lists:keyfind(Id, 1, Map),
 	Index.
 
 %% Returns a list of {SgmId, Index} tuples.
--spec build_intermediate_map([#segment{}]) -> [{sgm_id(), pos_integer()}].
+-spec build_intermediate_map([#segment{}]) -> [{sgm_id(), intermediate()}].
 build_intermediate_map(List) ->
 	build_intermediate_map(lists:keysort(#segment.id, List), 0).
 
--spec build_intermediate_map([#segment{}], non_neg_integer()) -> [{sgm_id(), pos_integer()}].
+-spec build_intermediate_map([#segment{}], non_neg_integer()) -> [{sgm_id(), intermediate()}].
 build_intermediate_map([H | T], 0) ->
 	I = case H#segment.type of
 			finish_line -> 1;

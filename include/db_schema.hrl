@@ -61,7 +61,7 @@
 			   weight							:: float(),
 			   team								:: team(),
 			   car_status		= #car_status{}	:: #car_status{},
-			   lap				= 0				:: non_neg_integer(),
+			   lap				= 0				:: lap(),
 			   segment			= 0				:: sgm_id(),
 			   lane								:: lane(),
 			   max_speed		= 0.0			:: float(),

@@ -16,7 +16,7 @@
 -include("db_schema.hrl").
 
 -record(state, {subscribers	= []	:: [#subscriber{}],
-				finish_line_index	:: integer(),
+				finish_line_index	:: intermediate(),
 				race_state			:: race_event(),
 				sectors		= []	:: [sector()],
 				cars_pos	= []	:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
@@ -24,10 +24,10 @@
 										 TeamName :: string() | 'undefined'}],
 				teams		= []	:: [{team(), Name :: string()}],
 				standings	= []	:: [{car(), Pos :: non_neg_integer(), 'running' | 'retired'}],
-				best_lap			:: {car(), Lap :: integer(), time()},
-				max_speed			:: {car(), Int :: integer(), Lap :: integer(), number()},
-				last_interm			:: {Int :: integer(), Lap :: integer()},
-				last_finish	= []	:: [{car(), Lap :: integer(), time()}]}).
+				best_lap			:: {car(), lap(), time()},
+				max_speed			:: {car(), intermediate(), lap(), float()},
+				last_interm			:: {intermediate(), lap()},
+				last_finish	= []	:: [{car(), lap(), time()}]}).
 
 
 %% ====================================================================
