@@ -311,7 +311,7 @@ calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
 			BLMsg = {best_lap, {Car, Lap, LapTime}},
 			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
 			{[{lap, Lap, LapTime} | Records], Subs1};
-		{lap, BestTime} when BestTime > LapTime ->
+		{lap, _BestLap, BestTime} when BestTime > LapTime ->
 			% {best_lap, {Car, Lap, LapTime}}
 			BLMsg = {best_lap, {Car, Lap, LapTime}},
 			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
