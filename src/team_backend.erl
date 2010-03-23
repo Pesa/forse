@@ -254,9 +254,8 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 
 %% Calculates and notifies new intermediate records.
 calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
-	BestInt = lists:keyfind(Int, 1, Records),
-	if
-		BestInt == false ->
+	case lists:keyfind(Int, 1, Records) of
+		false ->
 			% {best_time, {CarId, Int, Time}}
 			BTMsg = {best_time, {CarId, Int, Time}},
 			Subs1 = event_dispatcher:notify_init(Opt, BTMsg, Subs),
@@ -267,9 +266,7 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 			
 			{[{Int, Time, Speed} | Records], Subs2};
 		
-		element(2, BestInt) > Time orelse element(3, BestInt) < Speed ->
-			{_, T, S} = BestInt,
-			
+		{_, T, S} when Time < T; Speed > S ->
 			RT = if
 					 T > Time -> Time;
 					 true -> false
@@ -300,8 +297,8 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 			NewBestInt = {Int, erlang:min(T, Time), erlang:max(S, Speed)},
 			NewRecords = lists:keyreplace(Int, 1, Records, NewBestInt),
 			{NewRecords, Subs2};
-
-		true ->
+		
+		_ ->
 			{Records, Subs}
 	end.
 
