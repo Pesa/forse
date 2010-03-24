@@ -2,7 +2,8 @@ import hashlib, random, socket
 from twotp.term import Atom
 
 
-__all__ = ['atomToBool', 'listToString', 'buildNodeName', 'randomHash']
+__all__ = ['atomToBool', 'listToString', 'mpsToString',
+           'secondsToString', 'buildNodeName', 'randomHash']
 
 
 def atomToBool(atom):
@@ -27,6 +28,24 @@ def listToString(l):
     if not isinstance(l, list):
         raise TypeError(str(l) + " is not a list.")
     return ''.join([ chr(c) for c in l ])
+
+
+def mpsToString(mps):
+    """
+    Converts a speed value (expressed in m/s) to Km/h
+    and returns it as a nicely-formatted string.
+    """
+    return "%.2f Km/h" % (mps * 3.6)
+
+
+def secondsToString(seconds):
+    """
+    Converts a time value (expressed in seconds) to
+    a user-friendly format and returns it as a string.
+    """
+    x = int(seconds)
+    msecs = round((seconds - x) * 1000)
+    return "%i:%i.%03i" % (x / 60, x % 60, msecs)
 
 
 def buildNodeName(name, randomize=False):
