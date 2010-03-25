@@ -184,8 +184,8 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
-	Subs3 = event_dispatcher:notify_init({standings, extract_standings(Standings)}, Subs2),
-	Subs4 = event_dispatcher:notify_init({cars_state, extract_states(Standings)}, Subs3),
+	Subs3 = event_dispatcher:notify_init({cars_state, extract_states(Standings)}, Subs2),
+	Subs4 = event_dispatcher:notify_init({standings, extract_standings(Standings)}, Subs3),
 	
 	{noreply, State#state{subscribers = Subs4,
 						  finish_line_index = FLI,
@@ -249,12 +249,11 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 				{NewStand, [NewStand | Acc]}
 		end,
 	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
-	Standings = lists:append(NewRunStand, LRet),
-	Subs1 = event_dispatcher:notify_init({standings, extract_standings(ChangeList)},
+	Subs1 = event_dispatcher:notify_init({cars_state, [{Msg#retire_notif.car, retired}]},
 										 State#state.subscribers),
-	Subs2 = event_dispatcher:notify_init({cars_state, [{Msg#retire_notif.car, retired}]}, Subs1),
+	Subs2 = event_dispatcher:notify_update({standings, extract_standings(ChangeList)}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
-						  standings = Standings}};
+						  standings = NewRunStand ++ LRet}};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
@@ -265,8 +264,8 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
-			Subs = event_dispatcher:notify_init({standings, extract_standings([Sed, Ser])},
-												State#state.subscribers),
+			Subs = event_dispatcher:notify_update({standings, extract_standings([Sed, Ser])},
+												  State#state.subscribers),
 			{noreply, State#state{subscribers = Subs,
 								  standings = S2}};
 		true ->
