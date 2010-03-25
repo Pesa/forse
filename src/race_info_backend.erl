@@ -80,20 +80,16 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	List = [{sectors, State#state.sectors},
 			{cars_pos, State#state.cars_pos},
 			{race_state, State#state.race_state},
-			{standings, standings_only(State#state.standings)},
-			{car_state, state_only(State#state.standings)},
-			{names, lists:map(fun name/1, State#state.pilots)}],
+			{names, lists:map(fun name/1, State#state.pilots)},
+			{cars_state, extract_states(State#state.standings)},
+			{standings, extract_standings(State#state.standings)}],
 	List1 = case State#state.max_speed of
-				undefined ->
-					List;
-				SR ->
-					[{speed_record, SR} | List]
+				undefined -> List;
+				SR -> [{speed_record, SR} | List]
 			end,
 	List2 = case State#state.best_lap of
-				undefined ->
-					List1;
-				BL ->
-					[{best_lap, BL} | List1]
+				undefined -> List1;
+				BL -> [{best_lap, BL} | List1]
 			end,
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List2),
 	{noreply, State#state{subscribers = NewSubs}};
@@ -146,26 +142,26 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	FinishLine = Int == State#state.finish_line_index,
 	LF = State#state.last_finish,
 	OldBestLap = State#state.best_lap,
-	{BestLap, NewLF, Subs5} = if
-								  Lap == 0 andalso FinishLine ->
-									  {OldBestLap, [{Car, Lap, Time} | LF], Subs3};
-								  FinishLine ->
-									  {_, _, LineTime1} = lists:keyfind(Car, 1, LF),
-									  LF2 = lists:keyreplace(Car, 1, LF, {Car, Lap, Time}),
-									  LapTime = Time - LineTime1,
-									  if
-										  OldBestLap == undefined;
-										  LapTime < element(3, OldBestLap) ->
-											  NewBestLap = {Car, Lap, LapTime},
-											  Subs6 = event_dispatcher:notify_init({best_lap, NewBestLap},
-																				   Subs3),
-											  {NewBestLap, LF2, Subs6};
-										  true ->
-											  {OldBestLap, LF2, Subs3}
-									  end;
-								  true ->
-									  {OldBestLap, LF, Subs3}
-							  end,
+	{BestLap, NewLF, Subs5} =
+		if
+			Lap == 0 andalso FinishLine ->
+				{OldBestLap, [{Car, Lap, Time} | LF], Subs3};
+			FinishLine ->
+				{_, _, LineTime1} = lists:keyfind(Car, 1, LF),
+				LF2 = lists:keyreplace(Car, 1, LF, {Car, Lap, Time}),
+				LapTime = Time - LineTime1,
+				if
+					OldBestLap == undefined;
+					LapTime < element(3, OldBestLap) ->
+						NewBestLap = {Car, Lap, LapTime},
+						Subs6 = event_dispatcher:notify_init({best_lap, NewBestLap}, Subs3),
+						{NewBestLap, LF2, Subs6};
+					true ->
+						{OldBestLap, LF2, Subs3}
+				end;
+			true ->
+				{OldBestLap, LF, Subs3}
+		end,
 	
 	{noreply, State#state{subscribers = Subs5,
 						  best_lap = BestLap,
@@ -188,8 +184,8 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
-	Subs3 = event_dispatcher:notify_init({standings, standings_only(Standings)}, Subs2),
-	Subs4 = event_dispatcher:notify_init({car_state, state_only(Standings)}, Subs3),
+	Subs3 = event_dispatcher:notify_init({standings, extract_standings(Standings)}, Subs2),
+	Subs4 = event_dispatcher:notify_init({cars_state, extract_states(Standings)}, Subs3),
 	
 	{noreply, State#state{subscribers = Subs4,
 						  finish_line_index = FLI,
@@ -254,10 +250,9 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 		end,
 	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
 	Standings = lists:append(NewRunStand, LRet),
-	Subs1 = event_dispatcher:notify_init({standings, standings_only(ChangeList)}, 
+	Subs1 = event_dispatcher:notify_init({standings, extract_standings(ChangeList)},
 										 State#state.subscribers),
-	Subs2 = event_dispatcher:notify_init({car_state, [{Msg#retire_notif.car, retired}]}, 
-										 Subs1),
+	Subs2 = event_dispatcher:notify_init({cars_state, [{Msg#retire_notif.car, retired}]}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
 						  standings = Standings}};
 
@@ -270,7 +265,7 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
-			Subs = event_dispatcher:notify_init({standings, standings_only([Sed, Ser])}, 
+			Subs = event_dispatcher:notify_init({standings, extract_standings([Sed, Ser])},
 												State#state.subscribers),
 			{noreply, State#state{subscribers = Subs,
 								  standings = S2}};
@@ -295,8 +290,7 @@ handle_info({mnesia_table_event, {write, track, NewSgm, OldSgms, _}}, State)
 	CPs = State#state.cars_pos,
 	Subs = State#state.subscribers,
 	{NewCPs, NewSubs} = case Diff of
-							[#car_position{car_id = CarId,
-										   exit_lane = Lane}] ->
+							[#car_position{car_id = CarId, exit_lane = Lane}] ->
 								case lists:keytake(CarId, 1, CPs) of
 									{value, {_, Pos, _}, Rest} ->
 										NewPos = Pos + NewSgm#segment.length,
@@ -335,17 +329,11 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
+extract_standings(S) ->
+	lists:map(fun({Id, Pos, _}) -> {Id, Pos} end, S).
+
+extract_states(S) ->
+	lists:map(fun({Id, _, State}) -> {Id, State} end, S).
+
 name({Id, _, N, TN}) ->
 	{Id, N, TN}.
-
-standings_only(S) ->
-	Fun = fun({Id, Pos, _}) ->
-				  {Id, Pos}
-		  end,
-	lists:map(Fun, S).
-
-state_only(S) ->
-	Fun = fun({Id, _, State}) ->
-				  {Id, State}
-		  end,
-	lists:map(Fun, S).
