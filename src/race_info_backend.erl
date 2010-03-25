@@ -80,9 +80,22 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	List = [{sectors, State#state.sectors},
 			{cars_pos, State#state.cars_pos},
 			{race_state, State#state.race_state},
-			{standings, State#state.standings},
+			{standings, standings_only(State#state.standings)},
+			{car_state, state_only(State#state.standings)},
 			{names, lists:map(fun name/1, State#state.pilots)}],
-	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
+	List1 = case State#state.max_speed of
+				undefined ->
+					List;
+				SR ->
+					[{speed_record, SR} | List]
+			end,
+	List2 = case State#state.best_lap of
+				undefined ->
+					List1;
+				BL ->
+					[{best_lap, BL} | List1]
+			end,
+	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List2),
 	{noreply, State#state{subscribers = NewSubs}};
 
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
@@ -175,9 +188,10 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
 											{{CarId, Acc, running}, Acc + 1}
 									end, 1, CarsPos),
-	Subs3 = event_dispatcher:notify_init({standings, Standings}, Subs2),
+	Subs3 = event_dispatcher:notify_init({standings, standings_only(Standings)}, Subs2),
+	Subs4 = event_dispatcher:notify_init({car_state, state_only(Standings)}, Subs3),
 	
-	{noreply, State#state{subscribers = Subs3,
+	{noreply, State#state{subscribers = Subs4,
 						  finish_line_index = FLI,
 						  cars_pos = CarsPos,
 						  sectors = Sectors,
@@ -240,8 +254,11 @@ handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 		end,
 	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
 	Standings = lists:append(NewRunStand, LRet),
-	Subs = event_dispatcher:notify_update({standings, ChangeList}, State#state.subscribers),
-	{noreply, State#state{subscribers = Subs,
+	Subs1 = event_dispatcher:notify_init({standings, standings_only(ChangeList)}, 
+										 State#state.subscribers),
+	Subs2 = event_dispatcher:notify_init({car_state, [{Msg#retire_notif.car, retired}]}, 
+										 Subs1),
+	{noreply, State#state{subscribers = Subs2,
 						  standings = Standings}};
 
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
@@ -253,7 +270,8 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
 			S2 = lists:keyreplace(Msg#surpass_notif.surpassed, 1, S1, Sed),
-			Subs = event_dispatcher:notify_update({standings, [Sed, Ser]}, State#state.subscribers),
+			Subs = event_dispatcher:notify_init({standings, standings_only([Sed, Ser])}, 
+												State#state.subscribers),
 			{noreply, State#state{subscribers = Subs,
 								  standings = S2}};
 		true ->
@@ -319,3 +337,15 @@ code_change(_OldVsn, State, _Extra) ->
 
 name({Id, _, N, TN}) ->
 	{Id, N, TN}.
+
+standings_only(S) ->
+	Fun = fun({Id, Pos, _}) ->
+				  {Id, Pos}
+		  end,
+	lists:map(Fun, S).
+
+state_only(S) ->
+	Fun = fun({Id, _, State}) ->
+				  {Id, State}
+		  end,
+	lists:map(Fun, S).
