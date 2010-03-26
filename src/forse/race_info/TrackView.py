@@ -51,7 +51,7 @@ class TrackView(QGraphicsView):
         self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
 
     def _setRaceState(self, state):
-        if state.text == "started" or state.text == "resumed":
+        if state.text == "running":
             self._timer.start()
         else:
             self._timer.stop()

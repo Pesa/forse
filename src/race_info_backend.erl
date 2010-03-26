@@ -15,19 +15,21 @@
 
 -include("db_schema.hrl").
 
--record(state, {subscribers	= []	:: [#subscriber{}],
-				finish_line_index	:: intermediate(),
-				race_state			:: race_event(),
-				sectors		= []	:: [sector()],
-				cars_pos	= []	:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
-				pilots		= []	:: [{car(), team(), CarName :: string(),
-										 TeamName :: string() | 'undefined'}],
-				teams		= []	:: [{team(), Name :: string()}],
-				standings	= []	:: [{car(), Pos :: non_neg_integer(), 'running' | 'retired'}],
-				best_lap			:: {car(), lap(), time()},
-				max_speed			:: {car(), intermediate(), lap(), float()},
-				last_interm			:: {intermediate(), lap()},
-				last_finish	= []	:: [{car(), lap(), time()}]}).
+-type race_state() :: 'initialized' | 'running' | 'paused' | 'finished' | 'terminated'.
+
+-record(state, {subscribers		= []			:: [#subscriber{}],
+				finish_line_index				:: intermediate(),
+				race_state		= initialized	:: race_state(),
+				sectors			= []			:: [sector()],
+				cars_pos		= []			:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
+				pilots			= []			:: [{car(), team(), CarName :: string(),
+													 TeamName :: string() | 'undefined'}],
+				teams			= []			:: [{team(), Name :: string()}],
+				standings		= []			:: [{car(), Pos :: non_neg_integer(), 'running' | 'retired'}],
+				best_lap						:: {car(), lap(), time()},
+				max_speed						:: {car(), intermediate(), lap(), float()},
+				last_interm						:: {intermediate(), lap()},
+				last_finish		= []			:: [{car(), lap(), time()}]}).
 
 
 %% ====================================================================
@@ -229,9 +231,14 @@ handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	{noreply, State};
 
 handle_cast(#race_notif{event = Ev}, State) ->
-	NewSubs = event_dispatcher:notify_init({race_state, Ev}, State#state.subscribers),
-	{noreply, State#state{subscribers = NewSubs,
-						  race_state = Ev}};
+	RaceState = case Ev of
+					started -> running;
+					resumed -> running;
+					Else -> Else
+				end,
+	Subs = event_dispatcher:notify_init({race_state, RaceState}, State#state.subscribers),
+	{noreply, State#state{subscribers = Subs,
+						  race_state = RaceState}};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
 	{_, RetPos, running} = lists:keyfind(Msg#retire_notif.car, 1, State#state.standings),
