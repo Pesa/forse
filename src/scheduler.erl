@@ -120,7 +120,6 @@ handle_call(pause, _From, State) ->
 	{reply, ok, State};
 
 handle_call({enqueue, Time, Callback}, _From, State) ->
-	%?DBG({"enqueuing new work", Callback, "at time", Time}),
 	% enqueue the new callback
 	NewQueue = insert({Time, Callback}, State#state.workqueue),
 	% update the timer if needed
@@ -163,7 +162,6 @@ handle_cast(Msg, State) ->
 %% --------------------------------------------------------------------
 handle_info({timeout, _Timer, wakeup}, State) ->
 	Timing = State#state.timing_info,
-	%?DBG({"timer started at", Timing#timing.start, "expired at", Timing#timing.expiry}),
 	NewState = State#state{timing_info = reset_timing(Timing)},
 	{noreply, process_next(NewState)};
 
@@ -216,7 +214,7 @@ process_next(#state{timing_info = Timing} = State)
 						timing_info = NewTiming,
 						workqueue = Tail};
 		[] ->
-			?DBG("empty workqueue."),
+			%?DBG("empty workqueue."),
 			State
 	end;
 process_next(State) ->
@@ -244,7 +242,6 @@ give_token(#callback{mod = M, func = F, args = A} = CB) ->
 -spec new_timer(time(), time(), number()) -> #timing{}.
 
 new_timer(Now, Expiry, Speedup) ->
-	%?DBG({"starting timer at", Now, "expiring at", Expiry}),
 	SleepAmount = (Expiry - Now) / Speedup,
 	#timing{timer = start_timer(SleepAmount),
 			start = Now,
@@ -280,16 +277,10 @@ start_timer(SleepAmount) ->
 % Cancels any pending timer.
 -spec reset_timing(#timing{}) -> #timing{}.
 
+reset_timing(#timing{timer = undefined, start = Start}) ->
+	#timing{start = Start};
 reset_timing(#timing{timer = Timer, start = Start}) ->
-	case Timer of
-		undefined ->
-			ok;
-		_ ->
-			case erlang:cancel_timer(Timer) of
-				false -> ok;
-				_ -> ok %?DBG("timer canceled.")
-			end
-	end,
+	erlang:cancel_timer(Timer),
 	#timing{start = Start}.
 
 % Inserts {Time, Callback} in the workqueue.
