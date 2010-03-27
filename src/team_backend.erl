@@ -145,7 +145,7 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 						  subscribers = Subs2}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
-	% ignore config_notif from apps other than track
+	% ignore config_notif from other apps
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, retire_notif) ->

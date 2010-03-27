@@ -20,6 +20,7 @@
 -record(state, {subscribers		= []			:: [#subscriber{}],
 				finish_line_index				:: intermediate(),
 				race_state		= initialized	:: race_state(),
+				speedup							:: number(),
 				sectors			= []			:: [sector()],
 				cars_pos		= []			:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
 				pilots			= []			:: [{car(), team(), CarName :: string(),
@@ -82,6 +83,7 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	List = [{sectors, State#state.sectors},
 			{cars_pos, State#state.cars_pos},
 			{race_state, State#state.race_state},
+			{speedup, State#state.speedup},
 			{names, lists:map(fun name/1, State#state.pilots)},
 			{cars_state, extract_states(State#state.standings)},
 			{standings, extract_standings(State#state.standings)}],
@@ -171,6 +173,12 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 						  last_interm = NewLI,
 						  last_finish = NewLF}};
 
+handle_cast(#config_notif{app = scheduler, config = Config}, State) ->
+	{speedup, Speedup} = lists:keyfind(speedup, 1, Config),
+	Subs = event_dispatcher:notify_init({speedup, Speedup}, State#state.subscribers),
+	{noreply, State#state{subscribers = Subs,
+						  speedup = Speedup}};
+
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
 	
@@ -224,6 +232,7 @@ handle_cast(#config_notif{app = team, config = CarType}, State) ->
 						  teams = Teams}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
+	% ignore config_notif from other apps
 	{noreply, State};
 
 handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
