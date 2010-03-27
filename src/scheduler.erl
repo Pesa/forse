@@ -78,6 +78,8 @@ queue_work(Time, Callback) when is_record(Callback, callback) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init(Speedup) ->
+	C = [{speedup, Speedup}],
+	event_dispatcher:notify(#config_notif{app = ?MODULE, config = C}),
 	% TODO: restart the timer if it's a failover case
 	{ok, #state{speedup = Speedup}}.
 
@@ -92,7 +94,8 @@ init(Speedup) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({speedup, NewSpeedup}, _From, State) ->
-	%?DBG({"changing speedup factor to", NewSpeedup}),
+	C = [{speedup, NewSpeedup}],
+	event_dispatcher:notify(#config_notif{app = ?MODULE, config = C}),
 	{reply, ok, State#state{speedup = NewSpeedup}};
 
 handle_call(start, _From, State) when not State#state.started ->
