@@ -1,5 +1,6 @@
 import OTPApplication, Util
-from PyQt4.QtGui import QMainWindow
+from PyQt4.QtCore import pyqtSlot
+from PyQt4.QtGui import QIcon, QMainWindow
 from PilotInfo import PilotInfo
 from PositionsModel import PositionsModel
 from Remote import Scheduler
@@ -11,15 +12,44 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        PilotInfo.init(self._refreshAllModels)
-        self._switchButtonToStart()
+        self.__playIcon = QIcon(":/icons/play.png")
+        self.__pauseIcon = QIcon(":/icons/pause.png")
         self.__lapTimeRecord = None
         self.__speedRecord = None
+        self.__speedup = None
         self.__posModel = PositionsModel()
         self.positionsView.setModel(self.__posModel)
+        PilotInfo.init(self.refreshData)
         handlers = {('init', 'best_lap'): self._newBestLap,
-                    ('init', 'speed_record'): self._newBestSpeed}
+                    ('init', 'speed_record'): self._newBestSpeed,
+                    ('init', 'race_state'): self._setRaceState,
+                    ('init', 'speedup'): self._setSpeedup}
         OTPApplication.registerMsgHandlers(handlers)
+
+    @pyqtSlot(name="on_speedupApplyButton_clicked")
+    def applySpeedup(self):
+        self.speedupApplyButton.setEnabled(False)
+        self.speedupSpinBox.setEnabled(False)
+        Scheduler.setSpeedup(self._checkReply, self.speedupSpinBox.value())
+
+    def pauseSimulation(self):
+        self.startpauseButton.setEnabled(False)
+        Scheduler.pauseSimulation(self._checkReply)
+
+    def startSimulation(self):
+        self.startpauseButton.setEnabled(False)
+        Scheduler.startSimulation(self._checkReply)
+
+    def refreshData(self):
+        if self.__lapTimeRecord is not None:
+            self._updateBestLapLabel(*self.__lapTimeRecord)
+        if self.__speedRecord is not None:
+            self._updateBestSpeedLabel(*self.__speedRecord)
+        self.__posModel.reset()
+
+    def _checkReply(self, reply):
+        if reply != "ok":
+            self.statusBar.showMessage(str(reply), 5000)
 
     def _newBestLap(self, msg):
         self.__lapTimeRecord = msg
@@ -41,35 +71,44 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
                                                       lap)
         self.bestSpeedLabel.setText(s)
 
-    def _refreshAllModels(self):
-        if self.__lapTimeRecord is not None:
-            self._updateBestLapLabel(*self.__lapTimeRecord)
-        if self.__speedRecord is not None:
-            self._updateBestSpeedLabel(*self.__speedRecord)
-        self.__posModel.reset()
-
-    def pauseSimulation(self):
-        self.startpauseButton.setEnabled(False)
-        self.startpauseButton.clicked.disconnect()
-        Scheduler.pauseSimulation(self._switchButtonToStart)
-
-    def startSimulation(self):
-        self.startpauseButton.setEnabled(False)
-        self.startpauseButton.clicked.disconnect()
-        Scheduler.startSimulation(self._switchButtonToPause)
-
-    def _switchButtonToPause(self, reply="ok"):
-        if reply == "ok":
-            self.startpauseButton.clicked.connect(self.pauseSimulation)
-            self.startpauseButton.setText("Pause simulation")
-            self.startpauseButton.setEnabled(True)
-        else:
-            self.statusBar.showMessage(str(reply), 10000)
-
-    def _switchButtonToStart(self, reply="ok"):
-        if reply == "ok":
+    def _setRaceState(self, state):
+        self.simulationState.setText(state.text.upper())
+        try:
+            self.startpauseButton.clicked.disconnect()
+        except TypeError:
+            pass
+        if state.text == "initialized":
             self.startpauseButton.clicked.connect(self.startSimulation)
-            self.startpauseButton.setText("Start simulation")
+            self.startpauseButton.setText("Start")
+            self.startpauseButton.setIcon(self.__playIcon)
             self.startpauseButton.setEnabled(True)
+        elif state.text == "running":
+            self.startpauseButton.clicked.connect(self.pauseSimulation)
+            self.startpauseButton.setText("Pause")
+            self.startpauseButton.setIcon(self.__pauseIcon)
+            self.startpauseButton.setEnabled(True)
+        elif state.text == "paused":
+            self.startpauseButton.clicked.connect(self.startSimulation)
+            self.startpauseButton.setText("Resume")
+            self.startpauseButton.setIcon(self.__playIcon)
+            self.startpauseButton.setEnabled(True)
+        elif state.text == "finished" or state.text == "terminated":
+            self.startpauseButton.setEnabled(False)
         else:
-            self.statusBar.showMessage(str(reply), 10000)
+            self.statusBar.showMessage("Unknown race_state: " + state.text, 5000)
+
+    def _setSpeedup(self, speedup):
+        self.speedupApplyButton.setEnabled(False)
+        if isinstance(speedup, int):
+            self.__speedup = speedup
+            self.speedupSpinBox.setValue(speedup)
+            self.speedupSpinBox.setEnabled(True)
+        else:
+            self.speedupSpinBox.setEnabled(False)
+
+    @pyqtSlot(int, name="on_speedupSpinBox_valueChanged")
+    def _speedupSpinBoxChanged(self, newValue):
+        if newValue == self.__speedup:
+            self.speedupApplyButton.setEnabled(False)
+        else:
+            self.speedupApplyButton.setEnabled(True)
