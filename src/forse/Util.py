@@ -45,7 +45,7 @@ def secondsToString(seconds):
     """
     x = int(seconds)
     msecs = round((seconds - x) * 1000)
-    return "%i:%i.%03i" % (x / 60, x % 60, msecs)
+    return "%i:%02i.%03i" % (x / 60, x % 60, msecs)
 
 
 def buildNodeName(name, randomize=False):

@@ -23,7 +23,7 @@ class PositionsModel(QAbstractTableModel):
         return len(self.__positions)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole and index.isValid():
+        if role == Qt.DisplayRole:
             try:
                 i = self.__positions[index.row() + 1]
                 if index.column() == 0:

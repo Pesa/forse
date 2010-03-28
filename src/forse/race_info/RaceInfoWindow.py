@@ -2,8 +2,9 @@ import OTPApplication, Util
 from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QIcon, QMainWindow
 from PilotInfo import PilotInfo
-from PositionsModel import PositionsModel
 from Remote import Scheduler
+from PositionsModel import PositionsModel
+from TelemetryModel import TelemetryModel
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
@@ -19,6 +20,8 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self.__speedup = None
         self.__posModel = PositionsModel()
         self.positionsView.setModel(self.__posModel)
+        self.__telemetryModel = TelemetryModel()
+        self.telemetryView.setModel(self.__telemetryModel)
         PilotInfo.init(self.refreshData)
         handlers = {('init', 'best_lap'): self._newBestLap,
                     ('init', 'speed_record'): self._newBestSpeed,
@@ -46,6 +49,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         if self.__speedRecord is not None:
             self._updateBestSpeedLabel(*self.__speedRecord)
         self.__posModel.reset()
+        self.__telemetryModel.reset()
 
     def _checkReply(self, reply):
         if reply != "ok":
