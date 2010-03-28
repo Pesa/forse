@@ -133,11 +133,11 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 						 Int > element(1, LI) andalso Lap >= element(2, LI) ->
 							 {_, _, LineTime} = lists:keyfind(Car, 1, State#state.last_finish),
 							 RelTime = Time - LineTime,
-							 M = {chrono, {Car, Int, Lap, RelTime, Time}},
+							 M = {chrono, Car, Int, Lap, RelTime, Time},
 							 Subs4 = event_dispatcher:notify_init(M, Subs1),
 							 {{Int, Lap}, Subs4};
 						 true ->
-							 M = {chrono, {Car, Int, Lap, Time}},
+							 M = {chrono, Car, Int, Lap, Time},
 							 Subs4 = event_dispatcher:notify_update(M, Subs1),
 							 {LI, Subs4}
 					 end,
