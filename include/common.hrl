@@ -68,7 +68,7 @@
 				   args	:: [term()]}).
 
 -type token_reply()	:: 'done'
-					 | {'requeue', Time :: number(), Callback :: #callback{}}.
+					 | {'requeue', time(), #callback{}}.
 
 %% ------------------------------------------------------------
 %% subscriber
