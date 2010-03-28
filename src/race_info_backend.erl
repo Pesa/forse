@@ -20,7 +20,7 @@
 -record(state, {subscribers		= []			:: [#subscriber{}],
 				finish_line_index				:: intermediate(),
 				race_state		= initialized	:: race_state(),
-				speedup							:: number(),
+				speedup							:: pos_integer(),
 				sectors			= []			:: [sector()],
 				cars_pos		= []			:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
 				pilots			= []			:: [{car(), team(), CarName :: string(),

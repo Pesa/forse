@@ -68,7 +68,7 @@ add_node(SupportedApps) when is_list(SupportedApps) ->
 -spec bootstrap(pos_integer(), number()) -> 'ok' | {'error', Reason :: term()}.
 
 bootstrap(Laps, Speedup)
-  when is_integer(Laps), Laps > 0, is_number(Speedup), Speedup > 0 ->
+  when is_integer(Laps), Laps > 0, is_integer(Speedup), Speedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {bootstrap, Laps, Speedup}, infinity).
 
 -spec read_config_files(string(), string(), string()) -> 'ok' | {'error', Reason :: term()}.

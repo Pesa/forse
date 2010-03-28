@@ -27,6 +27,7 @@
 -record(timing, {timer			:: reference(),
 				 start	= 0.0	:: time(),
 				 expiry			:: time()}).
+
 -record(state, {running			= false		:: boolean(),
 				started			= false		:: boolean(),
 				token_available	= true		:: boolean(),
@@ -41,12 +42,12 @@
 
 -spec start_link(number()) -> start_result().
 
-start_link(Speedup) when is_number(Speedup), Speedup > 0 ->
+start_link(Speedup) when is_integer(Speedup), Speedup > 0 ->
 	gen_server:start_link(?GLOBAL_NAME, ?MODULE, Speedup, []).
 
 -spec set_speedup(number()) -> 'ok'.
 
-set_speedup(NewSpeedup) when is_number(NewSpeedup), NewSpeedup > 0 ->
+set_speedup(NewSpeedup) when is_integer(NewSpeedup), NewSpeedup > 0 ->
 	gen_server:call(?GLOBAL_NAME, {speedup, NewSpeedup}).
 
 -spec start_simulation() -> 'ok'.
@@ -81,7 +82,7 @@ init(Speedup) ->
 	C = [{speedup, Speedup}],
 	event_dispatcher:notify(#config_notif{app = ?MODULE, config = C}),
 	% TODO: restart the timer if it's a failover case
-	{ok, #state{speedup = Speedup}}.
+	{ok, #state{speedup = Speedup / 100}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -96,7 +97,7 @@ init(Speedup) ->
 handle_call({speedup, NewSpeedup}, _From, State) ->
 	C = [{speedup, NewSpeedup}],
 	event_dispatcher:notify(#config_notif{app = ?MODULE, config = C}),
-	{reply, ok, State#state{speedup = NewSpeedup}};
+	{reply, ok, State#state{speedup = NewSpeedup / 100}};
 
 handle_call(start, _From, State) when not State#state.started ->
 	event_dispatcher:notify(#race_notif{event = started}),
