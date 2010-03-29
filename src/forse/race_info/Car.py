@@ -1,6 +1,7 @@
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QRectF
 from PyQt4.QtGui import QGraphicsItem, QGraphicsColorizeEffect, QFont, QPen
+from PilotInfo import PilotInfo
 
 
 __all__ = ['Car']
@@ -25,8 +26,8 @@ class Car(QGraphicsItem):
         self._font.setPointSize(16)
         self._pen = QPen(Qt.black, _carSize, Qt.SolidLine, Qt.RoundCap)
         self._rect = QRectF(-_carSize / 2, -_carSize / 2, _carSize, _carSize)
+        self.refreshToolTip()
         self.setGraphicsEffect(self._effect)
-        self.setToolTip("Car " + str(self._id))
         self.updatePos(startPos, pitLane)
         self._translateToNewPos()
 
@@ -53,6 +54,13 @@ class Car(QGraphicsItem):
         painter.setPen(Qt.white)
         painter.setFont(self._font)
         painter.drawText(self._rect, Qt.AlignCenter | Qt.TextDontClip, str(self._id))
+
+    def refreshToolTip(self):
+        tooltip = "Car %i (%s)\n%s - %s" % (self._id,
+                                            PilotInfo.get(self._id).state(),
+                                            PilotInfo.get(self._id).name(),
+                                            PilotInfo.get(self._id).teamName())
+        self.setToolTip(tooltip)
 
     def updatePos(self, pos, pit):
         self._position = pos

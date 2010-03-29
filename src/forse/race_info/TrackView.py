@@ -29,6 +29,10 @@ class TrackView(QGraphicsView):
                     ('update', 'car_pos'): self._moveCar}
         OTPApplication.registerMsgHandlers(handlers)
 
+    def reloadPilotInfo(self):
+        for car in self._cars.itervalues():
+            car.refreshToolTip()
+
     def resizeEvent(self, _event):
         self._refitScene()
 

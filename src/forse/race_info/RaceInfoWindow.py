@@ -22,7 +22,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self.positionsView.setModel(self.__posModel)
         self.__telemetryModel = TelemetryModel()
         self.telemetryView.setModel(self.__telemetryModel)
-        PilotInfo.init(self.refreshData)
+        PilotInfo.init(self.reloadPilotInfo)
         handlers = {('init', 'best_lap'): self._newBestLap,
                     ('init', 'speed_record'): self._newBestSpeed,
                     ('init', 'race_state'): self._setRaceState,
@@ -43,13 +43,14 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self.startpauseButton.setEnabled(False)
         Scheduler.startSimulation(self._checkReply)
 
-    def refreshData(self):
+    def reloadPilotInfo(self):
         if self.__lapTimeRecord is not None:
             self._updateBestLapLabel(*self.__lapTimeRecord)
         if self.__speedRecord is not None:
             self._updateBestSpeedLabel(*self.__speedRecord)
         self.__posModel.reset()
         self.__telemetryModel.reset()
+        self.trackView.reloadPilotInfo()
 
     def _checkReply(self, reply):
         if reply != "ok":
