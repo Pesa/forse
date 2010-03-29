@@ -9,7 +9,7 @@
 -define(SEGMENT_LENGTH, 5).
 
 %% Time in seconds a car needs to move to the adjacent lane.
--define(LANE_CHANGE_TIME, 0.5).
+-define(LANE_CHANGE_TIME, 0.01).
 
 %% Minimum time between two cars in the same lane.
 -define(TIME_EPSILON, 0.05).
