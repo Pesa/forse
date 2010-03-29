@@ -275,7 +275,7 @@ handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
 	{_, SerP, SerS} = lists:keyfind(Msg#surpass_notif.surpasser, 1, State#state.standings),
 	if
-		SedP - 1 == SerP ->
+		SedP + 1 == SerP ->
 			Ser = {Msg#surpass_notif.surpasser, SedP, SerS},
 			Sed = {Msg#surpass_notif.surpassed, SerP, SedS},
 			S1 = lists:keyreplace(Msg#surpass_notif.surpasser, 1, State#state.standings, Ser),
