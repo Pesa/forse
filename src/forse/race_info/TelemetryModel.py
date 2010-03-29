@@ -11,8 +11,8 @@ class TelemetryModel(QAbstractTableModel):
         self.__data = {}
         self.__intermediate = None
         self.__lap = None
-        handlers = {('init', 'chrono'): self._initChrono,
-                    ('update', 'chrono'): self._updateChrono}
+        handlers = {('init', 'chrono'): self._chronoInit,
+                    ('update', 'chrono'): self._chronoUpdate}
         OTPApplication.registerMsgHandlers(handlers)
 
     def columnCount(self, _parent):
@@ -63,7 +63,7 @@ class TelemetryModel(QAbstractTableModel):
         self.__lap = lap
         self.reset()
 
-    def _initChrono(self, car, intermediate, lap, reltime, time):
+    def _chronoInit(self, car, intermediate, lap, reltime, time):
         if lap not in self.__data:
             self.__data[lap] = {}
         self.__data[lap][intermediate] = [(car, reltime, time)]
@@ -71,7 +71,7 @@ class TelemetryModel(QAbstractTableModel):
         self.__lap = lap
         self.reset()
 
-    def _updateChrono(self, car, intermediate, lap, time):
+    def _chronoUpdate(self, car, intermediate, lap, time):
         try:
             delta = time - self.__data[lap][intermediate][0][2]
             self.__data[lap][intermediate].append((car, delta))

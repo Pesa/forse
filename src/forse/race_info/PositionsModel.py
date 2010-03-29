@@ -12,8 +12,8 @@ class PositionsModel(QAbstractTableModel):
         self.__arrowDown = QIcon(":/icons/arrow-down.png")
         self.__arrowUp = QIcon(":/icons/arrow-up.png")
         self.__positions = {}
-        handlers = {('init', 'standings'): self._setStandings,
-                    ('update', 'standings'): self._updateStandings}
+        handlers = {('init', 'standings'): self._standingsInit,
+                    ('update', 'standings'): self._standingsUpdate}
         OTPApplication.registerMsgHandlers(handlers)
 
     def columnCount(self, _parent):
@@ -51,13 +51,11 @@ class PositionsModel(QAbstractTableModel):
                     pass
         return QVariant()
 
-    def _setStandings(self, standings):
-        self.__positions.clear()
-        for id, pos in standings:
-            self.__positions[pos] = id
+    def _standingsInit(self, standings):
+        self.__positions = dict([(pos, id) for id, pos in standings])
         self.reset()
 
-    def _updateStandings(self, standings):
+    def _standingsUpdate(self, standings):
         for id, newpos in standings:
             for oldpos, pilot in self.__positions.iteritems():
                 if pilot == id:
