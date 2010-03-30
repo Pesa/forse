@@ -65,39 +65,6 @@ class OTPApplication(QApplication):
         _Global.init(appName)
 
 
-class _Global(object):
-
-    appName = None
-    cookie = os.getenv('FORSE_COOKIE')
-    if not cookie:
-        cookie = twotp.readCookie()
-    erlProcess = None
-    nameServer = os.getenv('FORSE_NS')
-    nodeName = None
-    process = None
-    proxy = None
-    _initialized = False
-
-    @classmethod
-    def init(cls, appName):
-        if cls._initialized:
-            return
-        cls.appName = appName
-        cls.nodeName = Util.buildNodeName(cls.appName, randomize=True)
-        cls.process = twotp.Process(cls.nodeName, cls.cookie)
-        cls.proxy = _ProxyHandler()
-        QTimer.singleShot(0, cls._startup)
-        cls._initialized = True
-
-    @classmethod
-    def _startup(cls):
-        from twisted.internet import reactor
-        reactor.runReturn()
-        cls.process.register(cls.appName)
-        cls.process.registerModule(cls.appName, cls.proxy)
-        cls.process.listen()
-
-
 class _ProxyHandler(object):
 
     def __init__(self):
@@ -119,3 +86,35 @@ class _ProxyHandler(object):
                 h(*msg[1:])
         except KeyError:
             print "No handlers registered for", type.text, "message:", msg
+
+
+class _Global(object):
+
+    appName = None
+    cookie = os.getenv('FORSE_COOKIE')
+    if not cookie:
+        cookie = twotp.readCookie()
+    erlProcess = None
+    nameServer = os.getenv('FORSE_NS')
+    nodeName = None
+    process = None
+    proxy = _ProxyHandler()
+    _initialized = False
+
+    @classmethod
+    def init(cls, appName):
+        if cls._initialized:
+            return
+        cls.appName = appName
+        cls.nodeName = Util.buildNodeName(cls.appName, randomize=True)
+        cls.process = twotp.Process(cls.nodeName, cls.cookie)
+        QTimer.singleShot(0, cls._startup)
+        cls._initialized = True
+
+    @classmethod
+    def _startup(cls):
+        from twisted.internet import reactor
+        reactor.runReturn()
+        cls.process.register(cls.appName)
+        cls.process.registerModule(cls.appName, cls.proxy)
+        cls.process.listen()
