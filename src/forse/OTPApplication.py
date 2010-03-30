@@ -1,4 +1,4 @@
-import os, qt4reactor, sys, time, twotp
+import os, qt4reactor, sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QProcess, QTimer
 from PyQt4.QtGui import QApplication
@@ -37,17 +37,20 @@ def rpc(mod, fun, *args):
 
 
 def spawnErlangNode(runApp, nodeName=None, randomize=False):
+    if _Global.erlProcess is not None:
+        raise RuntimeError("spawning more than one Erlang node is not supported.")
     sname = Util.buildNodeName(nodeName if nodeName else runApp, randomize)
     _Global.nameServer = sname
     args = ["-config", "forse",
-            "-detached",
+            "-noinput",
             "-pa", "ebin",
             "-setcookie", _Global.cookie,
             "-sname", sname,
             "-run", runApp]
-    result = QProcess.startDetached("erl", args)
-    time.sleep(2) # FIXME
-    return result
+    _Global.erlProcess = QProcess()
+    _Global.erlProcess.setProcessChannelMode(QProcess.ForwardedChannels)
+    _Global.erlProcess.start("erl", args, QProcess.ReadOnly)
+    return _Global.erlProcess.waitForStarted(10000)
 
 
 class OTPApplication(QApplication):
@@ -68,30 +71,31 @@ class _Global(object):
     cookie = os.getenv('FORSE_COOKIE')
     if not cookie:
         cookie = twotp.readCookie()
+    erlProcess = None
     nameServer = os.getenv('FORSE_NS')
     nodeName = None
     process = None
     proxy = None
     _initialized = False
 
-    @staticmethod
-    def init(appName):
-        if _Global._initialized:
+    @classmethod
+    def init(cls, appName):
+        if cls._initialized:
             return
-        _Global.appName = appName
-        _Global.nodeName = Util.buildNodeName(_Global.appName, randomize=True)
-        _Global.process = twotp.Process(_Global.nodeName, _Global.cookie)
-        _Global.proxy = _ProxyHandler()
-        QTimer.singleShot(0, _Global._startup)
-        _Global._initialized = True
+        cls.appName = appName
+        cls.nodeName = Util.buildNodeName(cls.appName, randomize=True)
+        cls.process = twotp.Process(cls.nodeName, cls.cookie)
+        cls.proxy = _ProxyHandler()
+        QTimer.singleShot(0, cls._startup)
+        cls._initialized = True
 
-    @staticmethod
-    def _startup():
+    @classmethod
+    def _startup(cls):
         from twisted.internet import reactor
         reactor.runReturn()
-        _Global.process.register(_Global.appName)
-        _Global.process.registerModule(_Global.appName, _Global.proxy)
-        _Global.process.listen()
+        cls.process.register(cls.appName)
+        cls.process.registerModule(cls.appName, cls.proxy)
+        cls.process.listen()
 
 
 class _ProxyHandler(object):
