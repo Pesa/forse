@@ -875,7 +875,7 @@ La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percor
 L'ultima considerazione riguarda l'influenza che il fattore di \textit{speedup} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto. Il fattore di \textit{speedup} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro. Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
 
 \section{Non determinismo}
-Abbaimo limitato il non determinismo a livello di simulazione alle sole situazioni in cui esso sia desiderabile. L'unico caso in cui l'ordine di esecuzione può infatti influire sul risultato della simulazione è quello in cui anche nella realtà non si riesce a prevedere in modo certo l'esito dell'interazione tra due auto.
+Abbiamo limitato il non determinismo a livello di simulazione alle sole situazioni in cui esso sia desiderabile. L'unico caso in cui l'ordine di esecuzione può infatti influire sul risultato della simulazione è quello in cui anche nella realtà non si riesce a prevedere in modo certo l'esito dell'interazione tra due auto.
 
 \begin{figure}
 \begin{center}
@@ -901,10 +901,9 @@ C'è da dire che il verificarsi di tale situazione è altamente improbabile e no
 \section{Deadlocks}
 Durante la fase di progettazione del sistema abbiamo posto particolare attenzione alla prevenzione di situazioni di \textit{deadlock}. In particolare ci siamo resi conto che il flusso di notifiche presente nel sistema, se non trattato in modo attento poteva facilmente essere causa di situazioni di stallo.
 
-Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \texttt{team} compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di \textit{deadlock} dovuta al ciclo \texttt{team}-\texttt{event\_dispatcher}-\texttt{team}.
+Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \texttt{team} compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di \textit{deadlock} dovuta al ciclo \texttt{team} $\rightarrow$ \texttt{event\_dispatcher} $\rightarrow$ \texttt{team}.
 
-Abbiamo quindi deciso di intervenire in modo strutturale sulla componente maggiormente coinvolta nel flusso di notifiche: \texttt{event\_dispatcher}.
-Come descritto in~\ref{sec:event_dispatcher}, \texttt{event\_dispatcher} al suo interno usa comunicazione asincrona appunti per evitare possibili \textit{deadlocks} intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso il \texttt{event\_dispatcher} non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
+Abbiamo quindi deciso di intervenire in modo strutturale sulla componente maggiormente coinvolta nel flusso di notifiche: \texttt{event\_dispatcher}. Come descritto in~\ref{sec:event_dispatcher}, \texttt{event\_dispatcher} al suo interno usa comunicazioni asincrone appunto per evitare possibili \textit{deadlocks}, intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso \texttt{event\_dispatcher}, non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
 
 Questa soluzione ci assicura l'assenza di \textit{deadlocks} causati dalle notifiche, poiché la propagazione di queste ultime coinvolge \texttt{event\_dispatcher} che, grazie alla sua struttura interna, evita il formarsi di cicli.
 
@@ -956,7 +955,6 @@ Per quanto riguarda il realismo nelle dinamiche di gara, abbiamo considerato la 
 \end{itemize}
 
 Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento anche in base alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
-
 
 
 \appendix
@@ -1058,13 +1056,14 @@ Le tuple sono nella forma:
 
 \section*{config.hrl}
 Il prototipo consente di modificare delle costanti utilizzate per la simulazione.
-Queste costanti sono raggruppate nel file \texttt{config.hrl} e una loro modifica richiede la ricompilazione del prototipo pr avere effetto.
+Queste costanti sono raggruppate nel file \texttt{include/config.hrl} e una loro modifica richiede la ricompilazione del prototipo per avere effetto.
 
-La maggior parte delle costanti presenti in questo file serve ad agire sul modello fisico della simulazione e sulla rappresentazione interna della pista per ottenere una simulazione a grana più o meno fine. Una delle costanti più importanti è infatti la lunghezza in metri dei segmenti in cui viene diviso il tracciato, attualmente 5 metri.
+La maggior parte delle costanti presenti in questo file agisce direttamente sul modello fisico della simulazione e sulla rappresentazione interna della pista per ottenere una simulazione a grana più o meno fine. Una delle costanti più importanti è infatti la lunghezza dei segmenti in cui viene diviso il tracciato, attualmente impostata a 5 metri.
 
-Tali valori possono essere modificati, tuttavia è sconsigliato fare ciò poiché potrebbe dare luogo a situazioni limite nelle quali, per esempio, nessun'auto riesce a percorrere nemmeno un tratto senza uscire di pista.
+Questi valori possono essere modificati, tuttavia tale operazione è sconsigliata poiché si potrebbe facilmente dare luogo a situazioni limite nelle quali, per esempio, nessun'auto riuscirebbe a percorrere nemmeno un tratto senza uscire di pista.
 
-Inoltre, la validità di tali valori non viene controllata dal prototipo, di conseguenza potrebbero addirittura essere sollevate eccezioni durante i calcoli (divisioni per zero, radice quadrata di un numero negativo, etc\dots).
+Inoltre, la validità di tali valori non viene controllata dal prototipo, di conseguenza potrebbero addirittura essere sollevate eccezioni durante i calcoli (divisione per zero, estrazione di radice quadrata di un numero negativo, e così via).
+
 
 \chapter{Avvio del prototipo}
 
