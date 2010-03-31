@@ -13,4 +13,4 @@
 - implementare ordine di partenza delle auto casuale
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
-- la modifica dello speedup non viene notificata
+- segfault in control_panel
