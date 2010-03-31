@@ -1,10 +1,11 @@
 import OTPApplication, Util
+from PyQt4.Qt import Qt
 from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QIcon, QMainWindow
 from PilotInfo import PilotInfo
 from Remote import Scheduler
-from PositionsModel import PositionsModel
-from TelemetryModel import TelemetryModel
+from PositionsDock import PositionsDock
+from TelemetryDock import TelemetryDock
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
@@ -13,15 +14,15 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.positionsDock = PositionsDock(self)
+        self.telemetryDock = TelemetryDock(self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.positionsDock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.telemetryDock)
         self.__playIcon = QIcon(":/icons/play.png")
         self.__pauseIcon = QIcon(":/icons/pause.png")
         self.__lapTimeRecord = None
         self.__speedRecord = None
         self.__speedup = None
-        self.__posModel = PositionsModel()
-        self.positionsView.setModel(self.__posModel)
-        self.__telemetryModel = TelemetryModel()
-        self.telemetryView.setModel(self.__telemetryModel)
         PilotInfo.init(self.reloadPilotInfo)
         handlers = {('init', 'best_lap'): self._newBestLap,
                     ('init', 'speed_record'): self._newBestSpeed,
@@ -48,8 +49,8 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
             self._updateBestLapLabel(*self.__lapTimeRecord)
         if self.__speedRecord is not None:
             self._updateBestSpeedLabel(*self.__speedRecord)
-        self.__posModel.reset()
-        self.__telemetryModel.reset()
+        self.positionsDock.reloadPilotInfo()
+        self.telemetryDock.reloadPilotInfo()
         self.trackView.reloadPilotInfo()
 
     def _checkReply(self, reply):
