@@ -93,56 +93,13 @@ Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a
 	\item[--] numero totale di giri da effettuare nella gara;
 	\item[--] ordine di partenza dei piloti nella griglia di partenza;
 	\end{itemize}
-\item Sistema di controllo (\textit{logging}):
+\item Sistema di controllo:
 	\begin{itemize}
-	\item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale sul giro e tempo migliore sul giro;
-	\item[--] situazione atmosferica della pista;
-	\item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali.
+	\item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale e migliore sul giro, con la possibilità per l'utente di sospendere e riprendere la simulazione;
+	\item[--] situazione atmosferica della pista, con la possibilità per l'utente di apportare modifiche alle condizioni meteo a gara iniziata;
+	\item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali. Deve essere inoltre possibile per l'utente forzare la sosta ai box e il ritiro di un'auto.
 	\end{itemize}
 \end{enumerate}
-
-TODO togliere tabella e integrarla con i req.
-
-
-L'utente interviene sempre in modo asincrono rispetto alla simulazione tramite le diverse interfacce grafiche.
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\multirow{3}{*}{\textbf{\texttt{race\_info}}} & Avvio della simulazione \\
-                                        & Sospensione della simulazione \\
-                                        & Modifica del fattore di \textit{speedup} \\
-\hline
-\multirow{3}{*}{\textbf{\texttt{control\_panel}}} & Configurazione di una nuova simulazione \\
-                                                & Terminazione della simulazione \\
-                                                & Terminazione del sistema \\
-\hline
-\multirow{2}{*}{\textbf{team\_monitor}} & Imporre sosta ai \textit{box} ad un'auto \\
-                                & Imporre il ritiro ad un'auto \\
-\hline
-\textbf{\texttt{weather\_station}} & Modificare le condizioni atmosferiche dei settori \\
-\hline
-\end{tabular}
-\end{center}
-%\chapter{\textit{Brainstorming}}
-%Finora abbiamo preso in considerazione tre potenziali soluzioni.
-
-%\section*{Soluzione 1}
-%Vetture $\Rightarrow$ entità attive \\
-%Segmenti del tracciato $\Rightarrow$ entità passive \\
-
-%Per spostarsi da un segmento $S_1$ ad un altro segmento $S_2$ adiacente e successivo a $S_1$, una vettura deve assicurarsi che almeno una corsia di $S_2$ raggiungibile da $S_1$ sia libera, quindi dovrà già essere entrata nella regione protetta di una corsia di $S_2$. Il passaggio sarà completo quando la vettura esce dalla regione protetta di $S_1$ (e questo è un problema non banale). L'entità ``segmento'' espone solo un canale tipato. Le vetture dovranno fornire il numero della corsia da cui provengono e la logica che realizza i sorpassi è implementata nei segmenti effettuando una \texttt{requeue} presso la corsia appropriata.
-
-%\section*{Soluzione 2}
-%Segmenti del tracciato $\Rightarrow$ entità attive \\
-%Vetture $\Rightarrow$ oggetti che vengono scambiati come parametri \\
-
-%Ciascuna corsia di ciascun segmento è internamente suddivisa in tanti piccoli pezzi, ciascuno dei quali è dotato di una coda contenente le vetture in transito, ordinate per tempo di percorrenza crescente. L'entità ``segmento'' è in ascolto su un canale tipato asincrono, in attesa che il segmento precedente gli invii una nuova vettura. L'attesa prevede un \textit{timeout} pari al minimo tempo di percorrenza di tutte le vettura già accodate su ogni sottosegmento di ogni corsia. Non appena scade il \textit{timeout}, tutte le vetture con tempo di percorrenza pari al \textit{timeout} vengono fatte avanzare al sottosegmento successivo oppure inviate al segmento successivo. Come gestire canali e sorpassi? Usare un \textit{thread pool} per le vetture?
-
-%\section*{Soluzione 3}
-%Vetture $\Rightarrow$ entità attive \\
-%Segmenti del tracciato $\Rightarrow$ entità passive \\
-
-%Dopo aver calcolato il tempo di uscita della vettura dal segmento $S_i$, esso verrà immediatamente comunicato al segmento $S_{i+1}$ che lo inserirà in un'apposita struttura dati. I canali di ingresso in un settore hanno delle guardie che permettono l'accesso alle vetture solo nell'ordine prestabilito.
 
 
 \chapter{Problemi}
@@ -1071,7 +1028,6 @@ Inoltre, la validità di tali valori non viene controllata dal prototipo, di con
 \chapter{Glossario}
 
 \begin{tabularx}{\textwidth}{lX}
-\term{Intermedio cronometrico}{}
 \term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con \textit{pit stop}) per ogni segmento della pista.}
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
