@@ -56,6 +56,9 @@ class TelemetryModel(QAbstractTableModel):
                     return QVariant("Time")
             else:
                 return QVariant(section + 1)
+        elif role == Qt.TextAlignmentRole:
+            if orientation == Qt.Vertical:
+                return QVariant(Qt.AlignCenter)
         return QVariant()
 
     def setLapAndIntermediate(self, lap, intermediate):

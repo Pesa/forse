@@ -49,6 +49,9 @@ class PositionsModel(QAbstractTableModel):
                     return QVariant(PilotInfo.get(self.__positions[section + 1]).icon())
                 except KeyError:
                     pass
+        elif role == Qt.TextAlignmentRole:
+            if orientation == Qt.Vertical:
+                return QVariant(Qt.AlignCenter)
         return QVariant()
 
     def _standingsInit(self, standings):
