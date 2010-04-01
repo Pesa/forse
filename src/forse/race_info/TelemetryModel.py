@@ -1,10 +1,13 @@
 import OTPApplication, Util
 from PyQt4.Qt import Qt
-from PyQt4.QtCore import QAbstractTableModel, QVariant
+from PyQt4.QtCore import QAbstractTableModel, QVariant, pyqtSignal
 from PilotInfo import PilotInfo
 
 
 class TelemetryModel(QAbstractTableModel):
+
+    newIntermediate = pyqtSignal(int, int)
+    newLap = pyqtSignal(int)
 
     def __init__(self):
         QAbstractTableModel.__init__(self)
@@ -55,21 +58,20 @@ class TelemetryModel(QAbstractTableModel):
                 return QVariant(section + 1)
         return QVariant()
 
-    def setIntermediate(self, intermediate):
-        self.__intermediate = intermediate
-        self.reset()
-
-    def setLap(self, lap):
+    def setLapAndIntermediate(self, lap, intermediate):
         self.__lap = lap
+        self.__intermediate = intermediate
         self.reset()
 
     def _chronoInit(self, car, intermediate, lap, reltime, time):
+        newLap = False
         if lap not in self.__data:
+            newLap = True
             self.__data[lap] = {}
         self.__data[lap][intermediate] = [(car, reltime, time)]
-        self.__intermediate = intermediate
-        self.__lap = lap
-        self.reset()
+        if newLap:
+            self.newLap.emit(lap)
+        self.newIntermediate.emit(lap, intermediate)
 
     def _chronoUpdate(self, car, intermediate, lap, time):
         try:
