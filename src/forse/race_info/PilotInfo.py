@@ -19,10 +19,8 @@ class PilotInfo(object):
         self._timer.timeout.connect(self._timerExpired)
 
     @classmethod
-    def init(cls, refreshFunc=None):
-        if refreshFunc is not None:
-            global _refresh
-            _refresh = refreshFunc
+    def init(cls, refreshFunc):
+        cls._refresh = refreshFunc
         handlers = {('init', 'cars_state'): cls._handleCarsState,
                     ('init', 'names'): cls._handleNames}
         OTPApplication.registerMsgHandlers(handlers)
@@ -56,7 +54,7 @@ class PilotInfo(object):
             if id not in cls.__info:
                 cls.__info[id] = PilotInfo()
             cls.__info[id]._state = state.text
-        _refresh()
+        cls._refresh()
 
     @classmethod
     def _handleNames(cls, names):
@@ -65,12 +63,8 @@ class PilotInfo(object):
                 cls.__info[id] = PilotInfo()
             cls.__info[id]._name = QString.fromUtf8(listToString(name))
             cls.__info[id]._teamName = QString.fromUtf8(listToString(teamName))
-        _refresh()
-
-    @staticmethod
-    def _refresh():
-        pass
+        cls._refresh()
 
     def _timerExpired(self):
         self._icon = None
-        _refresh()
+        self._refresh()
