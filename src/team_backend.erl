@@ -166,8 +166,8 @@ handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	Pilots = lists:keyreplace(Car, #pilot_info.id, State#state.pilots,
 							  PInfo#pilot_info{pit_count = PC,
 											   pit_ops = Ops}),
-	% {pitstop, {CarId, PitCount, AddedFuel, Tyres}}
-	PitMsg = {pitstop, {Car, PC, Ops#pitstop_ops.fuel, Ops#pitstop_ops.tyres}},
+	% {pitstop, CarId, PitCount, AddedFuel, Tyres}
+	PitMsg = {pitstop, Car, PC, Ops#pitstop_ops.fuel, Ops#pitstop_ops.tyres},
 	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, PitMsg, State#state.subscribers),
 	{noreply, State#state{subscribers = Subs,
 						  pilots = Pilots}};
@@ -231,8 +231,8 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 						IntTime == undefined ->
 							{PInfo#pilot_info.records, Subs};
 						true ->
-							% {chrono, {CarId, Interm, Lap, Time, Speed}}
-							Msg = {chrono, {Car, Int, Lap, IntTime, Speed}},
+							% {chrono, CarId, Interm, Lap, Time, Speed}
+							Msg = {chrono, Car, Int, Lap, IntTime, Speed},
 							Subs1 = event_dispatcher:notify_init(Opt, Msg, Subs),
 							calculate_int_records(Car, Int, IntTime, Speed,
 												  PInfo#pilot_info.records, Subs1, Opt)
@@ -256,12 +256,12 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 	case lists:keyfind(Int, 1, Records) of
 		false ->
-			% {best_time, {CarId, Int, Time}}
-			BTMsg = {best_time, {CarId, Int, Time}},
+			% {best_time, CarId, Int, Time}
+			BTMsg = {best_time, CarId, Int, Time},
 			Subs1 = event_dispatcher:notify_init(Opt, BTMsg, Subs),
 			
-			% {best_speed, {CarId, Int, Speed}}
-			BSMsg = {best_speed, {CarId, Int, Speed}},
+			% {best_speed, CarId, Int, Speed}
+			BSMsg = {best_speed, CarId, Int, Speed},
 			Subs2 = event_dispatcher:notify_init(Opt, BSMsg, Subs1),
 			
 			{[{Int, Time, Speed} | Records], Subs2};
@@ -281,16 +281,16 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 						false ->
 							Subs;
 						_ ->
-							% {best_time, {CarId, Int, Time}}
-							BTMsg = {best_time, {CarId, Int, RT}},
+							% {best_time, CarId, Int, Time}
+							BTMsg = {best_time, CarId, Int, RT},
 							event_dispatcher:notify_init(Opt, BTMsg, Subs)
 					end,
 			Subs2 = case RS of
 						false ->
 							Subs1;
 						_ ->
-							% {best_speed, {CarId, Int, Speed}}
-							BSMsg = {best_speed, {CarId, Int, RS}},
+							% {best_speed, CarId, Int, Speed}
+							BSMsg = {best_speed, CarId, Int, RS},
 							event_dispatcher:notify_init(Opt, BSMsg, Subs1)
 					end,
 			
@@ -307,42 +307,43 @@ calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
 	Rec = lists:keyfind(lap, 1, Records),
 	case Rec of
 		false ->
-			% {best_lap, {Car, Lap, LapTime}}
-			BLMsg = {best_lap, {Car, Lap, LapTime}},
+			% {best_lap, CarId, Lap, LapTime}
+			BLMsg = {best_lap, Car, Lap, LapTime},
 			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
 			{[{lap, Lap, LapTime} | Records], Subs1};
 		{lap, _BestLap, BestTime} when BestTime > LapTime ->
-			% {best_lap, {Car, Lap, LapTime}}
-			BLMsg = {best_lap, {Car, Lap, LapTime}},
+			% {best_lap, CarId, Lap, LapTime}
+			BLMsg = {best_lap, Car, Lap, LapTime},
 			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
 			{lists:keyreplace(lap, 1, Records, {lap, Lap, LapTime}), Subs1};
 		_ ->
 			{Records, Subs}
 	end.
 
-%{new_pilot, {Id, Name, Status, PitCount}}
-%{chrono, {CarId, Interm, Lap, Time, Speed}}
-%{retire, CarId}
-%{best_time, {CarId, Interm, Time}}
-%{best_speed, {CarId, Interm, Speed}}
-%{best_lap, {Car, Lap, LapTime}}
-%{pitstop, {CarId, PitCount, Fuel, Tyres}}
-%#consumption{}
+% {new_pilot, Id, Name, Status, PitCount}
+% {chrono, CarId, Interm, Lap, Time, Speed}
+% {retire, CarId}
+% {best_time, CarId, Interm, Time}
+% {best_speed, CarId, Interm, Speed}
+% {best_lap, CarId, Lap, LapTime}
+% {pitstop, CarId, PitCount, Fuel, Tyres}
+% #consumption{}
 
 build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
-	% {new_pilot, {Id, Name, Status, PitCount}}
-	{new_pilot, {PInfo#pilot_info.id,
-				 PInfo#pilot_info.name,
-				 PInfo#pilot_info.status,
-				 PInfo#pilot_info.pit_count}}.
+	% {new_pilot, Id, Name, Status, PitCount}
+	{new_pilot,
+	 PInfo#pilot_info.id,
+	 PInfo#pilot_info.name,
+	 PInfo#pilot_info.status,
+	 PInfo#pilot_info.pit_count}.
 
 build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
 	Car = PInfo#pilot_info.id,
 	MapFun = fun({lap, Lap, Time}) ->
-					 [{best_lap, {Car, Lap, Time}}];
+					 [{best_lap, Car, Lap, Time}];
 				({Int, Time, Speed}) ->
-					 [{best_time, {Car, Int, Time}},
-					  {best_speed, {Car, Int, Speed}}];
+					 [{best_time, Car, Int, Time},
+					  {best_speed, Car, Int, Speed}];
 				(_) ->
 					 []
 			 end,
