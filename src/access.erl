@@ -20,6 +20,8 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 	MinL = Sgm#segment.min_lane,
 	Type = Sgm#segment.type,
 	Time = Type == intermediate orelse Type == finish_line,
+	AnyPitSgm = Type == pre_pitlane orelse Type == post_pitlane orelse
+					Type == pitlane orelse Type == pitstop,
 	Abs = if
 			  EnterLane == -1 ->
 				  [-2, -1, MinL];
@@ -45,12 +47,10 @@ check_move(Pilot, Sgm, EnterLane, ExitLane, Pit)
 		Time andalso ExitLane /= EnterLane;
 		% Deny access to the pit lane when not in need of a pitstop
 		Type == pre_pitlane andalso ExitLane == -1 andalso not Pit;
-		% Separate pit area from main track
+		% Separate pit area from main track (including pre/post_pitlane rules)
 		(Type == pitlane orelse Type == post_pitlane orelse Type == pitstop)
 			andalso EnterLane > 0 andalso ExitLane < 0;
-		% pre/post pitlane rules
-		(Type == pre_pitlane orelse Type == post_pitlane)
-			andalso EnterLane < 0 andalso ExitLane > 0;
+		AnyPitSgm andalso EnterLane < 0 andalso ExitLane > 0;
 		% Check if a car crosses more than one lane
 		Unreachable ->
 			{fail, 'access denied'};
