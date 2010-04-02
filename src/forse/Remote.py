@@ -3,8 +3,7 @@ from twisted.python.failure import Failure
 from twotp import Atom
 
 
-__all__ = ['BootstrapServer', 'EventDispatcher',
-           'NodeManager', 'Team', 'Scheduler']
+__all__ = ['BootstrapServer', 'Car', 'EventDispatcher', 'NodeManager', 'Scheduler']
 
 
 class _RPCReply(object):
