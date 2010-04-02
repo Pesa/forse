@@ -17,20 +17,17 @@ class SubscriberApplication(OTPApplication):
     subscribed = pyqtSignal()
     subscriptionError = pyqtSignal()
 
-    def __init__(self, appName, autoSubscribe=True):
+    def __init__(self, appName):
         OTPApplication.__init__(self, appName)
         self.__opts = None
-        self.__retryDelay = 1
-        if autoSubscribe:
-            self.__retrySubscription()
 
     def setSubscriptionOptions(self, opts):
         self.__opts = opts
 
     def subscribe(self):
-        """
-        Sends a subscription request to the event_dispatcher.
-        """
+        QTimer.singleShot(0, self.__subscribe)
+
+    def __subscribe(self):
         cbargs = [nodeName(), appName(), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
         if isinstance(self.__opts, list):
@@ -38,15 +35,9 @@ class SubscriberApplication(OTPApplication):
         else:
             EventDispatcher.subscribe(self.__subscribeDone, appName(), callback)
 
-    def __retrySubscription(self):
-        QTimer.singleShot(self.__retryDelay * 1000, self.subscribe)
-        if self.__retryDelay < 10:
-            self.__retryDelay += 1
-
     def __subscribeDone(self, reply):
         if reply == "ok":
-            self.__retryDelay = 1
             self.subscribed.emit()
         else:
             self.subscriptionError.emit()
-            self.__retrySubscription()
+            QTimer.singleShot(1000, self.__subscribe)
