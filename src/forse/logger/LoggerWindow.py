@@ -8,9 +8,8 @@ class LoggerWindow(QMainWindow, Ui_LoggerWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        # FIXME: improve handlers API
-        handlers = {('init', ''): self._setLogMsg,
-                    ('update', ''): self._appendLogMsg}
+        handlers = {'init': self._setLogMsg,
+                    'update': self._appendLogMsg}
         OTPApplication.registerMsgHandlers(handlers)
 
     def _appendLogMsg(self, msg):

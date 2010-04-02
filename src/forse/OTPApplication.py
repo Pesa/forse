@@ -81,10 +81,28 @@ class _ProxyHandler(object):
         self.__handlers[tag].append(method)
 
     def remote_handleMessage(self, type, msg):
+        if not isinstance(type, Atom):
+            return
+        handled = False
+        # specific message handlers
         try:
-            for h in self.__handlers[type.text, msg[0].text]:
+            handlers = self.__handlers[type.text, msg[0].text]
+        except (AttributeError, LookupError):
+            pass
+        else:
+            for h in handlers:
                 h(*msg[1:])
+            handled = True
+        # generic message handlers
+        try:
+            handlers = self.__handlers[type.text]
         except KeyError:
+            pass
+        else:
+            for h in handlers:
+                h(msg)
+            handled = True
+        if not handled:
             print "No handlers registered for", type.text, "message:", msg
 
 
