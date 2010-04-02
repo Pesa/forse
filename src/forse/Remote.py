@@ -98,6 +98,12 @@ class BootstrapServer(object):
     ready = _RPCFrom("ready")
 
 
+class Car(object):
+
+    forcePitstop = _RPCTo("car", "force_pitstop")
+    retire = _RPCTo("car", "retire")
+
+
 class EventDispatcher(object):
 
     subscribe = _RPCTo("event_dispatcher", "subscribe")
@@ -107,10 +113,6 @@ class NodeManager(object):
 
     configure = _RPCTo("node_manager", "configure")
     start = staticmethod(lambda: OTPApplication.spawnErlangNode("node_manager", "node", randomize=True))
-
-
-class Team(object):
-    pass
 
 
 class Scheduler(object):
