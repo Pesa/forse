@@ -1,4 +1,4 @@
-- fare/finire GUI e backends per weather, race_info e teams
+- fare/finire GUI e backend per weather e team_monitor
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - physics:get_car_ahead -> non deve considerare se stessa
@@ -14,3 +14,4 @@
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - segfault in control_panel
+- auto-resize delle colonne delle tabelle in PositionsDock e TelemetryDock
