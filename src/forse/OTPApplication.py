@@ -49,7 +49,7 @@ def spawnErlangNode(runApp, nodeName=None, randomize=False):
             "-run", runApp]
     _Global.erlProcess = QProcess()
     _Global.erlProcess.setProcessChannelMode(QProcess.ForwardedChannels)
-    _Global.erlProcess.start("erl", args, QProcess.ReadOnly)
+    _Global.erlProcess.start(_Global.erlBinary, args, QProcess.ReadOnly)
     return _Global.erlProcess.waitForStarted(10000)
 
 
@@ -112,6 +112,7 @@ class _Global(object):
     cookie = os.getenv('FORSE_COOKIE')
     if not cookie:
         cookie = twotp.readCookie()
+    erlBinary = os.getenv('ERL')
     erlProcess = None
     nameServer = os.getenv('FORSE_NS')
     nodeName = None
