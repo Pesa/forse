@@ -146,8 +146,10 @@ calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 					 {ok, T1, A}
 			 end,
 	case Result of
-		{ok, Time, Accel} ->
+		{ok, Time, Accel} when Speed + Accel * Time >= 0 ->
 			{ok, Time, Speed + Accel * Time};
+		{ok, Time, _} ->
+			{ok, Time, 0};
 		Else ->
 			Else
 	end.
