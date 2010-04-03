@@ -20,4 +20,5 @@ AC_PATH_PROG([PYUIC], pyuic4)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/forse/Makefile])
+AC_CONFIG_FILES([environment])
 AC_OUTPUT

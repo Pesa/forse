@@ -1,8 +1,8 @@
 #!/bin/sh
 
-[ -z ${FORSE_COOKIE} ] && export FORSE_COOKIE="42"
-[ -z ${FORSE_NS} ] && export FORSE_NS="forse_bootstrap_server@$(hostname)"
+. ./environment
+
+export FORSE_COOKIE FORSE_NS PYTHONPATH
 
 gui="$(basename $0)"
-
-PYTHONPATH="src/forse" python -m ${gui#start_}.Main
+"${PYTHON}" -m ${gui#start_}.Main

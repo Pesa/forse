@@ -8,6 +8,7 @@
 /config.log
 /config.status
 /configure
+/environment
 /Makefile
 
 doc/*.aux
