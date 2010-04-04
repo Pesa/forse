@@ -55,18 +55,18 @@ class PositionsModel(QAbstractTableModel):
         return QVariant()
 
     def _standingsInit(self, standings):
-        self.__positions = dict([(pos, id) for id, pos in standings])
+        self.__positions = dict([(pos, pilot) for pilot, pos in standings])
         self.reset()
 
     def _standingsUpdate(self, standings):
-        for id, newpos in standings:
+        for pilot, newpos in standings:
             for oldpos, pilot in self.__positions.iteritems():
-                if pilot == id:
+                if pilot == pilot:
                     if newpos > oldpos:
-                        PilotInfo.get(id).setIcon(self.__arrowDown)
+                        PilotInfo.get(pilot).setIcon(self.__arrowDown)
                     elif newpos < oldpos:
-                        PilotInfo.get(id).setIcon(self.__arrowUp)
+                        PilotInfo.get(pilot).setIcon(self.__arrowUp)
                     break
-        for id, newpos in standings:
-            self.__positions[newpos] = id
+        for pilot, newpos in standings:
+            self.__positions[newpos] = pilot
         self.reset()

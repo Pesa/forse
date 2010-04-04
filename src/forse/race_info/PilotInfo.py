@@ -50,19 +50,19 @@ class PilotInfo(object):
 
     @classmethod
     def _handleCarsState(cls, states):
-        for id, state in states:
-            if id not in cls.__info:
-                cls.__info[id] = PilotInfo()
-            cls.__info[id]._state = state.text
+        for pilot, state in states:
+            if pilot not in cls.__info:
+                cls.__info[pilot] = PilotInfo()
+            cls.__info[pilot]._state = state.text
         cls._refresh()
 
     @classmethod
     def _handleNames(cls, names):
-        for id, name, teamName in names:
-            if id not in cls.__info:
-                cls.__info[id] = PilotInfo()
-            cls.__info[id]._name = QString.fromUtf8(listToString(name))
-            cls.__info[id]._teamName = QString.fromUtf8(listToString(teamName))
+        for pilot, name, teamName in names:
+            if pilot not in cls.__info:
+                cls.__info[pilot] = PilotInfo()
+            cls.__info[pilot]._name = QString.fromUtf8(listToString(name))
+            cls.__info[pilot]._teamName = QString.fromUtf8(listToString(teamName))
         cls._refresh()
 
     def _timerExpired(self):

@@ -11,14 +11,16 @@ _carSize = 32
 
 class Car(QGraphicsItem):
 
-    def __init__(self, track, id, startPos=0, pitLane=False):
+    def __init__(self, track, carId, startPos=0, pitLane=False):
         QGraphicsItem.__init__(self)
         self.setAcceptHoverEvents(True)
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         self.setOpacity(0.7)
         self.setZValue(4)
         self._track = track
-        self._id = id
+        self._id = carId
+        self._position = startPos
+        self._pit = pitLane
         self._effect = QGraphicsColorizeEffect()
         self._effect.setColor(Qt.darkMagenta)
         self._effect.setEnabled(False)
@@ -28,7 +30,6 @@ class Car(QGraphicsItem):
         self._rect = QRectF(-_carSize / 2, -_carSize / 2, _carSize, _carSize)
         self.refreshToolTip()
         self.setGraphicsEffect(self._effect)
-        self.updatePos(startPos, pitLane)
         self._translateToNewPos()
 
     def advance(self, phase):
