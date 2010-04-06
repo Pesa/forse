@@ -2,67 +2,10 @@ import os, qt4reactor, sys, twotp
 from twotp.term import Atom
 from PyQt4.QtCore import QProcess, QTimer
 from PyQt4.QtGui import QApplication
-import Util
+from Util import buildNodeName
 
 
-__all__ = ['OTPApplication', 'appName', 'createHandler', 'nodeName',
-           'registerMsgHandlers', 'rpc', 'spawnErlangNode']
-
-
-def appName():
-    """
-    @return: the application name
-    """
-    return Atom(_Global.appName)
-
-
-def createHandler(name, method):
-    _Global.proxy.createHandler(name, method)
-
-
-def nodeName():
-    """
-    @return: the name of the Python node
-    """
-    return Atom(_Global.nodeName)
-
-
-def registerMsgHandlers(handlers):
-    for tag, method in handlers.iteritems():
-        _Global.proxy.installHandler(tag, method)
-
-
-def rpc(mod, fun, *args):
-    return _Global.process.callRemote(_Global.nameServer, mod, fun, *args)
-
-
-def spawnErlangNode(runApp, nodeName=None, randomize=False):
-    if _Global.erlProcess is not None:
-        raise RuntimeError("spawning more than one Erlang node is not supported.")
-    sname = Util.buildNodeName(nodeName if nodeName else runApp, randomize)
-    _Global.nameServer = sname
-    args = ["-config", "forse",
-            "-noinput",
-            "-pa", "ebin",
-            "-setcookie", _Global.cookie,
-            "-sname", sname,
-            "-run", runApp]
-    _Global.erlProcess = QProcess()
-    _Global.erlProcess.setProcessChannelMode(QProcess.ForwardedChannels)
-    _Global.erlProcess.start(_Global.erlBinary, args, QProcess.ReadOnly)
-    return _Global.erlProcess.waitForStarted(10000)
-
-
-class OTPApplication(QApplication):
-    """
-    Provides integration between a QApplication instance and a Python
-    node, making easier to perform remote operations on Erlang nodes.
-    """
-
-    def __init__(self, appName):
-        QApplication.__init__(self, sys.argv)
-        qt4reactor.install()
-        _Global.init(appName)
+__all__ = ['OTPApplication']
 
 
 class _ProxyHandler(object):
@@ -106,34 +49,78 @@ class _ProxyHandler(object):
             print "No handlers registered for", kind.text, "message:", msg
 
 
-class _Global(object):
+class OTPApplication(QApplication):
+    """
+    Provides integration between a QApplication instance and a Python
+    node, making easier to perform remote operations on Erlang nodes.
+    """
 
-    appName = None
-    cookie = os.getenv('FORSE_COOKIE')
-    if not cookie:
-        cookie = twotp.readCookie()
-    erlBinary = os.getenv('ERL')
-    erlProcess = None
-    nameServer = os.getenv('FORSE_NS')
-    nodeName = None
-    process = None
-    proxy = _ProxyHandler()
+    _appName = None
+    _cookie = os.getenv('FORSE_COOKIE')
+    if not _cookie:
+        _cookie = twotp.readCookie()
+    _erlBinary = os.getenv('ERL')
+    _erlProcess = None
     _initialized = False
+    _nameServer = os.getenv('FORSE_NS')
+    _nodeName = None
+    _process = None
+    proxy = _ProxyHandler()
 
-    @classmethod
-    def init(cls, appName):
-        if cls._initialized:
+    def __init__(self, appName):
+        QApplication.__init__(self, sys.argv)
+        if self._initialized:
             return
-        cls.appName = appName
-        cls.nodeName = Util.buildNodeName(cls.appName, randomize=True)
-        cls.process = twotp.Process(cls.nodeName, cls.cookie)
-        QTimer.singleShot(0, cls._startup)
-        cls._initialized = True
+        qt4reactor.install()
+        OTPApplication._appName = appName
+        OTPApplication._nodeName = buildNodeName(self._appName, randomize=True)
+        OTPApplication._process = twotp.Process(self._nodeName, self._cookie)
+        QTimer.singleShot(0, self._startup)
+        OTPApplication._initialized = True
 
-    @classmethod
-    def _startup(cls):
+    def _startup(self):
         from twisted.internet import reactor
         reactor.runReturn()
-        cls.process.register(cls.appName)
-        cls.process.registerModule(cls.appName, cls.proxy)
-        cls.process.listen()
+        self._process.register(self._appName)
+        self._process.registerModule(self._appName, self.proxy)
+        self._process.listen()
+
+    @classmethod
+    def appName(cls):
+        """
+        @return: the application name
+        """
+        return Atom(cls._appName)
+
+    @classmethod
+    def nodeName(cls):
+        """
+        @return: the name of the Python node
+        """
+        return Atom(cls._nodeName)
+
+    @classmethod
+    def registerMsgHandlers(cls, handlers):
+        for tag, method in handlers.iteritems():
+            cls.proxy.installHandler(tag, method)
+
+    @classmethod
+    def rpc(cls, mod, fun, *args):
+        return cls._process.callRemote(cls._nameServer, mod, fun, *args)
+
+    @classmethod
+    def spawnErlangNode(cls, runApp, nodeName=None, randomize=False):
+        if cls._erlProcess is not None:
+            raise RuntimeError("spawning more than one Erlang node is not supported.")
+        sname = buildNodeName(nodeName if nodeName else runApp, randomize)
+        cls._nameServer = sname
+        args = ["-config", "forse",
+                "-noinput",
+                "-pa", "ebin",
+                "-setcookie", cls._cookie,
+                "-sname", sname,
+                "-run", runApp]
+        cls._erlProcess = QProcess()
+        cls._erlProcess.setProcessChannelMode(QProcess.ForwardedChannels)
+        cls._erlProcess.start(cls._erlBinary, args, QProcess.ReadOnly)
+        return cls._erlProcess.waitForStarted(10000)

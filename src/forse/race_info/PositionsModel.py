@@ -1,7 +1,7 @@
-import OTPApplication
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QAbstractTableModel, QVariant
 from PyQt4.QtGui import QIcon
+from OTPApplication import OTPApplication
 from PilotInfo import PilotInfo
 
 

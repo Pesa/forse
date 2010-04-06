@@ -1,7 +1,8 @@
-import OTPApplication, Util
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QAbstractTableModel, QVariant, pyqtSignal
+from OTPApplication import OTPApplication
 from PilotInfo import PilotInfo
+from Util import secondsToString
 
 
 class TelemetryModel(QAbstractTableModel):
@@ -37,7 +38,7 @@ class TelemetryModel(QAbstractTableModel):
                     return QVariant(PilotInfo.get(t[0]).teamName())
                 elif index.column() == 2:
                     prefix = "" if index.row() == 0 else "+ "
-                    return QVariant(prefix + Util.secondsToString(t[1]))
+                    return QVariant(prefix + secondsToString(t[1]))
             except KeyError:
                 pass
         elif role == Qt.TextAlignmentRole:

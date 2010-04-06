@@ -1,7 +1,7 @@
-import OTPApplication
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QTimer
 from PyQt4.QtGui import QGraphicsScene, QGraphicsView, QPainter
+from OTPApplication import OTPApplication
 from Car import Car
 from Track import Track
 from Util import atomToBool

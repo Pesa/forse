@@ -1,11 +1,12 @@
-import OTPApplication, Util
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QIcon, QMainWindow
+from OTPApplication import OTPApplication
 from PilotInfo import PilotInfo
 from Remote import Scheduler
 from PositionsDock import PositionsDock
 from TelemetryDock import TelemetryDock
+from Util import mpsToString, secondsToString
 from Ui_RaceInfoWindow import Ui_RaceInfoWindow
 
 
@@ -62,7 +63,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self._updateBestLapLabel(*msg)
 
     def _updateBestLapLabel(self, car, lap, time):
-        self.bestLapLabel.setText("%s (%s in lap %i)" % (Util.secondsToString(time),
+        self.bestLapLabel.setText("%s (%s in lap %i)" % (secondsToString(time),
                                                          PilotInfo.get(car).name(),
                                                          lap))
 
@@ -71,7 +72,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self._updateBestSpeedLabel(*msg)
 
     def _updateBestSpeedLabel(self, car, intermediate, lap, speed):
-        s = "%s (%s in intermediate %i of lap %i)" % (Util.mpsToString(speed),
+        s = "%s (%s in intermediate %i of lap %i)" % (mpsToString(speed),
                                                       PilotInfo.get(car).name(),
                                                       intermediate,
                                                       lap)

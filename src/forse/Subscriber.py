@@ -1,6 +1,6 @@
 from twotp.term import Atom
 from PyQt4.QtCore import QTimer, pyqtSignal
-from OTPApplication import OTPApplication, appName, nodeName
+from OTPApplication import OTPApplication
 from Remote import EventDispatcher
 
 
@@ -25,15 +25,18 @@ class SubscriberApplication(OTPApplication):
         self.__opts = opts
 
     def subscribe(self):
+        """
+        Sends a subscription request asynchronously.
+        """
         QTimer.singleShot(0, self.__subscribe)
 
     def __subscribe(self):
-        cbargs = [nodeName(), appName(), Atom("handleMessage")]
+        cbargs = [self.nodeName(), self.appName(), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
         if isinstance(self.__opts, list):
-            EventDispatcher.subscribe(self.__subscribeDone, appName(), callback, self.__opts)
+            EventDispatcher.subscribe(self.__subscribeDone, self.appName(), callback, self.__opts)
         else:
-            EventDispatcher.subscribe(self.__subscribeDone, appName(), callback)
+            EventDispatcher.subscribe(self.__subscribeDone, self.appName(), callback)
 
     def __subscribeDone(self, reply):
         if reply == "ok":

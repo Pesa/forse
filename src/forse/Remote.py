@@ -1,6 +1,6 @@
-import OTPApplication
 from twisted.python.failure import Failure
 from twotp import Atom
+from OTPApplication import OTPApplication
 
 
 __all__ = ['BootstrapServer', 'Car', 'EventDispatcher', 'NodeManager', 'Scheduler']
@@ -80,7 +80,7 @@ class _RPCFrom(object):
     def connect(self, handler):
         def wrapper(*args):
             handler(*[ _RPCReply(x) for x in args ])
-        OTPApplication.createHandler(self.__notif, wrapper)
+        OTPApplication.proxy.createHandler(self.__notif, wrapper)
 
 
 class BootstrapServer(object):

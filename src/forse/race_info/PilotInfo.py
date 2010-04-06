@@ -1,5 +1,5 @@
-import OTPApplication
 from PyQt4.QtCore import QString, QTimer
+from OTPApplication import OTPApplication
 from Util import listToString
 
 
