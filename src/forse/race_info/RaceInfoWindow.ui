@@ -17,7 +17,7 @@
    <iconset resource="../icons.qrc">
     <normaloff>:/icons/race-info.png</normaloff>:/icons/race-info.png</iconset>
   </property>
-  <widget class="QWidget" name="centralWidget">
+  <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -177,7 +177,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusBar">
+  <widget class="QStatusBar" name="statusbar">
    <property name="sizeGripEnabled">
     <bool>false</bool>
    </property>

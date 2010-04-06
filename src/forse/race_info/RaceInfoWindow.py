@@ -56,7 +56,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
 
     def _checkReply(self, reply):
         if reply != "ok":
-            self.statusBar.showMessage(str(reply), 5000)
+            self.statusBar().showMessage(str(reply), 5000)
 
     def _newBestLap(self, msg):
         self.__lapTimeRecord = msg
@@ -102,7 +102,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         elif state.text == "finished" or state.text == "terminated":
             self.startpauseButton.setEnabled(False)
         else:
-            self.statusBar.showMessage("Unknown race_state: " + state.text, 5000)
+            self.statusBar().showMessage("Unknown race_state: " + state.text, 5000)
 
     def _setSpeedup(self, speedup):
         self.speedupApplyButton.setEnabled(False)
