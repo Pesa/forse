@@ -60,8 +60,8 @@ class PositionsModel(QAbstractTableModel):
 
     def _standingsUpdate(self, standings):
         for pilot, newpos in standings:
-            for oldpos, pilot in self.__positions.iteritems():
-                if pilot == pilot:
+            for oldpos, oldpilot in self.__positions.iteritems():
+                if oldpilot == pilot:
                     if newpos > oldpos:
                         PilotInfo.get(pilot).setIcon(self.__arrowDown)
                     elif newpos < oldpos:
