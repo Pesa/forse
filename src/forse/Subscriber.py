@@ -43,4 +43,4 @@ class SubscriberApplication(OTPApplication):
             self.subscribed.emit()
         else:
             self.subscriptionError.emit()
-            QTimer.singleShot(1000, self.__subscribe)
+            QTimer.singleShot(2000, self.__subscribe)
