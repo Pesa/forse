@@ -23,4 +23,4 @@ class LoggerWindow(QMainWindow, Ui_LoggerWindow):
         self.viewer.setPlainText(listToString(msg))
 
     def _subscriptionError(self):
-        self.statusBar().showMessage("Subscription failed", 5000)
+        self.statusBar().showMessage("Subscription failed, retrying ...", 1500)

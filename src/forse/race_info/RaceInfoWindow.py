@@ -1,7 +1,7 @@
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QIcon, QMainWindow
-from OTPApplication import OTPApplication
+from Subscriber import SubscriberApplication
 from PilotInfo import PilotInfo
 from Remote import Scheduler
 from PositionsDock import PositionsDock
@@ -29,7 +29,10 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
                     ('init', 'speed_record'): self._newBestSpeed,
                     ('init', 'race_state'): self._setRaceState,
                     ('init', 'speedup'): self._setSpeedup}
-        OTPApplication.registerMsgHandlers(handlers)
+        SubscriberApplication.registerMsgHandlers(handlers)
+        SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
+        SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
+        SubscriberApplication.instance().subscribe()
 
     @pyqtSlot(name="on_speedupApplyButton_clicked")
     def applySpeedup(self):
@@ -119,3 +122,6 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
             self.speedupApplyButton.setEnabled(False)
         else:
             self.speedupApplyButton.setEnabled(True)
+
+    def _subscriptionError(self):
+        self.statusBar().showMessage("Subscription failed, retrying ...", 1500)
