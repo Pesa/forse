@@ -35,13 +35,13 @@ class _RPCReply(object):
             except ValueError:
                 return str(x)
         elif isinstance(x, list):
-            s = ''.join([ self.__toString(e, True) for e in x ])
+            s = ''.join([self.__toString(e, True) for e in x])
             if inErlangString:
                 return s
             else:
                 return '"%s"' % s
         elif isinstance(x, tuple):
-            s = ', '.join([ self.__toString(e) for e in x ])
+            s = ', '.join([self.__toString(e) for e in x])
             return '{%s}' % s
         else:
             return str(x)
@@ -79,7 +79,7 @@ class _RPCFrom(object):
 
     def connect(self, handler):
         def wrapper(*args):
-            handler(*[ _RPCReply(x) for x in args ])
+            handler(*[_RPCReply(x) for x in args])
         OTPApplication.proxy.createHandler(self.__notif, wrapper)
 
 

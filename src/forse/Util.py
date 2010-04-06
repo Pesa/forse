@@ -27,7 +27,7 @@ def listToString(l):
     """
     if not isinstance(l, list):
         raise TypeError(str(l) + " is not a list.")
-    return ''.join([ chr(c) for c in l ])
+    return ''.join([chr(c) for c in l])
 
 
 def mpsToString(mps):
