@@ -146,10 +146,10 @@ build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum
 -spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1,
 					 non_neg_integer(), [pos_integer()]) -> [#segment{}].
 build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
-	Pit = 20,
+	Pit = 100 div ?SEGMENT_LENGTH, % 100 m before and after boxes
 	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
 	if
-		Rem < 60 ->
+		Rem < 300 div ?SEGMENT_LENGTH -> % 150 m of pre/post_pitlane
 			throw("pitlane is too short");
 		true ->
 			ok
