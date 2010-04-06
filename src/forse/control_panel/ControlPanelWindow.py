@@ -1,7 +1,7 @@
-import OTPApplication
 from PyQt4.QtCore import QTimer, pyqtSlot
-from PyQt4.QtGui import QApplication, QMainWindow, QMessageBox, QStringListModel
+from PyQt4.QtGui import QMainWindow, QMessageBox, QStringListModel
 from ConfigDialog import ConfigDialog
+from OTPApplication import OTPApplication
 from Remote import BootstrapServer
 from Ui_ControlPanelWindow import Ui_ControlPanelWindow
 
@@ -14,7 +14,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         self.nodesList = []
         self.nodesModel = QStringListModel(self.nodesList, self)
         self.nodesView.setModel(self.nodesModel)
-        QApplication.instance().lastWindowClosed.connect(self._shutdown)
+        OTPApplication.instance().lastWindowClosed.connect(self._shutdown)
         BootstrapServer.nodeDown.connect(self._nodeDown)
         BootstrapServer.nodeUp.connect(self._nodeUp)
         BootstrapServer.ready.connect(lambda: self.bootstrapButton.setEnabled(True))
@@ -51,14 +51,21 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         self.nodesList.append(str(node))
         self.nodesModel.setStringList(self.nodesList)
 
+    def _setGuiNode(self):
+        BootstrapServer.setGuiNode(self._setGuiNodeDone, OTPApplication.nodeName())
+
+    def _setGuiNodeDone(self, reply):
+        if reply == "ok":
+            self.actionNewSimulation.trigger()
+        else:
+            QTimer.singleShot(500, self._setGuiNode)
+
     def _shutdown(self):
-        BootstrapServer.stop(lambda _: QApplication.quit())
+        BootstrapServer.stop(lambda _: OTPApplication.quit())
 
     def _startup(self):
         if BootstrapServer.start():
-            # FIXME: bootstrap_server may not be ready yet...
-            BootstrapServer.setGuiNode(None, OTPApplication.nodeName())
-            self.actionNewSimulation.trigger()
+            self._setGuiNode()
         else:
             QMessageBox.critical(self, "Fatal error", "Failed to start an instance of bootstrap_server.")
-            QApplication.quit()
+            OTPApplication.quit()
