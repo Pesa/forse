@@ -34,7 +34,8 @@ class SubscriberApplication(OTPApplication):
         cbargs = [self.nodeName(), self.appName(), Atom("handleMessage")]
         callback = Atom("callback"), Atom("rpc"), Atom("call"), cbargs
         if isinstance(self.__opts, list):
-            EventDispatcher.subscribe(self.__subscribeDone, self.appName(), callback, self.__opts)
+            opts = [Atom(str(x)) for x in self.__opts]
+            EventDispatcher.subscribe(self.__subscribeDone, self.appName(), callback, opts)
         else:
             EventDispatcher.subscribe(self.__subscribeDone, self.appName(), callback)
 
