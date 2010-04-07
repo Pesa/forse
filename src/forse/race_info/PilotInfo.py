@@ -1,4 +1,4 @@
-from PyQt4.QtCore import QString, QTimer
+from PyQt4.QtCore import QTimer
 from OTPApplication import OTPApplication
 from Util import listToString
 
@@ -61,8 +61,8 @@ class PilotInfo(object):
         for pilot, name, teamName in names:
             if pilot not in cls.__info:
                 cls.__info[pilot] = PilotInfo()
-            cls.__info[pilot]._name = QString.fromUtf8(listToString(name))
-            cls.__info[pilot]._teamName = QString.fromUtf8(listToString(teamName))
+            cls.__info[pilot]._name = listToString(name)
+            cls.__info[pilot]._teamName = listToString(teamName)
         cls._refresh()
 
     def _timerExpired(self):

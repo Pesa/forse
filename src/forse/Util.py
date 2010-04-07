@@ -1,5 +1,6 @@
 import hashlib, random, socket
 from twotp.term import Atom
+from PyQt4.QtCore import QString
 
 
 __all__ = ['atomToBool', 'listToString', 'mpsToString',
@@ -23,11 +24,11 @@ def atomToBool(atom):
 
 def listToString(l):
     """
-    Translates an Erlang string (a list of ASCII codes) to a Python string.
+    Translates an Erlang string (a list of character codes) to a QString.
     """
     if not isinstance(l, list):
         raise TypeError(str(l) + " is not a list.")
-    return ''.join([chr(c) for c in l])
+    return QString.fromUtf8(''.join([chr(c) for c in l]))
 
 
 def mpsToString(mps):
