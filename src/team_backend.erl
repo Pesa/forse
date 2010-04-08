@@ -84,10 +84,10 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	Pred = fun(E) when is_record(E, pilot_info) ->
 				   lists:member(E#pilot_info.msg_opt, S#subscriber.opts)
 		   end,
-	% search pilot list
 	Pilots = lists:filter(Pred, State#state.pilots),
 	PilotMsgs = lists:flatmap(fun build_sub_msgs/1, Pilots),
-	List = [{rain_sum, State#state.rain_sum} | PilotMsgs],
+	List = PilotMsgs ++ [{max_fuel, ?TANK_DIM},
+						 {rain_sum, State#state.rain_sum}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
@@ -95,6 +95,7 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	Car = Msg#chrono_notif.car,
 	PInfo = lists:keyfind(Car, #pilot_info.id, State#state.pilots),
 	CNStatus = Msg#chrono_notif.status,
+	
 	% notify car status
 	Status = #consumption{car = Car,
 						  intermediate = Msg#chrono_notif.intermediate,
@@ -347,6 +348,6 @@ build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
 				(_) ->
 					 []
 			 end,
-	RecMsg = lists:flatmap(MapFun, PInfo#pilot_info.records),
-	AddC = [PInfo#pilot_info.car_status | RecMsg],
-	[build_new_pilot_msg(PInfo) | AddC].
+	Records = lists:flatmap(MapFun, PInfo#pilot_info.records),
+	[build_new_pilot_msg(PInfo),
+	 PInfo#pilot_info.car_status | Records].
