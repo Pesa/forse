@@ -24,7 +24,6 @@
 					 status				:: 'running' | 'retired',
 					 car_status			:: #consumption{},
 					 pit_count			:: non_neg_integer(),
-					 pit_ops			:: #pitstop_ops{},
 					 records	= []	:: [time_speed_record()],
 					 last_interm		:: time(),
 					 last_finish		:: time()}).
@@ -165,8 +164,7 @@ handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	PC = PInfo#pilot_info.pit_count + 1,
 	Ops = Msg#pitstop_notif.ops,
 	Pilots = lists:keyreplace(Car, #pilot_info.id, State#state.pilots,
-							  PInfo#pilot_info{pit_count = PC,
-											   pit_ops = Ops}),
+							  PInfo#pilot_info{pit_count = PC}),
 	% {pitstop, CarId, PitCount, AddedFuel, Tyres}
 	PitMsg = {pitstop, Car, PC, Ops#pitstop_ops.fuel, Ops#pitstop_ops.tyres},
 	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, PitMsg, State#state.subscribers),
