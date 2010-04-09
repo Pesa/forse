@@ -19,14 +19,14 @@
 
 -define(TEAM_NAME(Id), {global, utils:build_id_atom("team_", Id)}).
 
--type consumption() :: {TyresCons :: float() | 'undef',
-						FuelCons :: float() | 'undef'}.
+-type avg_consumption() :: {TyresCons :: float() | 'undef',
+							FuelCons :: float() | 'undef'}.
 
 %% last_ls: list of chrono_notif containing at most
 %%			one record for each intermediate
 -record(car_stats, {car_id								:: car(),
 					pitstop_count						:: non_neg_integer(),
-					avg_consumption	= {undef, undef}	:: consumption(),
+					avg_consumption	= {undef, undef}	:: avg_consumption(),
 					last_ls			= []				:: [#consumption{}]}).
 
 %% fuel_limit: if a car's fuel is lesser than the limit
@@ -140,14 +140,15 @@ init(Config) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_call({status_update, Status}, _From, State) ->
+	CarId = Status#consumption.car,
 	
 	% Phase 1: update the status %
 	
 	% update with the new values and calculates consumption per lap if possible
-	CarStats = lists:keyfind(Status#consumption.car, #car_stats.car_id, State#state.cars_stats),
+	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	NCStats = case CarStats of
 				  false ->
-					  #car_stats{car_id = Status#consumption.car,
+					  #car_stats{car_id = CarId,
 								 pitstop_count = 0,
 								 last_ls = [Status],
 								 avg_consumption = {undef, undef}};
@@ -169,7 +170,7 @@ handle_call({status_update, Status}, _From, State) ->
 									   end,
 					  CarStats#car_stats{last_ls = NewLLS, avg_consumption = Cons}
 			  end,
-	DelCS = lists:keydelete(Status#consumption.car, #car_stats.car_id, State#state.cars_stats),
+	DelCS = lists:keydelete(CarId, #car_stats.car_id, State#state.cars_stats),
 	% dynamically adapt fuel_limit
 	NewState = case NCStats#car_stats.avg_consumption of
 				   {_, undef} ->
@@ -181,36 +182,19 @@ handle_call({status_update, Status}, _From, State) ->
 	
 	% Phase 2: calculate next pitstop %
 	
-	% check if it has an appropriate tyres type
-	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
-	BestTyres = best_tyres(AvgRain, ?TYRES_SPECS),
-	PSCount = NCStats#car_stats.pitstop_count,
-	if
-		Status#consumption.tyres_type /= BestTyres ->
-			% schedule a pitstop for the current lap
-			%?DBG({"scheduling an immediate pitstop for car", Status#consumption.car}),
-			car:set_next_pitstop(Status#consumption.car,
-								 #next_pitstop{lap = Status#consumption.lap,
-											   stops_count = PSCount});
-		true ->
-			% when will the car need the next pitstop?
-			AvgCons = NCStats#car_stats.avg_consumption,
-			TS = Status#consumption.tyres_consumption,
-			FS = Status#consumption.fuel,
-			case calculate_laps_left(TS, FS, AvgCons, NewState) of
-				undef ->
-					% not enough information
-					ok;
-				Next when is_integer(Next) ->
-					CarId = Status#consumption.car,
-					PSLap = Status#consumption.lap + Next,
-					%?DBG({"scheduling a pitstop in lap", PSLap, "for car", CarId}),
-					car:set_next_pitstop(CarId, #next_pitstop{lap = PSLap,
-															  stops_count = PSCount})
-			end
+	case calculate_next_pitstop(Status, NewState#state.rain_sum,
+								NCStats#car_stats.avg_consumption,
+								NewState#state.fuel_limit,
+								NewState#state.tyres_limit) of
+		undefined ->
+			% no estimate could be done
+			ok;
+		Lap ->
+			NextPitstop = #next_pitstop{lap = Lap,
+										stops_count = NCStats#car_stats.pitstop_count},
+			car:set_next_pitstop(CarId, NextPitstop)
 	end,
 	{reply, ok, NewState};
-
 
 handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
@@ -302,7 +286,7 @@ best_tyres(Rain, [H | T]) ->
 best_tyres(_Rain, []) ->
 	null.
 
--spec delta_consumption(#consumption{}, #consumption{}, integer()) -> consumption().
+-spec delta_consumption(#consumption{}, #consumption{}, integer()) -> avg_consumption().
 
 delta_consumption(OS, NS, Laps) ->
 	TyresC = (NS#consumption.tyres_consumption - OS#consumption.tyres_consumption) / Laps,
@@ -315,21 +299,40 @@ delta_consumption(OS, NS, Laps) ->
 		  end,
 	{Fun(TyresC), Fun(FuelC)}.
 
-%% Returns undef when no estimation can be done
--spec calculate_laps_left(float(), float(), consumption(), #state{}) ->
-						  non_neg_integer() | 'undef'.
+-spec calculate_next_pitstop(#consumption{}, non_neg_integer() | 'undefined',
+							 avg_consumption(), float(), float()) ->
+		pos_integer() | 'undefined'.
 
-calculate_laps_left(TS, FS, {TCRatio, FCRatio}, State) ->
-	Fun = fun({Left, Ratio}) ->
-				  if
-					  Ratio == undef ->
-						  undef;
-					  Left > 0 ->
-						  trunc(Left / Ratio);
-					  true ->
-						  0
-				  end
-		  end,
-	TempT = State#state.tyres_limit - TS,
-	TempF = FS - State#state.fuel_limit,
-	lists:min(lists:map(Fun, [{TempT, TCRatio}, {TempF, FCRatio}])).
+calculate_next_pitstop(Status, undefined, {TyresC, FuelC}, FuelLimit, TyresLimit) ->
+	% when will the car need the next pitstop?
+	MapFun = fun({Left, Ratio}) ->
+					 if
+						 Ratio == undef ->
+							 undef;
+						 Left > 0 ->
+							 trunc(Left / Ratio);
+						 true ->
+							 0
+					 end
+			 end,
+	T = TyresLimit - Status#consumption.tyres_consumption,
+	F = Status#consumption.fuel - FuelLimit,
+	case lists:min(lists:map(MapFun, [{T, TyresC}, {F, FuelC}])) of
+		undef ->
+			% not enough information
+			undefined;
+		Next when is_integer(Next) ->
+			Status#consumption.lap + Next
+	end;
+calculate_next_pitstop(Status, RainSum, AvgCons, FL, TL) ->
+	% check if the car's tyres_type is appropriate
+	% for the current amount of rain on the track
+	AvgRain = RainSum / utils:get_setting(sgm_number),
+	BestTyres = best_tyres(AvgRain, ?TYRES_SPECS),
+	if
+		Status#consumption.tyres_type /= BestTyres ->
+			% schedule a pitstop for the current lap
+			Status#consumption.lap;
+		true ->
+			calculate_next_pitstop(Status, undefined, AvgCons, FL, TL)
+	end.
