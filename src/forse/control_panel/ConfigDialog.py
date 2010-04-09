@@ -31,5 +31,5 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         if reply == "ok":
             self.accept()
         else:
-            QMessageBox.critical(self, "Error", "Configuration error:\n\n   %s" % reply)
+            QMessageBox.warning(self, "Error", "Configuration error:\n\n   %s" % reply)
             self.setEnabled(True)
