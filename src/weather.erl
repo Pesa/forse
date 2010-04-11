@@ -97,15 +97,16 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 				Changes = lists:foldl(ChSect, [], NewWeatherList),
 				{Pilots, Changes}
 		end,
-	case mnesia:sync_transaction(T) of
-		{atomic, {Pilots, Changes}} ->
+	try mnesia:activity(sync_transaction, T) of
+		{Pilots, Changes} ->
 			% invalidate the pre-elaboration for every pilot
 			lists:foreach(fun(Id) ->
 								  car:invalidate_preelab(Id)
 						  end, Pilots),
 			% send the notification
-			event_dispatcher:notify(#weather_notif{changes = Changes});
-		{aborted, Reason} ->
+			event_dispatcher:notify(#weather_notif{changes = Changes})
+	catch
+		exit: Reason ->
 			?WARN({"failed to change weather", Reason})
 	end,
 	{reply, done, State};

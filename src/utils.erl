@@ -51,8 +51,8 @@ digits(Float) ->
 -spec get_setting(atom()) -> term().
 
 get_setting(Key) ->
-	H = utils:mnesia_read(setting, Key),
-	H#setting.value.
+	S = utils:mnesia_read(setting, Key),
+	S#setting.value.
 
 %% Sets the value of the setting Key.
 -spec set_setting(atom(), term()) -> 'ok'.
@@ -62,8 +62,7 @@ set_setting(Key, Value) ->
 	T = fun() ->
 				mnesia:write(S)
 		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
-	ok.
+	mnesia:activity(sync_transaction, T).
 
 %% Wraps a mnesia:read/2 in a transaction context.
 %% If the transaction fails, an exception is raised.
@@ -73,7 +72,7 @@ mnesia_read(Tab, Key) ->
 	T = fun() ->
 				mnesia:read(Tab, Key)
 		end,
-	{atomic, [Result]} = mnesia:transaction(T),
+	[Result] = mnesia:activity(transaction, T),
 	Result.
 
 %% Returns true if a mnesia table named TableName

@@ -101,7 +101,7 @@ init(Config) ->
 			end,
 	Pilot = lists:foldl(Parse, #pilot{}, Config),
 	% FIXME: remove the following line when switching to ft_gen_server
-	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(Pilot) end),
+	mnesia:activity(sync_transaction, fun() -> mnesia:write(Pilot) end),
 	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
 									  args = [Pilot#pilot.id]}),
 	event_dispatcher:notify(#config_notif{app = ?MODULE, config = Pilot}),
@@ -187,7 +187,7 @@ handle_call(move, _From, State) ->
 			{reply, Reply, NewState};
 		_ ->
 			% FIXME: remove the following line when switching to ft_gen_server
-			{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:delete({pilot, Id}) end),
+			mnesia:activity(sync_transaction, fun() -> mnesia:delete({pilot, Id}) end),
 			{stop, normal, done, State2}
 	end;
 

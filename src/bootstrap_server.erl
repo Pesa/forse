@@ -220,9 +220,9 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 		Ready = check_reqs(NewState),
 		{reply, ok, NewState#state{ready = Ready}}
 	catch
-		error : {badmatch, _} = Error ->
+		error: {badmatch, _} = Error ->
 			{reply, {error, Error}, State};
-		throw : Error ->
+		throw: Error ->
 			{reply, {error, Error}, State}
 	end;
 

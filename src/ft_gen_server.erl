@@ -736,7 +736,7 @@ read_state(ProcName) ->
 %	T = fun() ->
 %				mnesia:write(Tab, {state, State}, sticky_write)
 %		end,
-%	{atomic, ok} = mnesia:sync_transaction(T),
+%	mnesia:activity(sync_transaction, T),
 %	ok.
 
 

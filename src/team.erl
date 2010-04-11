@@ -125,7 +125,7 @@ init(Config) ->
 					throw("team configuration error")
 			end,
 	CarType = lists:foldl(Parse, #car_type{}, Config),
-	{atomic, ok} = mnesia:sync_transaction(fun() -> mnesia:write(CarType) end),
+	mnesia:activity(sync_transaction, fun() -> mnesia:write(CarType) end),
 	event_dispatcher:notify(#config_notif{app = ?MODULE, config = CarType}),
 	{ok, #state{}}.
 

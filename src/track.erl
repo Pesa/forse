@@ -33,7 +33,7 @@ init(TrackConfig, TeamsList, CarsList)
 										  mnesia:write(track, Sgm, write)
 								  end, SgmList)
 			end,
-		{atomic, _} = mnesia:sync_transaction(T),
+		mnesia:activity(sync_transaction, T),
 		
 		% calculate and store intermediates' indexes
 		Map = build_intermediate_map(lists:filter(fun is_chrono_sgm/1, SgmList)),
@@ -44,9 +44,9 @@ init(TrackConfig, TeamsList, CarsList)
 			 {starting_pos, StartPos} | Config],
 		event_dispatcher:notify(#config_notif{app = ?MODULE, config = C})
 	catch
-		error : {badmatch, _} = Error ->
+		error: {badmatch, _} = Error ->
 			{error, Error};
-		throw : Error ->
+		throw: Error ->
 			{error, Error}
 	end.
 
@@ -63,7 +63,7 @@ parse_config(TrackConfig) ->
 						end,
 				lists:foreach(Write, SectorsMap)
 		end,
-	{atomic, _} = mnesia:sync_transaction(T),
+	mnesia:activity(sync_transaction, T),
 	Config = [{sectors, TrackConfig},
 			  {sectors_map, SectorsMap},
 			  {initial_rain_sum, RainSum}],
@@ -232,7 +232,7 @@ build_pitstop(Start, [TeamId | Tail], SgmList, SgmNum) ->
 				[CT] = mnesia:wread({car_type, TeamId}),
 				mnesia:write(car_type, CT#car_type{pitstop_sgm = PitSgmId}, write)
 		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
+	mnesia:activity(sync_transaction, T),
 	build_pitstop(N3, Tail, L3, SgmNum).
 
 set_sgm_type(_Type, Start, 0, Sgms) ->
@@ -496,7 +496,7 @@ preelaborate(Pilot) when is_record(Pilot, pilot) ->
 									  mnesia:write(TabName, Elem, sticky_write)
 							  end, FinalBounds)
 		end,
-	{atomic, _} = mnesia:sync_transaction(T),
+	mnesia:activity(sync_transaction, T),
 	ok.
 
 %% Recursively calculates the speed bounds for AttIndex.
@@ -623,7 +623,7 @@ where_am_i(CarId) when is_integer(CarId) ->
 	T = fun() ->
 				mnesia:foldl(Select, [], track)
 		end,
-	{atomic, List} = mnesia:transaction(T),
+	List = mnesia:activity(sync_transaction, T),
 	FindCar = fun({Id, CPs}, Acc) ->
 					  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
 					  case CP of
@@ -703,7 +703,7 @@ move_car(OldSgm, NewSgm, CarPos) ->
 				mnesia:write(track, OldSUpdate, write),
 				mnesia:write(track, NewSUpdate, write)
 		end,
-	{atomic, ok} = mnesia:sync_transaction(T),
+	mnesia:activity(sync_transaction, T),
 	
 	% send surpass notifications to event_dispatcher
 	SendNotif = fun(Elem) ->
@@ -725,12 +725,9 @@ remove_car(S, PilotId) ->
 				utils:set_setting(running_cars, Running),
 				Running
 		end,
-	{atomic, CarsLeft} = mnesia:sync_transaction(T),
-	case CarsLeft of
-		0 ->
-			event_dispatcher:notify(#race_notif{event = finished});
-		_ ->
-			ok
+	case mnesia:activity(sync_transaction, T) of
+		0 -> event_dispatcher:notify(#race_notif{event = finished});
+		_ -> ok
 	end.
 
 %% Returns car's status after driving Sgm.
