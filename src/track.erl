@@ -50,7 +50,7 @@ init(TrackConfig, TeamsList, CarsList)
 			{error, Error}
 	end.
 
--spec parse_config([{sector()}]) ->
+-spec parse_config([sector()]) ->
 		{[#segment{}], pos_integer(), sgm_id() | -1, sgm_id() | -1, conflist()}.
 parse_config(TrackConfig) ->
 	{SgmList, SgmNum, SectorsMap, PitStart, PitEnd, RainSum} =
