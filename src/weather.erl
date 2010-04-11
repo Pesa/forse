@@ -106,7 +106,7 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 			% send the notification
 			event_dispatcher:notify(#weather_notif{changes = Changes});
 		{aborted, Reason} ->
-			?ERR({"failed to change weather", Reason})
+			?WARN({"failed to change weather", Reason})
 	end,
 	{reply, done, State};
 
@@ -169,5 +169,6 @@ register_weather_change({{H, M, S}, NewWeather}) ->
 register_weather_change({Seconds, NewWeather}) when is_integer(Seconds) ->
 	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
 	scheduler:queue_work(Seconds, Callback);
-register_weather_change(_) ->
+register_weather_change(Other) ->
+	?WARN({"invalid weather change requested", Other}),
 	error.
