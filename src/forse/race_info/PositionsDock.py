@@ -1,3 +1,4 @@
+from PyQt4.Qt import Qt
 from PyQt4.QtGui import QDockWidget
 from PositionsModel import PositionsModel
 from Ui_PositionsDock import Ui_PositionsDock
@@ -9,7 +10,11 @@ class PositionsDock(QDockWidget, Ui_PositionsDock):
         QDockWidget.__init__(self, parent)
         self.setupUi(self)
         self.__model = PositionsModel()
+        self.__model.modelReset.connect(self._adaptColumns, Qt.QueuedConnection)
         self.positionsView.setModel(self.__model)
 
     def reloadPilotInfo(self):
         self.positionsView.reset()
+
+    def _adaptColumns(self):
+        self.positionsView.resizeColumnsToContents()
