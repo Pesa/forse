@@ -22,7 +22,7 @@ class FileChooser(QWidget, Ui_FileChooser):
         self.label.setText(label)
 
     @pyqtSlot(name="on_button_clicked")
-    def __openFileDialog(self):
+    def _openFileDialog(self):
         filename = QFileDialog.getOpenFileName(self, "Choose configuration file")
         if filename:
             self.lineEdit.setText(QFileInfo(filename).canonicalFilePath())
