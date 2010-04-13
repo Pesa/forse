@@ -235,10 +235,6 @@ handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from other apps
 	{noreply, State};
 
-handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
-	% TODO: serve questa notifica? probabilmente no...
-	{noreply, State};
-
 handle_cast(#race_notif{event = Ev}, State) ->
 	RaceState = case Ev of
 					started -> running;
