@@ -1,8 +1,6 @@
 - fare/finire GUI e backend per weather e team_monitor
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
-- physics:get_car_ahead -> non deve considerare se stessa
-- il processo secondario dello scheduler dovrebbe essere supervisionato
 - gestione delle eccezioni in track
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
@@ -14,4 +12,6 @@
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - segfault in control_panel
-- auto-resize delle colonne delle tabelle in PositionsDock e TelemetryDock
+- Arch.dia: * Race Info comunica con lo scheduler, aggiungere freccia
+	    * Team Monitor comunica con Car, non con Team
+	    * togliere freccia da Track a Dispatcher?
