@@ -183,7 +183,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 	lists:foreach(Start, ?BOOTSTRAP_ORDER),
 	
 	% track & settings initialization
-	% FIXME: change the following line when track becomes a gen_server
+	% FTNOTE: change the following line when track becomes a gen_server
 	rpc:call(Master, track, init, [State#state.track_config, TeamsIDs, CarsIDs]),
 	rpc:call(Master, utils, set_setting, [running_cars, State#state.num_cars]),
 	rpc:call(Master, utils, set_setting, [total_laps, Laps]),

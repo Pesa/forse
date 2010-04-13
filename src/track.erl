@@ -304,7 +304,7 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
-	% FIXME: check if keyfind returns false
+	% FTNOTE: check if keyfind returns false
 	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
@@ -409,7 +409,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 simulate(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
-	% FIXME: check if keyfind returns false
+	% FTNOTE: check if keyfind returns false
 	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
@@ -671,20 +671,17 @@ min_bound_rec([Head | Tail], Index) ->
 min_bound_rec([], _Index) ->
 	error.
 
-%% Delete car_status queued in OldS and insert CS in NewS.
-%% OldS: old segment
-%% NewS: new segment
-%% CS: car status
+%% Delete CarPos queued in OldSgm and insert it in NewSgm.
 -spec move_car(#segment{}, #segment{}, #car_position{}) -> 'ok'.
 move_car(OldSgm, NewSgm, CarPos) ->
 	OldQUpdate = lists:keydelete(CarPos#car_position.car_id,
 								 #car_position.car_id,
 								 OldSgm#segment.queued_cars),
 	OldSUpdate = OldSgm#segment{queued_cars = OldQUpdate},
-	% FIXME: keydelete su NewQ per togliere CS.car_id
+	% FTNOTE: apply a keydelete on NewQ to remove CarPos.car_id
 	NewQ = NewSgm#segment.queued_cars,
 	
-	% check if CS surpassed some cars in NewQ
+	% check whether any cars have just been surpassed
 	Surpass = fun(Elem) ->
 					  if
 						  Elem#car_position.enter_t < CarPos#car_position.enter_t

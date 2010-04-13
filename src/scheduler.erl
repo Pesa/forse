@@ -81,7 +81,7 @@ queue_work(Time, Callback) when is_record(Callback, callback) ->
 init(Speedup) ->
 	C = [{speedup, Speedup}],
 	event_dispatcher:notify(#config_notif{app = ?MODULE, config = C}),
-	% TODO: restart the timer if it's a failover case
+	% FTNOTE: restart the timer if it's a failover case
 	{ok, #state{speedup = Speedup / 100}}.
 
 %% --------------------------------------------------------------------
@@ -209,7 +209,7 @@ process_next(#state{timing_info = Timing} = State)
 								#timing{start = erlang:max(Time, Timing#timing.start)}
 						end,
 			% send the token by invoking the provided callback in a separate process
-			% FIXME: should probably be converted to a supervised gen_server
+			% FTNOTE: should probably be converted to a supervised gen_server
 			spawn_link(?MODULE, give_token, [Callback#callback{args = Args}]),
 			State#state{token_available = false,
 						timing_info = NewTiming,

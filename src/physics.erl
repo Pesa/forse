@@ -85,8 +85,8 @@ deg_to_rad(Angle) when is_number(Angle) ->
 
 %% Returns null or a car_position record.
 %% Index starts from 1
-% FIXME: non deve considerare se stessa
-% (altrimenti una simulate dopo un crash non funziona)
+% FTNOTE: non deve considerare se stessa
+% (altrimenti una simulate dopo un fault non funziona)
 -spec get_car_ahead(#segment{}, lane(), pos_integer()) ->
 					#car_position{} | 'null'.
 get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
@@ -125,18 +125,9 @@ calculate(_Space, _Speed, _MaxSpeed, _Amin, Amax, _SkillCoeff) when Amax =< 0 ->
 calculate(Space, Speed, MaxSpeed, Amin, Amax, SkillCoeff) when Amin =< 0 ->
 	T1 = 2 * Space / (Speed + MaxSpeed),
 	A = (MaxSpeed - Speed) / T1,
-	%%DEBUG FIXME: togliere quando non servira'
-	%Delta = Amin - A,
-	%if
-	%	A < 0.0 andalso Delta > 0.0 ->
-	%		?DBG({"DELTA", Delta});
-	%	true ->
-	%		ok
-	%end,
 	SAmax = SkillCoeff * Amax,
 	Result = if
 				 A < (?ACCEL_TOLERANCE + SkillCoeff + 0.1) * Amin ->
-					 %?DBG({calculate_crash, A, Amin, ?ACCEL_TOLERANCE + SkillCoeff + 0.1, Speed, MaxSpeed}),
 					 {fail, 'crash'};
 				 A > SAmax ->
 					 Sqrt = math:sqrt(4 * math:pow(Speed, 2) + 8 * SAmax * Space),

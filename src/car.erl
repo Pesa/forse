@@ -100,7 +100,7 @@ init(Config) ->
 					throw("car configuration error")
 			end,
 	Pilot = lists:foldl(Parse, #pilot{}, Config),
-	% FIXME: remove the following line when switching to ft_gen_server
+	% FTNOTE: remove the following line when switching to ft_gen_server
 	mnesia:activity(sync_transaction, fun() -> mnesia:write(Pilot) end),
 	scheduler:queue_work(0, #callback{mod = ?MODULE, func = move,
 									  args = [Pilot#pilot.id]}),
@@ -186,7 +186,7 @@ handle_call(move, _From, State) ->
 			Reply = {requeue, NextTime, Callback},
 			{reply, Reply, NewState};
 		_ ->
-			% FIXME: remove the following line when switching to ft_gen_server
+			% FTNOTE: remove the following line when switching to ft_gen_server
 			mnesia:activity(sync_transaction, fun() -> mnesia:delete({pilot, Id}) end),
 			{stop, normal, done, State2}
 	end;
