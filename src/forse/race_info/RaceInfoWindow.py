@@ -23,7 +23,6 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         self.__pauseIcon = QIcon(":/icons/pause.png")
         self.__lapTimeRecord = None
         self.__speedRecord = None
-        self.__speedup = None
         PilotInfo.init(self.reloadPilotInfo)
         handlers = {('init', 'best_lap'): self._newBestLap,
                     ('init', 'speed_record'): self._newBestSpeed,
@@ -34,11 +33,9 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
         SubscriberApplication.instance().subscribe()
 
-    @pyqtSlot(name="on_speedupApplyButton_clicked")
-    def applySpeedup(self):
-        self.speedupApplyButton.setEnabled(False)
-        self.speedupSpinBox.setEnabled(False)
-        Scheduler.setSpeedup(self._checkReply, self.speedupSpinBox.value())
+    @pyqtSlot(name="on_speedupSlider_sliderReleased")
+    def changeSpeedup(self):
+        Scheduler.setSpeedup(self._checkReply, self.speedupSlider.value())
 
     def pauseSimulation(self):
         self.startpauseButton.setEnabled(False)
@@ -108,20 +105,15 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
             self.statusBar().showMessage("Unknown race_state: " + state.text, 5000)
 
     def _setSpeedup(self, speedup):
-        self.speedupApplyButton.setEnabled(False)
         if isinstance(speedup, int):
-            self.__speedup = speedup
-            self.speedupSpinBox.setValue(speedup)
-            self.speedupSpinBox.setEnabled(True)
+            self.speedupSlider.setValue(speedup)
+            self.speedupSlider.setEnabled(True)
         else:
-            self.speedupSpinBox.setEnabled(False)
+            self.speedupSlider.setEnabled(False)
 
-    @pyqtSlot(int, name="on_speedupSpinBox_valueChanged")
-    def _speedupSpinBoxChanged(self, newValue):
-        if newValue == self.__speedup:
-            self.speedupApplyButton.setEnabled(False)
-        else:
-            self.speedupApplyButton.setEnabled(True)
+    @pyqtSlot(int, name="on_speedupSlider_valueChanged")
+    def _speedupSliderChanged(self, value):
+        self.speedupLabel.setText("%i%%" % value)
 
     def _subscriptionError(self):
         self.statusBar().showMessage("Subscription failed, retrying ...", 1500)
