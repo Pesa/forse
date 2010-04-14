@@ -10,11 +10,8 @@ class PositionsDock(QDockWidget, Ui_PositionsDock):
         QDockWidget.__init__(self, parent)
         self.setupUi(self)
         self.__model = PositionsModel()
-        self.__model.modelReset.connect(self._adaptColumns, Qt.QueuedConnection)
+        self.__model.modelReset.connect(self.positionsView.resizeColumnsToContents, Qt.QueuedConnection)
         self.positionsView.setModel(self.__model)
 
     def reloadPilotInfo(self):
         self.positionsView.reset()
-
-    def _adaptColumns(self):
-        self.positionsView.resizeColumnsToContents()

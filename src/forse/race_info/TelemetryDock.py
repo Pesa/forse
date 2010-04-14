@@ -12,7 +12,7 @@ class TelemetryDock(QDockWidget, Ui_TelemetryDock):
         self.setupUi(self)
         self.__availableMap = {}
         self.__model = TelemetryModel()
-        self.__model.modelReset.connect(self._adaptColumns, Qt.QueuedConnection)
+        self.__model.modelReset.connect(self.telemetryView.resizeColumnsToContents, Qt.QueuedConnection)
         self.__model.newIntermediate.connect(self._addIntermediate)
         self.__model.newLap.connect(self._addLap)
         self.telemetryView.setModel(self.__model)
@@ -29,9 +29,6 @@ class TelemetryDock(QDockWidget, Ui_TelemetryDock):
 
     def reloadPilotInfo(self):
         self.telemetryView.reset()
-
-    def _adaptColumns(self):
-        self.telemetryView.resizeColumnsToContents()
 
     def _addIntermediate(self, lap, intermediate):
         self.__availableMap[lap].append(intermediate)
