@@ -15,6 +15,8 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
         self.horizontalLayout.addWidget(self.splitter)
         handlers = {('init', 'new_pilot'): self._newPilot}
         SubscriberApplication.registerMsgHandlers(handlers)
+        SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
+        SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
         QTimer.singleShot(0, self._chooseTeam)
 
     def _chooseTeam(self):
@@ -28,3 +30,6 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
     def _newPilot(self, carId, name, status, pitCount):
         w = CarStatusWidget(self.splitter, carId, name, status, pitCount)
         self.splitter.addWidget(w)
+
+    def _subscriptionError(self):
+        self.statusBar().showMessage("Subscription failed, retrying ...", 1500)
