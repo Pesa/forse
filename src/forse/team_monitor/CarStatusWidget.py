@@ -1,24 +1,24 @@
 from PyQt4.QtCore import pyqtSlot
-from PyQt4.QtGui import QGroupBox, QMessageBox
+from PyQt4.QtGui import QWidget, QMessageBox
 from OTPApplication import OTPApplication
 from Remote import Car
 from SpeedModel import SpeedModel
 from TimeModel import TimeModel
-from Util import listToString
 from Ui_CarStatusWidget import Ui_CarStatusWidget
 
 
-class CarStatusWidget(QGroupBox, Ui_CarStatusWidget):
+class CarStatusWidget(QWidget, Ui_CarStatusWidget):
 
-    def __init__(self, parent, carId, pilotName, status, pitCount):
-        QGroupBox.__init__(self, parent)
+    def __init__(self, carId, status, pitCount):
+        QWidget.__init__(self)
         self.setupUi(self)
         self.__fuel = None
         self.__id = carId
-        self.setTitle(listToString(pilotName))
-        self.psCountLabel.setText(str(pitCount))
+        self.statusLabel.setText(status.text)
         if status.text == "retired":
-            self._setRetired(self.__id)
+            self.pitstopButton.setEnabled(False)
+            self.retireButton.setEnabled(False)
+        self.psCountLabel.setText(str(pitCount))
         self.speedView.setModel(SpeedModel(self.__id))
         self.timeView.setModel(TimeModel(self.__id))
         handlers = {('init', 'consumption'): self._setConsumption,
@@ -45,6 +45,7 @@ class CarStatusWidget(QGroupBox, Ui_CarStatusWidget):
     def _newPitstop(self, carId, pitCount, fuelAdded, newTyres):
         if carId == self.__id:
             self.psCountLabel.setText(str(pitCount))
+            self.psOpsLabel.setText("TODO")
             self.__fuel += fuelAdded
             self.fuelBar.setValue(round(self.__fuel))
             self.tyresBar.setValue(100)
@@ -53,7 +54,6 @@ class CarStatusWidget(QGroupBox, Ui_CarStatusWidget):
     def _retireDone(self, reply):
         if reply != "ok":
             QMessageBox.warning(self, "Error", "Car retirement failed:\n\n   %s" % reply)
-            self.retireButton.setEnabled(True)
 
     def _setConsumption(self, carId, _interm, _lap, fuel, tyresCons, tyresType):
         if carId == self.__id:
@@ -69,5 +69,6 @@ class CarStatusWidget(QGroupBox, Ui_CarStatusWidget):
 
     def _setRetired(self, carId):
         if carId == self.__id:
-            self.setTitle(self.title() + "  [retired]")
-            self.setEnabled(False)
+            self.statusLabel.setText("retired")
+            self.pitstopButton.setEnabled(False)
+            self.retireButton.setEnabled(False)
