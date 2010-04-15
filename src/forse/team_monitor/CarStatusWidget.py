@@ -2,6 +2,8 @@ from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QGroupBox, QMessageBox
 from OTPApplication import OTPApplication
 from Remote import Car
+from SpeedModel import SpeedModel
+from TimeModel import TimeModel
 from Util import listToString
 from Ui_CarStatusWidget import Ui_CarStatusWidget
 
@@ -17,6 +19,8 @@ class CarStatusWidget(QGroupBox, Ui_CarStatusWidget):
         self.psCountLabel.setText(str(pitCount))
         if status.text == "retired":
             self._setRetired(self.__id)
+        self.speedView.setModel(SpeedModel(self.__id))
+        self.timeView.setModel(TimeModel(self.__id))
         handlers = {('init', 'consumption'): self._setConsumption,
                     ('init', 'max_fuel'): self._setMaxFuel,
                     ('init', 'pitstop'): self._newPitstop,
