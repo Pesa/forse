@@ -319,15 +319,6 @@ calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
 			{Records, Subs}
 	end.
 
-% {new_pilot, Id, Name, Status, PitCount}
-% {chrono, CarId, Interm, Lap, Time, Speed}
-% {retire, CarId}
-% {best_time, CarId, Interm, Time}
-% {best_speed, CarId, Interm, Speed}
-% {best_lap, CarId, Lap, LapTime}
-% {pitstop, CarId, PitCount, Fuel, Tyres}
-% #consumption{}
-
 build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
 	% {new_pilot, Id, Name, Status, PitCount}
 	{new_pilot,
