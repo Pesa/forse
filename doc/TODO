@@ -1,4 +1,4 @@
-- fare/finire GUI e backend per weather e team_monitor
+- fare/finire GUI e backend per weather
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - gestione delle eccezioni in track
@@ -12,6 +12,7 @@
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - segfault in control_panel
-- Arch.dia: * Race Info comunica con lo scheduler, aggiungere freccia
+- team_monitor: mostrare nome del team
+- Arch.dia: * Race Info comunica con Scheduler, aggiungere freccia
 	    * Team Monitor comunica con Car, non con Team
 	    * togliere freccia da Track a Dispatcher?
