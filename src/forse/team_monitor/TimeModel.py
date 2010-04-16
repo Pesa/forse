@@ -3,7 +3,6 @@ from PyQt4.QtCore import QAbstractTableModel, QVariant
 from OTPApplication import OTPApplication
 from Util import secondsToString
 
-# TODO: calculate and show last lap time
 
 class TimeModel(QAbstractTableModel):
 
@@ -15,7 +14,8 @@ class TimeModel(QAbstractTableModel):
         self.__numInterm = 0
         handlers = {('init', 'best_lap'): self._newBestLap,
                     ('init', 'best_time'): self._newBestTime,
-                    ('init', 'chrono'): self._newChrono}
+                    ('init', 'chrono'): self._newChrono,
+                    ('init', 'last_lap'): self._newLastLap}
         OTPApplication.registerMsgHandlers(handlers)
 
     def columnCount(self, _parent):
@@ -69,4 +69,9 @@ class TimeModel(QAbstractTableModel):
         if car == self.__id:
             self.__last[intermediate] = secondsToString(time)
             self.__numInterm = max(self.__numInterm, intermediate)
+            self.reset()
+
+    def _newLastLap(self, car, time):
+        if car == self.__id:
+            self.__last['lap'] = secondsToString(time)
             self.reset()
