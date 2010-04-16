@@ -26,7 +26,6 @@ class _ProxyHandler(object):
     def remote_handleMessage(self, kind, msg):
         if not isinstance(kind, Atom):
             return
-        handled = False
         # specific message handlers
         try:
             handlers = self.__handlers[kind.text, msg[0].text]
@@ -35,7 +34,6 @@ class _ProxyHandler(object):
         else:
             for h in handlers:
                 h(*msg[1:])
-            handled = True
         # generic message handlers
         try:
             handlers = self.__handlers[kind.text]
@@ -44,9 +42,6 @@ class _ProxyHandler(object):
         else:
             for h in handlers:
                 h(msg)
-            handled = True
-        if not handled:
-            print "No handlers registered for", kind.text, "message:", msg
 
 
 class OTPApplication(QApplication):
