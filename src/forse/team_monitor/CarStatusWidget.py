@@ -45,7 +45,12 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
     def _newPitstop(self, carId, pitCount, fuelAdded, newTyres):
         if carId == self.__id:
             self.psCountLabel.setText(str(pitCount))
-            self.psOpsLabel.setText("TODO")
+            if fuelAdded > 0:
+                s = "+%i liters of fuel" % round(fuelAdded)
+            else:
+                s = "no refueling"
+            s += "; new set of %s tyres" % newTyres.text
+            self.psOpsLabel.setText(s)
             self.__fuel += fuelAdded
             self.fuelBar.setValue(round(self.__fuel))
             self.tyresBar.setValue(100)
