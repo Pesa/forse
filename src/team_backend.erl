@@ -303,20 +303,21 @@ calculate_int_records(CarId, Int, Time, Speed, Records, Subs, Opt) ->
 
 calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
 	LapTime = Time - LastFinish,
+	Subs1 = event_dispatcher:notify_init(Opt, {last_lap, Car, LapTime}, Subs),
 	Rec = lists:keyfind(lap, 1, Records),
 	case Rec of
 		false ->
 			% {best_lap, CarId, Lap, LapTime}
 			BLMsg = {best_lap, Car, Lap, LapTime},
-			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
-			{[{lap, Lap, LapTime} | Records], Subs1};
+			Subs2 = event_dispatcher:notify_init(Opt, BLMsg, Subs1),
+			{[{lap, Lap, LapTime} | Records], Subs2};
 		{lap, _BestLap, BestTime} when BestTime > LapTime ->
 			% {best_lap, CarId, Lap, LapTime}
 			BLMsg = {best_lap, Car, Lap, LapTime},
-			Subs1 = event_dispatcher:notify_init(Opt, BLMsg, Subs),
-			{lists:keyreplace(lap, 1, Records, {lap, Lap, LapTime}), Subs1};
+			Subs2 = event_dispatcher:notify_init(Opt, BLMsg, Subs1),
+			{lists:keyreplace(lap, 1, Records, {lap, Lap, LapTime}), Subs2};
 		_ ->
-			{Records, Subs}
+			{Records, Subs1}
 	end.
 
 build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
