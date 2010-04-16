@@ -54,7 +54,7 @@ class TimeModel(QAbstractTableModel):
                 return QVariant(Qt.AlignCenter)
         return QVariant()
 
-    def _newBestLap(self, car, _lap, time):
+    def _newBestLap(self, car, time):
         if car == self.__id:
             self.__best['lap'] = secondsToString(time)
             self.reset()
