@@ -126,7 +126,8 @@ handle_call(Msg, _From, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+	?WARN({"unhandled cast", Msg}),
 	{noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -136,7 +137,8 @@ handle_cast(_Msg, State) ->
 %%          {noreply, State, Timeout} |
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+	?WARN({"unhandled info", Info}),
 	{noreply, State}.
 
 %% --------------------------------------------------------------------
