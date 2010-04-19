@@ -51,7 +51,7 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
                 s = "no refueling"
             s += "; new set of %s tyres" % newTyres.text
             self.psOpsLabel.setText(s)
-            self.__fuel += fuelAdded
+            self.__fuel = min(self.__fuel + fuelAdded, self.fuelBar.maximum())
             self.fuelBar.setValue(round(self.__fuel))
             self.tyresBar.setValue(100)
             self.tyresLabel.setText(newTyres.text)
