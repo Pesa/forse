@@ -193,7 +193,6 @@ class Track(QGraphicsItemGroup):
 
     def __init__(self, sectors):
         QGraphicsItemGroup.__init__(self)
-        self.__nextColor = 5
         self.__sectors = self._sectorsToItems(sectors)
         self.__totalLength = 0
         for s in self.__sectors:
@@ -212,10 +211,11 @@ class Track(QGraphicsItemGroup):
                 return s.projection(relative, pit)
             current += len(s)
 
-    def _nextColor(self):
-        c = self.__nextColor + 7
-        self.__nextColor = (self.__nextColor + 1) % 12
-        return Qt.GlobalColor(c)
+    def _color(self):
+        color = 5
+        while True:
+            yield Qt.GlobalColor(color + 7)
+            color = (color + 1) % 12
 
     def _processPitLane(self, sectors):
         pit = False
@@ -230,16 +230,17 @@ class Track(QGraphicsItemGroup):
     def _sectorsToItems(self, sectors):
         items = []
         pos, angle = QPointF(), 90.0
-        color = self._nextColor()
+        nextColor = self._color().next
+        color = nextColor()
         for sector in sectors:
             item = None
             if len(sector) == 1:
                 type, = sector
                 if type.text == "finish_line":
                     item = FinishLine(self, pos, angle)
-                    color = self._nextColor()
+                    color = nextColor()
                 elif type.text == "intermediate":
-                    color = self._nextColor()
+                    color = nextColor()
                 elif type.text == "pitlane_entrance":
                     item = PitLaneEntrance(self, pos, angle)
                 elif type.text == "pitlane_exit":
