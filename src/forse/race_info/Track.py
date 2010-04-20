@@ -59,20 +59,20 @@ class PhysicalSector(Sector):
         self.pen = QPen(color, _trackWidth, Qt.SolidLine, Qt.FlatCap)
         self.setZValue(2)
 
-    def calculateCarPos(self, pos, pit):
-        percent = float(pos) / self.length
-        if pit and self.pitLane:
-            point = self.pitPath.pointAtPercent(percent)
-        else:
-            point = self.path.pointAtPercent(percent)
-        return self.mapToScene(point)
-
     def paint(self, painter, _option, _widget):
         if self.pitLane:
             painter.setPen(_pitPen)
             painter.drawPath(self.pitPath)
         painter.setPen(self.pen)
         painter.drawPath(self.path)
+
+    def projection(self, pos, pit):
+        percent = float(pos) / self.length
+        if pit and self.pitLane:
+            point = self.pitPath.pointAtPercent(percent)
+        else:
+            point = self.path.pointAtPercent(percent)
+        return self.mapToScene(point)
 
 
 class BentSector(PhysicalSector):
@@ -200,13 +200,16 @@ class Track(QGraphicsItemGroup):
             self.addToGroup(s)
             self.__totalLength += len(s)
 
-    def calculateCarPos(self, pos, pit):
+    def projection(self, pos, pit):
+        """
+        Returns the position of an object on the track in scene coordinates.
+        """
         normalized = pos % self.__totalLength
         current = 0
         for s in self.__sectors:
             relative = normalized - current
             if relative < len(s):
-                return s.calculateCarPos(relative, pit)
+                return s.projection(relative, pit)
             current += len(s)
 
     def _nextColor(self):

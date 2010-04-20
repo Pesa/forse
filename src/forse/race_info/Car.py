@@ -68,5 +68,5 @@ class Car(QGraphicsItem):
         self._pit = pit
 
     def _translateToNewPos(self):
-        pos = self.mapFromScene(self._track.calculateCarPos(self._position, self._pit))
+        pos = self.mapFromScene(self._track.projection(self._position, self._pit))
         self.translate(pos.x(), pos.y())
