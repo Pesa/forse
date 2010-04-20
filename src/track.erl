@@ -140,28 +140,6 @@ build_sector([{pitlane_exit} | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _P
 build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum) ->
 	throw({"invalid sector", S}).
 
--spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1,
-					 non_neg_integer(), [pos_integer()]) -> [#segment{}].
-build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
-	% 100 m before and after boxes
-	Pit = 100 div ?SEGMENT_LENGTH,
-	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
-	if
-		% 150 m of pre/post_pitlane
-		Rem < 300 div ?SEGMENT_LENGTH ->
-			throw("pitlane is too short");
-		true ->
-			ok
-	end,
-	PrePit = (Rem + 1) div 2,
-	PostPit = Rem - PrePit,
-	{T1, N1} = set_sgm_type(pre_pitlane, PitStart, PrePit, SgmList),
-	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
-	{T3, N3} = build_pitstop(N2, TeamsList, T2, SgmNum),
-	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
-	{T5, _} = set_sgm_type(post_pitlane, N4, PostPit, T4),
-	T5.
-
 set_chrono_lanes(List, SgmNum) ->
 	Chrono = lists:filter(fun is_chrono_sgm/1, List),
 	set_chrono_lanes(Chrono, List, SgmNum).
@@ -216,6 +194,28 @@ calculate_start_pos_and_pit_len(SgmList, PitStart, PitEnd) ->
 					 PE - PS + TrackLen
 			 end,
 	{StartPos, PitLen}.
+
+-spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1,
+					 non_neg_integer(), [pos_integer()]) -> [#segment{}].
+build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
+	% 100 m before and after boxes
+	Pit = 100 div ?SEGMENT_LENGTH,
+	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
+	if
+		% 150 m of pre/post_pitlane
+		Rem < 300 div ?SEGMENT_LENGTH ->
+			throw("pitlane is too short");
+		true ->
+			ok
+	end,
+	PrePit = (Rem + 1) div 2,
+	PostPit = Rem - PrePit,
+	{T1, N1} = set_sgm_type(pre_pitlane, PitStart, PrePit, SgmList),
+	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
+	{T3, N3} = build_pitstop(N2, TeamsList, T2, SgmNum),
+	{T4, N4} = set_sgm_type(pitlane, N3, Pit, T3),
+	{T5, _} = set_sgm_type(post_pitlane, N4, PostPit, T4),
+	T5.
 
 build_pitstop(Start, [], SgmList, _SgmNum) ->
 	{SgmList, Start};
