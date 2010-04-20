@@ -143,18 +143,17 @@ build_sector([S | _], _SgmList, _SectorsMap, _Sect, _Sgm, _PitS, _PitE, _RainSum
 -spec build_pit_area([#segment{}], pos_integer(), sgm_id() | -1,
 					 non_neg_integer(), [pos_integer()]) -> [#segment{}].
 build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
-	Pit = 100 div ?SEGMENT_LENGTH, % 100 m before and after boxes
+	% 100 m before and after boxes
+	Pit = 100 div ?SEGMENT_LENGTH,
 	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
 	if
-		Rem < 300 div ?SEGMENT_LENGTH -> % 150 m of pre/post_pitlane
+		% 150 m of pre/post_pitlane
+		Rem < 300 div ?SEGMENT_LENGTH ->
 			throw("pitlane is too short");
 		true ->
 			ok
 	end,
-	PrePit = case Rem rem 2 of
-				 0 -> Rem div 2;
-				 1 -> (Rem + 1) div 2
-			 end,
+	PrePit = (Rem + 1) div 2,
 	PostPit = Rem - PrePit,
 	{T1, N1} = set_sgm_type(pre_pitlane, PitStart, PrePit, SgmList),
 	{T2, N2} = set_sgm_type(pitlane, N1, Pit, T1),
