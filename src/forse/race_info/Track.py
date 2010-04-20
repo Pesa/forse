@@ -194,7 +194,7 @@ class Track(QGraphicsItemGroup):
     def __init__(self, sectors):
         QGraphicsItemGroup.__init__(self)
         self.__nextColor = 5
-        self.__sectors = self._sectorsToItems(sectors, QPointF(), 90.0, self._nextColor(), [])
+        self.__sectors = self._sectorsToItems(sectors)
         self.__totalLength = 0
         for s in self.__sectors:
             self.addToGroup(s)
@@ -232,35 +232,36 @@ class Track(QGraphicsItemGroup):
             sector.enablePitLane()
             self._processPitLane(sectors, True)
 
-    def _sectorsToItems(self, sectors, pos, angle, color, items):
-        if not sectors:
-            self._processPitLane(items[:], False)
-            return items
-        sector = sectors.pop(0)
-        item = None
-        if len(sector) == 1:
-            type, = sector
-            if type.text == "finish_line":
-                item = FinishLine(self, pos, angle)
-                color = self._nextColor()
-            elif type.text == "intermediate":
-                color = self._nextColor()
-            elif type.text == "pitlane_entrance":
-                item = PitLaneEntrance(self, pos, angle)
-            elif type.text == "pitlane_exit":
-                item = PitLaneExit(self, pos, angle)
-        elif len(sector) == 6:
-            type, length, _minLane, _maxLane, _incl, _rain = sector
-            if type.text == "straight":
-                item = StraightSector(self, pos, angle, color, length)
-        elif len(sector) == 7:
-            type, length, curv, _minLane, _maxLane, _incl, _rain = sector
-            if type.text == "left":
-                item = BentSector(self, pos, angle, color, length, curv)
-            elif type.text == "right":
-                item = BentSector(self, pos, angle, color, length, -curv)
-        if item is not None:
-            pos, newangle = item.finalState()
-            angle = (angle + newangle) % 360
-            items.append(item)
-        return self._sectorsToItems(sectors, pos, angle, color, items)
+    def _sectorsToItems(self, sectors):
+        items = []
+        pos, angle = QPointF(), 90.0
+        color = self._nextColor()
+        for sector in sectors:
+            item = None
+            if len(sector) == 1:
+                type, = sector
+                if type.text == "finish_line":
+                    item = FinishLine(self, pos, angle)
+                    color = self._nextColor()
+                elif type.text == "intermediate":
+                    color = self._nextColor()
+                elif type.text == "pitlane_entrance":
+                    item = PitLaneEntrance(self, pos, angle)
+                elif type.text == "pitlane_exit":
+                    item = PitLaneExit(self, pos, angle)
+            elif len(sector) == 6:
+                type, length, _minLane, _maxLane, _incl, _rain = sector
+                if type.text == "straight":
+                    item = StraightSector(self, pos, angle, color, length)
+            elif len(sector) == 7:
+                type, length, curv, _minLane, _maxLane, _incl, _rain = sector
+                if type.text == "left":
+                    item = BentSector(self, pos, angle, color, length, curv)
+                elif type.text == "right":
+                    item = BentSector(self, pos, angle, color, length, -curv)
+            if item is not None:
+                pos, newangle = item.finalState()
+                angle = (angle + newangle) % 360
+                items.append(item)
+        self._processPitLane(items[:], False)
+        return items
