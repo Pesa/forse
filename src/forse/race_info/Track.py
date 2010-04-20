@@ -1,4 +1,4 @@
-import math
+import itertools, math
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QPointF, QRectF
 from PyQt4.QtGui import QGraphicsItem, QGraphicsItemGroup
@@ -217,20 +217,15 @@ class Track(QGraphicsItemGroup):
         self.__nextColor = (self.__nextColor + 1) % 12
         return Qt.GlobalColor(c)
 
-    def _processPitLane(self, sectors, pit):
-        if not sectors:
-            return
-        sector = sectors.pop(0)
-        if isinstance(sector, PitLaneEntrance):
-            self._processPitLane(sectors, True)
-        elif not pit:
-            sectors.append(sector)
-            self._processPitLane(sectors, False)
-        elif isinstance(sector, PitLaneExit):
-            return
-        else:
-            sector.enablePitLane()
-            self._processPitLane(sectors, True)
+    def _processPitLane(self, sectors):
+        pit = False
+        for sector in itertools.cycle(sectors):
+            if isinstance(sector, PitLaneEntrance):
+                pit = True
+            elif pit:
+                if isinstance(sector, PitLaneExit):
+                    break
+                sector.enablePitLane()
 
     def _sectorsToItems(self, sectors):
         items = []
@@ -263,5 +258,5 @@ class Track(QGraphicsItemGroup):
                 pos, newangle = item.finalState()
                 angle = (angle + newangle) % 360
                 items.append(item)
-        self._processPitLane(items[:], False)
+        self._processPitLane(items)
         return items
