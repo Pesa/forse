@@ -202,7 +202,7 @@ build_pit_area(SgmList, SgmNum, PitStart, PitLen, TeamsList) ->
 	Pit = 100 div ?SEGMENT_LENGTH,
 	Rem = PitLen - (3 * length(TeamsList) + 2 * Pit),
 	if
-		% 150 m of pre/post_pitlane
+		% at least 150 m of pre/post_pitlane
 		Rem < 300 div ?SEGMENT_LENGTH ->
 			throw("pitlane is too short");
 		true ->
