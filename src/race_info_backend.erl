@@ -209,15 +209,18 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	Subs1 = event_dispatcher:notify_init({sectors, Sectors3}, State#state.subscribers),
 	
 	{starting_pos, StartPos} = lists:keyfind(starting_pos, 1, Config),
+	Sorted = lists:keysort(2, StartPos),
 	CarsPos = lists:map(fun({CarId, Pos}) ->
+								% {CarId, Position (on track), Pit}
 								{CarId, Pos, false}
-						end, lists:reverse(lists:keysort(2, StartPos))),
+						end, Sorted),
 	Subs2 = event_dispatcher:notify_init({cars_pos, CarsPos}, Subs1),
 	
-	% use cars_pos to build initial standings
-	{Standings, _} = lists:mapfoldl(fun({CarId, _, _}, Acc) ->
+	% build initial standings
+	{Standings, _} = lists:mapfoldl(fun({CarId, _}, Acc) ->
+											% {CarId, Ranking, State}
 											{{CarId, Acc, running}, Acc + 1}
-									end, 1, CarsPos),
+									end, 1, lists:reverse(Sorted)),
 	Subs3 = event_dispatcher:notify_init({cars_state, extract_states(Standings)}, Subs2),
 	Subs4 = event_dispatcher:notify_init({standings, extract_standings(Standings)}, Subs3),
 	
