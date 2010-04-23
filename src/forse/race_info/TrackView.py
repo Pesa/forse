@@ -37,13 +37,13 @@ class TrackView(QGraphicsView):
         self._refitScene()
 
     def _initCars(self, cars):
-        for car, pos, pit in cars:
-            c = Car(self._track, car, pos, atomToBool(pit))
-            self._cars[car] = c
+        for carId, pos, pit in cars:
+            c = Car(self._track, carId, pos, atomToBool(pit))
+            self._cars[carId] = c
             self._scene.addItem(c)
 
-    def _initTrack(self, track):
-        self._track = Track(track)
+    def _initTrack(self, sectors):
+        self._track = Track(sectors)
         self._scene.addItem(self._track)
         self._refitScene()
 
