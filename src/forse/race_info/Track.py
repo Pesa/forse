@@ -122,30 +122,27 @@ class FinishLine(QGraphicsItemGroup, AbstractSector):
         QGraphicsItemGroup.__init__(self, parent)
         AbstractSector.__init__(self, pos, angle)
         self.setZValue(3)
-        step = _trackWidth / 2
-        halfstep = step / 2
-        start = step * 3
-        n = (_trackWidth * 3 + abs(_pitDistance if pit else 0)) / step
         self.black = QGraphicsPathItem(self)
-        self.black.setCacheMode(QGraphicsPathItem.DeviceCoordinateCache)
-        blackPath = QPainterPath()
-        for i in range(0, n):
-            sign = 1 if i % 2 == 1 else - 1
-            blackPath.moveTo(start - step * i, sign * halfstep)
-            blackPath.lineTo(start - step * (i + 1), sign * halfstep)
-        self.black.setPath(blackPath)
-        self.black.setPen(QPen(Qt.black, _trackWidth / 2, Qt.SolidLine, Qt.FlatCap))
-        self.addToGroup(self.black)
         self.white = QGraphicsPathItem(self)
-        self.white.setCacheMode(QGraphicsPathItem.DeviceCoordinateCache)
-        whitePath = QPainterPath()
-        for i in range(0, n):
-            sign = 1 if i % 2 == 0 else - 1
-            whitePath.moveTo(start - step * i, sign * halfstep)
-            whitePath.lineTo(start - step * (i + 1), sign * halfstep)
-        self.white.setPath(whitePath)
-        self.white.setPen(QPen(Qt.white, _trackWidth / 2, Qt.SolidLine, Qt.FlatCap))
-        self.addToGroup(self.white)
+        start = 3 * (_trackWidth / 2)
+        end = -start - abs(_pitDistance if pit else 0)
+        rowdelta = _trackWidth / 4
+        for item, y in [(self.black, -rowdelta),
+                        (self.white, rowdelta)]:
+            item.setCacheMode(QGraphicsPathItem.DeviceCoordinateCache)
+            self.addToGroup(item)
+            path = QPainterPath()
+            path.moveTo(start, y)
+            path.lineTo(end, y)
+            path.moveTo(end, -y)
+            path.lineTo(start, -y)
+            item.setPath(path)
+        pen = QPen(Qt.black, _trackWidth / 2)
+        pen.setCapStyle(Qt.FlatCap)
+        pen.setDashPattern([1, 1])
+        self.black.setPen(QPen(pen))
+        pen.setColor(Qt.white)
+        self.white.setPen(pen)
 
 
 class SectorWithPitlane(QGraphicsItemGroup):
