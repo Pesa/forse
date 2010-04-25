@@ -43,7 +43,7 @@ class Sector(QGraphicsPathItem, AbstractSector):
 
 class PhysicalSector(Sector):
 
-    def __init__(self, parent, pos, angle, color, length, pit=False):
+    def __init__(self, parent, pos, angle, length, color, pit=False):
         Sector.__init__(self, parent, pos, angle, length)
         self.setZValue(2)
         if pit:
@@ -64,8 +64,8 @@ class PhysicalSector(Sector):
 
 class BentSector(PhysicalSector):
 
-    def __init__(self, parent, pos, angle, color, length, radius, pit=False):
-        PhysicalSector.__init__(self, parent, pos, angle, color, length, pit)
+    def __init__(self, parent, pos, angle, length, color, radius, pit=False):
+        PhysicalSector.__init__(self, parent, pos, angle, length, color, pit)
         self.angle = 180.0 * self.length() / (math.pi * radius)
         startAngle = 180.0 if radius > 0 else 0
         offset = _pitDistance if pit else 0
@@ -82,8 +82,8 @@ class BentSector(PhysicalSector):
 
 class StraightSector(PhysicalSector):
 
-    def __init__(self, parent, pos, angle, color, length, pit=False):
-        PhysicalSector.__init__(self, parent, pos, angle, color, length, pit)
+    def __init__(self, parent, pos, angle, length, color, pit=False):
+        PhysicalSector.__init__(self, parent, pos, angle, length, color, pit)
         offset = _pitDistance if pit else 0
         path = QPainterPath(QPointF(offset, 0))
         path.lineTo(offset, self.length())
@@ -93,27 +93,10 @@ class StraightSector(PhysicalSector):
         return self.mapToParent(self.path().currentPosition()), 0.0
 
 
-class PitLaneAccess(Sector):
+class Intermediate(Sector):
 
     def __init__(self, parent, pos, angle):
         Sector.__init__(self, parent, pos, angle)
-        self.setZValue(1)
-        path = QPainterPath()
-        path.lineTo(_pitDistance, 0)
-        self.setPath(path)
-        self.setPen(QPen(_pitColor, _pitWidth))
-
-
-class PitLaneEntrance(PitLaneAccess):
-
-    def __init__(self, parent, pos, angle):
-        PitLaneAccess.__init__(self, parent, pos, angle)
-
-
-class PitLaneExit(PitLaneAccess):
-
-    def __init__(self, parent, pos, angle):
-        PitLaneAccess.__init__(self, parent, pos, angle)
 
 
 class FinishLine(QGraphicsItemGroup, AbstractSector):
@@ -145,6 +128,29 @@ class FinishLine(QGraphicsItemGroup, AbstractSector):
         self.white.setPen(pen)
 
 
+class PitLaneAccess(Sector):
+
+    def __init__(self, parent, pos, angle):
+        Sector.__init__(self, parent, pos, angle)
+        self.setZValue(1)
+        path = QPainterPath()
+        path.lineTo(_pitDistance, 0)
+        self.setPath(path)
+        self.setPen(QPen(_pitColor, _pitWidth))
+
+
+class PitLaneEntrance(PitLaneAccess):
+
+    def __init__(self, parent, pos, angle):
+        PitLaneAccess.__init__(self, parent, pos, angle)
+
+
+class PitLaneExit(PitLaneAccess):
+
+    def __init__(self, parent, pos, angle):
+        PitLaneAccess.__init__(self, parent, pos, angle)
+
+
 class SectorWithPitlane(QGraphicsItemGroup):
 
     def __init__(self, parent, sectype, *args):
@@ -171,14 +177,14 @@ class SectorWithPitlane(QGraphicsItemGroup):
 
 class BentSectorWithPitlane(SectorWithPitlane):
 
-    def __init__(self, parent, pos, angle, color, length, radius):
-        SectorWithPitlane.__init__(self, parent, BentSector, pos, angle, color, length, radius)
+    def __init__(self, parent, pos, angle, length, color, radius):
+        SectorWithPitlane.__init__(self, parent, BentSector, pos, angle, length, color, radius)
 
 
 class StraightSectorWithPitlane(SectorWithPitlane):
 
-    def __init__(self, parent, pos, angle, color, length):
-        SectorWithPitlane.__init__(self, parent, StraightSector, pos, angle, color, length)
+    def __init__(self, parent, pos, angle, length, color):
+        SectorWithPitlane.__init__(self, parent, StraightSector, pos, angle, length, color)
 
 
 class Track(QGraphicsItemGroup):
@@ -186,8 +192,11 @@ class Track(QGraphicsItemGroup):
     def __init__(self, sectors):
         QGraphicsItemGroup.__init__(self)
         self.__sectors = self._sectorsToItems(sectors)
+        # we start counting from the FinishLine sector,
+        # so bring it to the front of the list
         while not isinstance(self.__sectors[0], FinishLine):
             self.__sectors.append(self.__sectors.pop(0))
+        # calculate the total length
         self.__totalLength = 0
         for s in self.__sectors:
             self.addToGroup(s)
@@ -235,14 +244,14 @@ class Track(QGraphicsItemGroup):
                 type, length, pit = sector
                 if type.text == "straight":
                     ctor = StraightSectorWithPitlane if atomToBool(pit) else StraightSector
-                    item = ctor(self, pos, angle, color, length)
+                    item = ctor(self, pos, angle, length, color)
             elif len(sector) == 4:
                 type, length, curv, pit = sector
                 ctor = BentSectorWithPitlane if atomToBool(pit) else BentSector
                 if type.text == "left":
-                    item = ctor(self, pos, angle, color, length, curv)
+                    item = ctor(self, pos, angle, length, color, curv)
                 elif type.text == "right":
-                    item = ctor(self, pos, angle, color, length, -curv)
+                    item = ctor(self, pos, angle, length, color, -curv)
             if item is not None:
                 pos, newangle = item.finalLocation()
                 angle = (angle + newangle) % 360
