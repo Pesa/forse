@@ -10,7 +10,8 @@ __all__ = ['Track']
 _trackWidth = 16
 _pitWidth = 12
 _pitDistance = -3 * _trackWidth
-_pitPen = QPen(Qt.darkGray, _pitWidth, Qt.SolidLine, Qt.FlatCap)
+_pitColor = Qt.darkGray
+_pitPen = QPen(_pitColor, _pitWidth, Qt.SolidLine, Qt.FlatCap)
 
 
 class AbstractSector(object):
@@ -28,6 +29,9 @@ class AbstractSector(object):
 
     def length(self):
         return self._length
+
+    def setColor(self, color, pit=False):
+        pass
 
 
 class Sector(QGraphicsPathItem, AbstractSector):
@@ -51,6 +55,11 @@ class PhysicalSector(Sector):
         percent = float(pos) / self.length()
         point = self.path().pointAtPercent(percent)
         return self.mapToScene(point)
+
+    def setColor(self, color, _pit=False):
+        pen = QPen(self.pen())
+        pen.setColor(color)
+        self.setPen(pen)
 
 
 class BentSector(PhysicalSector):
@@ -92,9 +101,7 @@ class PitLaneAccess(Sector):
         path = QPainterPath()
         path.lineTo(_pitDistance, 0)
         self.setPath(path)
-        pen = QPen(_pitPen)
-        pen.setCapStyle(Qt.SquareCap)
-        self.setPen(pen)
+        self.setPen(QPen(_pitColor, _pitWidth))
 
 
 class PitLaneEntrance(PitLaneAccess):
@@ -158,6 +165,11 @@ class SectorWithPitlane(QGraphicsItemGroup):
             return self.pit.projection(pos)
         else:
             return self.regular.projection(pos)
+
+    def setColor(self, color, pit=False):
+        self.regular.setColor(color)
+        if pit:
+            self.pit.setColor(color)
 
 
 class BentSectorWithPitlane(SectorWithPitlane):
