@@ -1,13 +1,11 @@
 - fare/finire GUI e backend per weather
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
-- gestione delle eccezioni in track
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
 - migliorare la Reason restituita quando access:check_move fallisce
 - team_sup: i processi dei team vengono avviati come transient...
 		non dovrebbero essere permanent?
-- start_phases per le applicazioni
 - implementare ordine di partenza delle auto casuale
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
