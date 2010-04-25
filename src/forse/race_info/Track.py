@@ -230,6 +230,7 @@ class Track(QGraphicsItemGroup):
             if len(sector) == 1:
                 type, = sector
                 if type.text == "intermediate":
+                    item = Intermediate(self, pos, angle)
                     color = nextColor()
                 elif type.text == "pitlane_entrance":
                     item = PitLaneEntrance(self, pos, angle)
@@ -256,4 +257,9 @@ class Track(QGraphicsItemGroup):
                 pos, newangle = item.finalLocation()
                 angle = (angle + newangle) % 360
                 items.append(item)
+        # fix coloring of the last intermediate
+        for item in items:
+            if isinstance(item, Intermediate) or isinstance(item, FinishLine):
+                break
+            item.setColor(color)
         return items
