@@ -26,7 +26,7 @@ class TrackView(QGraphicsView):
         handlers = {('init', 'cars_pos'): self._initCars,
                     ('init', 'sectors'): self._initTrack,
                     ('init', 'race_state'): self._setRaceState,
-                    ('update', 'car_pos'): self._moveCar}
+                    ('update', 'cars_pos'): self._moveCars}
         OTPApplication.registerMsgHandlers(handlers)
 
     def reloadPilotInfo(self):
@@ -47,9 +47,9 @@ class TrackView(QGraphicsView):
         self._scene.addItem(self._track)
         self._refitScene()
 
-    def _moveCar(self, value):
-        car, pos, pit = value
-        self._cars[car].updatePos(pos, atomToBool(pit))
+    def _moveCars(self, cars):
+        for carId, pos, pit in cars:
+            self._cars[carId].updatePos(pos, atomToBool(pit))
 
     def _refitScene(self):
         self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)

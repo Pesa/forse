@@ -334,7 +334,7 @@ handle_info({mnesia_table_event, {write, track, NewSgm, OldSgms, _}}, State)
 										NewPos = Pos + NewSgm#segment.length,
 										NewCP = {CarId, NewPos, Lane < 0},
 										{[NewCP | Rest],
-										 event_dispatcher:notify_update({car_pos, NewCP}, Subs)};
+										 event_dispatcher:notify_update({cars_pos, [NewCP]}, Subs)};
 									false ->
 										{CPs, Subs}
 								end;
