@@ -41,7 +41,7 @@ apply_change(_Time, NewWeather) when is_list(NewWeather) ->
 -spec schedule_change(hms() | non_neg_integer(), conflist()) -> 'ok' | 'error'.
 
 schedule_change(When, NewWeather) when is_list(NewWeather) ->
-	gen_server:call(?GLOBAL_NAME, {schedule_change, When, NewWeather}).
+	gen_server:call(?GLOBAL_NAME, {schedule_change, When, NewWeather}, infinity).
 
 
 %% ====================================================================
@@ -164,10 +164,14 @@ code_change(_OldVsn, State, _Extra) ->
 
 -spec register_weather_change({hms() | non_neg_integer(), conflist()}) -> 'ok' | 'error'.
 
-register_weather_change({{H, M, S}, NewWeather}) ->
+register_weather_change({{H, M, S}, NewWeather})
+  when is_integer(H), H >= 0,
+	   is_integer(M), M >= 0, M < 60,
+	   is_integer(S), S >= 0, S < 60 ->
 	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
 	scheduler:queue_work(H * 3600 + M * 60 + S, Callback);
-register_weather_change({Seconds, NewWeather}) when is_integer(Seconds) ->
+register_weather_change({Seconds, NewWeather})
+  when is_integer(Seconds), Seconds >= 0 ->
 	Callback = #callback{mod = ?MODULE, func = apply_change, args = [NewWeather]},
 	scheduler:queue_work(Seconds, Callback);
 register_weather_change(Other) ->
