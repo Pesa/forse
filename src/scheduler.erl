@@ -10,7 +10,7 @@
 		 queue_work/2]).
 
 %% Private exports
--export([give_token/1]).
+-export([work_done/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -64,6 +64,11 @@ pause_simulation() ->
 
 queue_work(Time, Callback) when is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {enqueue, Time, Callback}, infinity).
+
+-spec work_done() -> 'ok'.
+
+work_done() ->
+	gen_server:call(?GLOBAL_NAME, done).
 
 
 %% ====================================================================
@@ -209,8 +214,7 @@ process_next(#state{timing_info = Timing} = State)
 								#timing{start = erlang:max(Time, Timing#timing.start)}
 						end,
 			% send the token by invoking the provided callback in a separate process
-			% FTNOTE: should probably be converted to a supervised gen_server
-			spawn_link(?MODULE, give_token, [Callback#callback{args = Args}]),
+			scheduler_helper:give_token(Callback#callback{args = Args}),
 			State#state{token_available = false,
 						timing_info = NewTiming,
 						workqueue = Tail};
@@ -221,23 +225,6 @@ process_next(#state{timing_info = Timing} = State)
 process_next(State) ->
 	%?DBG("preconditions not satisfied."),
 	State.
-
-% Sends the token to the worker identified by the arguments.
--spec give_token(#callback{}) -> 'ok'.
-
-give_token(#callback{mod = M, func = F, args = A} = CB) ->
-	%?DBG({"sending token to", CB}),
-	case apply(M, F, A) of
-		{requeue, Time, NewCB} when is_number(Time), Time >= 0,
-									is_record(NewCB, callback) ->
-			queue_work(Time, NewCB);
-		done ->
-			ok;
-		Else ->
-			?WARN({CB, "returned unexpected value", Else})
-	end,
-	% give the token back to the main scheduler process
-	gen_server:call(?GLOBAL_NAME, done, infinity).
 
 % Starts a new timer to expire at Expiry.
 -spec new_timer(time(), time(), number()) -> #timing{}.

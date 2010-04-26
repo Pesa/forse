@@ -33,4 +33,9 @@ init(Config) ->
 				 {scheduler, start_link, [Speedup]},
 				 permanent, 5000, worker,
 				 [scheduler]},
-	{ok, {{one_for_one, 20, 30}, [Scheduler]}}.
+	Helper = {scheduler_helper,
+			  {scheduler_helper, start_link, []},
+			  permanent, 5000, worker,
+			  [scheduler_helper]},
+	{ok, {{one_for_one, 20, 30},
+		  [Helper, Scheduler]}}.
