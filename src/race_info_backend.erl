@@ -3,7 +3,8 @@
 -behaviour(gen_server).
 
 %% External exports
--export([start_link/0]).
+-export([start_link/0,
+		 preprocess_sectors/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -21,7 +22,7 @@
 				finish_line_index				:: intermediate(),
 				race_state		= initialized	:: race_state(),
 				speedup							:: pos_integer(),
-				sectors			= []			:: [sector()],
+				sectors			= []			:: [tuple()],
 				cars_pos		= []			:: [{car(), Pos :: non_neg_integer(), Pit :: boolean()}],
 				pilots			= []			:: [{car(), team(), CarName :: string(),
 													 TeamName :: string() | 'undefined'}],
@@ -41,6 +42,34 @@
 
 start_link() ->
 	gen_server:start_link(?LOCAL_NAME, ?MODULE, [], []).
+
+-spec preprocess_sectors([sector()]) -> [tuple()].
+
+preprocess_sectors(Sectors) when is_list(Sectors) ->
+	F = fun({pitlane_entrance}, _Pit) ->
+				{{pitlane_entrance}, true};
+		   ({pitlane_exit}, _Pit) ->
+				{{pitlane_exit}, false};
+		   ({finish_line}, Pit) ->
+				{{finish_line, Pit}, Pit};
+		   ({finish_line, _}, Pit) ->
+				{{finish_line, Pit}, Pit};
+		   ({straight, Len, _, _, _, _}, Pit) ->
+				{{straight, Len, Pit}, Pit};
+		   ({straight, Len, _}, Pit) ->
+				{{straight, Len, Pit}, Pit};
+		   ({Type, Len, Curv, _, _, _, _}, Pit)
+			 when Type == left orelse Type == right ->
+				{{Type, Len, Curv, Pit}, Pit};
+		   ({Type, Len, Curv, _}, Pit)
+			 when Type == left orelse Type == right ->
+				{{Type, Len, Curv, Pit}, Pit};
+		   (Other, Pit) ->
+				{Other, Pit}
+		end,
+	{Sectors2, Pit} = lists:mapfoldl(F, false, Sectors),
+	{Sectors3, _} = lists:mapfoldl(F, Pit, Sectors2),
+	Sectors3.
 
 
 %% ====================================================================
@@ -182,31 +211,9 @@ handle_cast(#config_notif{app = scheduler, config = Config}, State) ->
 handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{finish_line_index, FLI} = lists:keyfind(finish_line_index, 1, Config),
 	
-	{sectors, Sectors1} = lists:keyfind(sectors, 1, Config),
-	F = fun({pitlane_entrance}, _Pit) ->
-				{{pitlane_entrance}, true};
-		   ({pitlane_exit}, _Pit) ->
-				{{pitlane_exit}, false};
-		   ({finish_line}, Pit) ->
-				{{finish_line, Pit}, Pit};
-		   ({finish_line, _}, Pit) ->
-				{{finish_line, Pit}, Pit};
-		   ({straight, Len, _, _, _, _}, Pit) ->
-				{{straight, Len, Pit}, Pit};
-		   ({straight, Len, _}, Pit) ->
-				{{straight, Len, Pit}, Pit};
-		   ({Type, Len, Curv, _, _, _, _}, Pit)
-			 when Type == left orelse Type == right ->
-				{{Type, Len, Curv, Pit}, Pit};
-		   ({Type, Len, Curv, _}, Pit)
-			 when Type == left orelse Type == right ->
-				{{Type, Len, Curv, Pit}, Pit};
-		   (Other, Pit) ->
-				{Other, Pit}
-		end,
-	{Sectors2, Pit} = lists:mapfoldl(F, false, Sectors1),
-	{Sectors3, _} = lists:mapfoldl(F, Pit, Sectors2),
-	Subs1 = event_dispatcher:notify_init({sectors, Sectors3}, State#state.subscribers),
+	{sectors, Sectors} = lists:keyfind(sectors, 1, Config),
+	S = preprocess_sectors(Sectors),
+	Subs1 = event_dispatcher:notify_init({sectors, S}, State#state.subscribers),
 	
 	{starting_pos, StartPos} = lists:keyfind(starting_pos, 1, Config),
 	Sorted = lists:keysort(2, StartPos),
@@ -227,7 +234,7 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	{noreply, State#state{subscribers = Subs4,
 						  finish_line_index = FLI,
 						  cars_pos = CarsPos,
-						  sectors = Sectors3,
+						  sectors = S,
 						  standings = Standings}};
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
