@@ -97,7 +97,7 @@ handle_call({apply_change, NewWeatherList}, _From, State) ->
 				Changes = lists:foldl(ChSect, [], NewWeatherList),
 				{Pilots, Changes}
 		end,
-	try mnesia:activity(sync_transaction, T) of
+	try mnesia:activity(sync_dirty, T) of
 		{Pilots, Changes} ->
 			% invalidate the pre-elaboration for every pilot
 			lists:foreach(fun(Id) ->

@@ -619,7 +619,7 @@ where_am_i(CarId) when is_integer(CarId) ->
 	T = fun() ->
 				mnesia:foldl(Select, [], track)
 		end,
-	List = mnesia:activity(sync_transaction, T),
+	List = mnesia:activity(sync_dirty, T),
 	FindCar = fun({Id, CPs}, Acc) ->
 					  CP = lists:keyfind(CarId, #car_position.car_id, CPs),
 					  case CP of
@@ -696,7 +696,7 @@ move_car(OldSgm, NewSgm, CarPos) ->
 				mnesia:write(track, OldSUpdate, write),
 				mnesia:write(track, NewSUpdate, write)
 		end,
-	mnesia:activity(sync_transaction, T),
+	mnesia:activity(sync_dirty, T),
 	
 	% send surpass notifications to event_dispatcher
 	SendNotif = fun(Elem) ->
@@ -718,7 +718,7 @@ remove_car(S, PilotId) ->
 				utils:set_setting(running_cars, Running),
 				Running
 		end,
-	case mnesia:activity(sync_transaction, T) of
+	case mnesia:activity(sync_dirty, T) of
 		0 -> event_dispatcher:notify(#race_notif{event = finished});
 		_ -> ok
 	end.
