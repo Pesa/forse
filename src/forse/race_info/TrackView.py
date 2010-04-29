@@ -36,6 +36,12 @@ class TrackView(QGraphicsView):
     def resizeEvent(self, _event):
         self._refitScene()
 
+    def _color(self):
+        color = 5
+        while True:
+            yield Qt.GlobalColor(color + 7)
+            color = (color + 1) % 12
+
     def _initCars(self, cars):
         for carId, pos, pit in cars:
             c = Car(self._track, carId, pos, atomToBool(pit))
@@ -43,7 +49,7 @@ class TrackView(QGraphicsView):
             self._scene.addItem(c)
 
     def _initTrack(self, sectors):
-        self._track = Track(sectors)
+        self._track = Track(sectors, self._color().next)
         self._scene.addItem(self._track)
         self._refitScene()
 

@@ -185,9 +185,9 @@ class StraightSectorWithPitlane(SectorWithPitlane):
 
 class Track(QGraphicsItemGroup):
 
-    def __init__(self, sectors):
+    def __init__(self, sectors, colorfunc):
         QGraphicsItemGroup.__init__(self)
-        self.__sectors = self._sectorsToItems(sectors)
+        self.__sectors = self._sectorsToItems(sectors, colorfunc)
         # we start counting from the FinishLine sector,
         # so bring it to the front of the list
         while not isinstance(self.__sectors[0], FinishLine):
@@ -213,17 +213,10 @@ class Track(QGraphicsItemGroup):
     def setSectorColor(self, sectId, color):
         self.__sectors[sectId].setColor(color)
 
-    def _color(self):
-        color = 5
-        while True:
-            yield Qt.GlobalColor(color + 7)
-            color = (color + 1) % 12
-
-    def _sectorsToItems(self, sectors):
+    def _sectorsToItems(self, sectors, nextColor):
+        color = nextColor()
         items = []
         pos, angle = QPointF(), 90.0
-        nextColor = self._color().next
-        color = nextColor()
         for sector in sectors:
             item = None
             if len(sector) == 1:
