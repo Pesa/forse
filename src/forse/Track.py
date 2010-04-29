@@ -30,7 +30,7 @@ class AbstractSector(object):
     def length(self):
         return self._length
 
-    def setColor(self, color, pit=False):
+    def setColor(self, color):
         pass
 
 
@@ -56,7 +56,7 @@ class PhysicalSector(Sector):
         point = self.path().pointAtPercent(percent)
         return self.mapToScene(point)
 
-    def setColor(self, color, _pit=False):
+    def setColor(self, color):
         pen = QPen(self.pen())
         pen.setColor(color)
         self.setPen(pen)
@@ -162,17 +162,13 @@ class SectorWithPitlane(QGraphicsItemGroup):
         self.addToGroup(self.regular)
         self.finalLocation = self.regular.finalLocation
         self.length = self.regular.length
+        self.setColor = self.regular.setColor
 
     def projection(self, pos, pit):
         if pit:
             return self.pit.projection(pos)
         else:
             return self.regular.projection(pos)
-
-    def setColor(self, color, pit=False):
-        self.regular.setColor(color)
-        if pit:
-            self.pit.setColor(color)
 
 
 class BentSectorWithPitlane(SectorWithPitlane):
@@ -213,6 +209,9 @@ class Track(QGraphicsItemGroup):
             if relative < s.length():
                 return s.projection(relative, pit)
             current += s.length()
+
+    def setSectorColor(self, sectId, color):
+        self.__sectors[sectId].setColor(color)
 
     def _color(self):
         color = 5
