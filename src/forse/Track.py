@@ -187,13 +187,15 @@ class Track(QGraphicsItemGroup):
 
     def __init__(self, sectors, colorfunc):
         QGraphicsItemGroup.__init__(self)
-        self.__sectors = self._sectorsToItems(sectors, colorfunc)
+        sectors = self._sectorsToItems(sectors, colorfunc)
+        self.__sectors = []
         self.__totalLength = 0
-        for s in self.__sectors:
+        for s in sectors:
             self.addToGroup(s)
             if isinstance(s, FinishLine):
                 self.__offset = self.__totalLength
-            else:
+            elif s.length() > 0:
+                self.__sectors.append(s)
                 self.__totalLength += s.length()
 
     def projection(self, pos, pit):
