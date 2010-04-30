@@ -188,21 +188,19 @@ class Track(QGraphicsItemGroup):
     def __init__(self, sectors, colorfunc):
         QGraphicsItemGroup.__init__(self)
         self.__sectors = self._sectorsToItems(sectors, colorfunc)
-        # we start counting from the FinishLine sector,
-        # so bring it to the front of the list
-        while not isinstance(self.__sectors[0], FinishLine):
-            self.__sectors.append(self.__sectors.pop(0))
-        # calculate the total length
         self.__totalLength = 0
         for s in self.__sectors:
             self.addToGroup(s)
-            self.__totalLength += s.length()
+            if isinstance(s, FinishLine):
+                self.__offset = self.__totalLength
+            else:
+                self.__totalLength += s.length()
 
     def projection(self, pos, pit):
         """
         Returns the position of an object on the track in scene coordinates.
         """
-        normalized = pos % self.__totalLength
+        normalized = (pos + self.__offset) % self.__totalLength
         current = 0
         for s in self.__sectors:
             relative = normalized - current
