@@ -240,7 +240,7 @@ class Track(QGraphicsItemGroup):
     def setSectorColor(self, sectId, color):
         self.__sectors[sectId].setColor(color)
 
-    def setSectorTooltip(self, sectId, tooltip):
+    def setSectorToolTip(self, sectId, tooltip):
         self.__sectors[sectId].setToolTip(tooltip)
 
     def _sectorsToItems(self, sectors, nextColor):
