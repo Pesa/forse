@@ -142,7 +142,7 @@
      </layout>
     </item>
     <item>
-     <widget class="TrackView" name="trackView"/>
+     <widget class="RaceView" name="raceView"/>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -220,13 +220,13 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TrackView</class>
+   <class>RaceView</class>
    <extends>QGraphicsView</extends>
-   <header>TrackView</header>
+   <header>RaceView</header>
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>trackView</tabstop>
+  <tabstop>raceView</tabstop>
   <tabstop>startpauseButton</tabstop>
   <tabstop>speedupSlider</tabstop>
  </tabstops>

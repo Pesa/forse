@@ -1,28 +1,25 @@
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QTimer
-from PyQt4.QtGui import QGraphicsScene, QGraphicsView, QPainter
+from PyQt4.QtGui import QGraphicsScene
 from OTPApplication import OTPApplication
 from Car import Car
 from Track import Track
+from TrackView import TrackView
 from Util import atomToBool
 
 
-class TrackView(QGraphicsView):
+class RaceView(TrackView):
 
     def __init__(self, parent=None):
-        self._scene = QGraphicsScene()
-        self._scene.setItemIndexMethod(QGraphicsScene.NoIndex)
-        QGraphicsView.__init__(self, self._scene, parent)
-        self.setBackgroundBrush(Qt.lightGray)
-        self.setRenderHint(QPainter.Antialiasing)
-        self.setViewportUpdateMode(QGraphicsView.SmartViewportUpdate)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        TrackView.__init__(self, parent)
+        scene = QGraphicsScene()
+        scene.setItemIndexMethod(QGraphicsScene.NoIndex)
+        self.setScene(scene)
         self._cars = {}
         self._track = None
         self._timer = QTimer(self)
         self._timer.setInterval(40)
-        self._timer.timeout.connect(self._scene.advance)
+        self._timer.timeout.connect(self.scene().advance)
         handlers = {('init', 'cars_pos'): self._initCars,
                     ('init', 'sectors'): self._initTrack,
                     ('init', 'race_state'): self._setRaceState,
@@ -32,9 +29,6 @@ class TrackView(QGraphicsView):
     def reloadPilotInfo(self):
         for car in self._cars.itervalues():
             car.refreshToolTip()
-
-    def resizeEvent(self, _event):
-        self._refitScene()
 
     def _color(self):
         color = 5
@@ -46,19 +40,16 @@ class TrackView(QGraphicsView):
         for carId, pos, pit in cars:
             c = Car(self._track, carId, pos, atomToBool(pit))
             self._cars[carId] = c
-            self._scene.addItem(c)
+            self.scene().addItem(c)
 
     def _initTrack(self, sectors):
         self._track = Track(sectors, self._color().next)
-        self._scene.addItem(self._track)
-        self._refitScene()
+        self.scene().addItem(self._track)
+        self.refitSceneInView()
 
     def _moveCars(self, cars):
         for carId, pos, pit in cars:
             self._cars[carId].updatePos(pos, atomToBool(pit))
-
-    def _refitScene(self):
-        self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
 
     def _setRaceState(self, state):
         if state.text == "running":

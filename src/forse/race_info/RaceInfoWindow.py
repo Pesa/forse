@@ -52,7 +52,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
             self._updateBestSpeedLabel(*self.__speedRecord)
         self.positionsDock.reloadPilotInfo()
         self.telemetryDock.reloadPilotInfo()
-        self.trackView.reloadPilotInfo()
+        self.raceView.reloadPilotInfo()
 
     def _checkReply(self, reply):
         if reply != "ok":
