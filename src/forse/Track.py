@@ -1,7 +1,7 @@
 import math
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QPointF, QRectF
-from PyQt4.QtGui import QGraphicsItemGroup, QGraphicsPathItem, QPainterPath, QPen
+from PyQt4.QtGui import QGraphicsDropShadowEffect, QGraphicsItemGroup, QGraphicsPathItem, QPainterPath, QPen
 from Util import atomToBool
 
 
@@ -12,6 +12,7 @@ _pitWidth = 12
 _pitDistance = -3 * _trackWidth
 _pitColor = Qt.darkGray
 _pitPen = QPen(_pitColor, _pitWidth, Qt.SolidLine, Qt.FlatCap)
+_hoverColor = Qt.green
 
 
 class AbstractSector(object):
@@ -50,6 +51,23 @@ class PhysicalSector(Sector):
             self.setPen(_pitPen)
         else:
             self.setPen(QPen(color, _trackWidth, Qt.SolidLine, Qt.FlatCap))
+
+    def enableHoverEffect(self):
+        e = QGraphicsDropShadowEffect()
+        e.setEnabled(False)
+        e.setBlurRadius(2 * _trackWidth)
+        e.setColor(_hoverColor)
+        e.setOffset(0, 0)
+        self.setGraphicsEffect(e)
+        self.setAcceptHoverEvents(True)
+
+    def hoverEnterEvent(self, event):
+        self.graphicsEffect().setEnabled(True)
+        Sector.hoverEnterEvent(self, event)
+
+    def hoverLeaveEvent(self, event):
+        self.graphicsEffect().setEnabled(False)
+        Sector.hoverLeaveEvent(self, event)
 
     def projection(self, pos, _pit=False):
         percent = float(pos) / self.length()
@@ -155,14 +173,18 @@ class SectorWithPitlane(QGraphicsItemGroup):
 
     def __init__(self, parent, sectype, *args):
         QGraphicsItemGroup.__init__(self, parent)
+        self.setHandlesChildEvents(False)
         self.setZValue(2)
         self.pit = sectype(self, *args, pit=True)
         self.regular = sectype(self, *args, pit=False)
         self.addToGroup(self.pit)
         self.addToGroup(self.regular)
+        # act as a proxy for almost all methods
+        self.enableHoverEffect = self.regular.enableHoverEffect
         self.finalLocation = self.regular.finalLocation
         self.length = self.regular.length
         self.setColor = self.regular.setColor
+        self.setToolTip = self.regular.setToolTip
 
     def projection(self, pos, pit):
         if pit:
@@ -187,6 +209,7 @@ class Track(QGraphicsItemGroup):
 
     def __init__(self, sectors, colorfunc):
         QGraphicsItemGroup.__init__(self)
+        self.setHandlesChildEvents(False)
         sectors = self._sectorsToItems(sectors, colorfunc)
         self.__sectors = []
         self.__totalLength = 0
@@ -197,6 +220,10 @@ class Track(QGraphicsItemGroup):
             elif s.length() > 0:
                 self.__sectors.append(s)
                 self.__totalLength += s.length()
+
+    def enableHoverEffect(self):
+        for s in self.__sectors:
+            s.enableHoverEffect()
 
     def projection(self, pos, pit):
         """
@@ -212,6 +239,9 @@ class Track(QGraphicsItemGroup):
 
     def setSectorColor(self, sectId, color):
         self.__sectors[sectId].setColor(color)
+
+    def setSectorTooltip(self, sectId, tooltip):
+        self.__sectors[sectId].setToolTip(tooltip)
 
     def _sectorsToItems(self, sectors, nextColor):
         color = nextColor()
