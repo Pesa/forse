@@ -19,14 +19,13 @@ class AbstractSector(object):
 
     def __init__(self, pos, angle, length=0):
         object.__init__(self)
-        self._initialPos = pos
         self._length = length
         self.setCacheMode(QGraphicsPathItem.DeviceCoordinateCache)
-        self.translate(pos.x(), pos.y())
-        self.rotate(angle)
+        self.setPos(pos)
+        self.setRotation(angle)
 
     def finalLocation(self):
-        return self._initialPos, 0.0
+        return self.pos(), 0.0
 
     def length(self):
         return self._length
