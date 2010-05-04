@@ -6,20 +6,33 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>400</height>
+    <width>700</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Weather Station</string>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="WeatherView" name="weatherView"/>
+    </item>
+   </layout>
+  </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="sizeGripEnabled">
     <bool>false</bool>
    </property>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>WeatherView</class>
+   <extends>QGraphicsView</extends>
+   <header>WeatherView</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

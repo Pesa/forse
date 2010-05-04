@@ -8,8 +8,6 @@ class WeatherStationWindow(QMainWindow, Ui_WeatherStationWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        handlers = {}
-        SubscriberApplication.registerMsgHandlers(handlers)
         SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
         SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
         SubscriberApplication.instance().subscribe()
