@@ -3,7 +3,8 @@ from twotp import Atom
 from OTPApplication import OTPApplication
 
 
-__all__ = ['BootstrapServer', 'Car', 'EventDispatcher', 'NodeManager', 'Scheduler']
+__all__ = ['BootstrapServer', 'Car', 'EventDispatcher',
+           'NodeManager', 'Scheduler', 'Weather']
 
 
 class _RPCReply(object):
@@ -119,3 +120,8 @@ class Scheduler(object):
     setSpeedup = _RPCTo("scheduler", "set_speedup")
     startSimulation = _RPCTo("scheduler", "start_simulation")
     pauseSimulation = _RPCTo("scheduler", "pause_simulation")
+
+
+class Weather(object):
+
+    scheduleChange = _RPCTo("weather", "schedule_change")
