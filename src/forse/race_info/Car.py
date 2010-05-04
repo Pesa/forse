@@ -4,12 +4,9 @@ from PyQt4.QtGui import QGraphicsItem, QGraphicsColorizeEffect, QFont, QPen
 from PilotInfo import PilotInfo
 
 
-__all__ = ['Car']
-
-_carSize = 32
-
-
 class Car(QGraphicsItem):
+
+    carSize = 32
 
     def __init__(self, track, carId, startPos=0, pitLane=False):
         QGraphicsItem.__init__(self)
@@ -21,16 +18,17 @@ class Car(QGraphicsItem):
         self._id = carId
         self._position = startPos
         self._pit = pitLane
-        self._effect = QGraphicsColorizeEffect()
-        self._effect.setColor(Qt.darkMagenta)
-        self._effect.setEnabled(False)
         self._font = QFont()
         self._font.setPointSize(16)
-        self._pen = QPen(Qt.black, _carSize, Qt.SolidLine, Qt.RoundCap)
-        self._rect = QRectF(-_carSize / 2, -_carSize / 2, _carSize, _carSize)
-        self.refreshToolTip()
-        self.setGraphicsEffect(self._effect)
+        self._pen = QPen(Qt.black, self.carSize, Qt.SolidLine, Qt.RoundCap)
+        self._rect = QRectF(-self.carSize / 2, -self.carSize / 2,
+                            self.carSize, self.carSize)
         self._translateToNewPos()
+        self.refreshToolTip()
+        e = QGraphicsColorizeEffect()
+        e.setColor(Qt.darkMagenta)
+        e.setEnabled(False)
+        self.setGraphicsEffect(e)
 
     def advance(self, phase):
         if phase == 1:

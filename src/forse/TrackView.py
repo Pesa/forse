@@ -2,6 +2,9 @@ from PyQt4.Qt import Qt
 from PyQt4.QtGui import QGraphicsView, QPainter
 
 
+__all__ = ['TrackView']
+
+
 class TrackView(QGraphicsView):
 
     def __init__(self, parent=None):
