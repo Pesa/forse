@@ -1,11 +1,14 @@
 from PyQt4.Qt import Qt
+from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtGui import QColor, QGraphicsScene
 from OTPApplication import OTPApplication
-from Track import Track
+from Track import PhysicalSector, Track
 from TrackView import TrackView
 
 
 class WeatherView(TrackView):
+
+    sectorClicked = pyqtSignal(int)
 
     def __init__(self, parent=None):
         TrackView.__init__(self, parent)
@@ -15,6 +18,14 @@ class WeatherView(TrackView):
                     ('init', 'weather'): self._setWeather,
                     ('update', 'weather'): self._setWeather}
         OTPApplication.registerMsgHandlers(handlers)
+
+    def mousePressEvent(self, event):
+        for item in self.items(event.pos()):
+            if isinstance(item, PhysicalSector):
+                sectId = item.sectorId()
+                if sectId is not None:
+                    self.sectorClicked.emit(sectId)
+                break
 
     def _initTrack(self, sectors):
         self._track = Track(sectors, lambda: Qt.darkGray)
