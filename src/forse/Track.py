@@ -19,6 +19,7 @@ class AbstractSector(object):
 
     def __init__(self, pos, angle, length=0):
         object.__init__(self)
+        self._id = None
         self._length = length
         self.setCacheMode(QGraphicsPathItem.DeviceCoordinateCache)
         self.setPos(pos)
@@ -30,8 +31,14 @@ class AbstractSector(object):
     def length(self):
         return self._length
 
+    def sectorId(self):
+        return self._id
+
     def setColor(self, color):
         pass
+
+    def setSectorId(self, sectId):
+        self._id = sectId
 
 
 class Sector(QGraphicsPathItem, AbstractSector):
@@ -182,7 +189,9 @@ class SectorWithPitlane(QGraphicsItemGroup):
         self.enableHoverEffect = self.regular.enableHoverEffect
         self.finalLocation = self.regular.finalLocation
         self.length = self.regular.length
+        self.sectorId = self.regular.sectorId
         self.setColor = self.regular.setColor
+        self.setSectorId = self.regular.setSectorId
         self.setToolTip = self.regular.setToolTip
 
     def projection(self, pos, pit):
@@ -217,6 +226,7 @@ class Track(QGraphicsItemGroup):
             if isinstance(s, FinishLine):
                 self.__offset = self.__totalLength
             elif s.length() > 0:
+                s.setSectorId(len(self.__sectors))
                 self.__sectors.append(s)
                 self.__totalLength += s.length()
 
@@ -280,7 +290,7 @@ class Track(QGraphicsItemGroup):
                 items.append(item)
         # fix coloring of the last intermediate
         for item in items:
-            if isinstance(item, Intermediate) or isinstance(item, FinishLine):
+            if isinstance(item, (FinishLine, Intermediate)):
                 break
             item.setColor(color)
         return items
