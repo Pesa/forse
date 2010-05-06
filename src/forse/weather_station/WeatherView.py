@@ -20,12 +20,16 @@ class WeatherView(TrackView):
         OTPApplication.registerMsgHandlers(handlers)
 
     def mousePressEvent(self, event):
+        handled = False
         for item in self.items(event.pos()):
             if isinstance(item, PhysicalSector):
                 sectId = item.sectorId()
                 if sectId is not None:
                     self.sectorClicked.emit(sectId)
+                    handled = True
                 break
+        if not handled:
+            TrackView.mousePressEvent(self, event)
 
     def _initTrack(self, sectors):
         self._track = Track(sectors, lambda: Qt.darkGray)
@@ -35,7 +39,7 @@ class WeatherView(TrackView):
 
     def _setWeather(self, weather):
         for sectId, rain in weather:
-            rain = sectId % 11 # FIXME: only for testing
+            #rain = sectId % 11 # FIXME: only for testing
             r = g = 100 - rain * 10
             b = 50 + (360 / (12 - rain))
             self._track.setSectorColor(sectId, QColor(r, g, b))
