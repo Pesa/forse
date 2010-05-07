@@ -1,6 +1,7 @@
 from PyQt4.Qt import Qt
 from PyQt4.QtGui import QMainWindow
 from Subscriber import SubscriberApplication
+from SpinBoxDelegate import SpinBoxDelegate
 from WeatherModel import WeatherModel
 from Ui_WeatherStationWindow import Ui_WeatherStationWindow
 
@@ -13,6 +14,7 @@ class WeatherStationWindow(QMainWindow, Ui_WeatherStationWindow):
         self.__model = WeatherModel()
         self.__model.modelReset.connect(self.weatherTable.resizeColumnsToContents, Qt.QueuedConnection)
         self.weatherTable.setModel(self.__model)
+        self.weatherTable.setItemDelegateForColumn(2, SpinBoxDelegate(self))
         self.weatherView.sectorClicked.connect(self.weatherTable.selectRow)
         handlers = {('update', 'weather'): self._weatherChanged}
         SubscriberApplication.registerMsgHandlers(handlers)

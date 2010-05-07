@@ -19,7 +19,18 @@ class WeatherModel(QAbstractTableModel):
     def rowCount(self, _parent):
         return len(self.__weather)
 
+    def flags(self, index):
+        flags = QAbstractTableModel.flags(self, index)
+        if index.column() == 2:
+            flags |= Qt.ItemIsEditable
+        return flags
+
     def data(self, index, role):
+        if index.column() == 2 and role == Qt.EditRole:
+            try:
+                return QVariant(self.__changes[index.row()])
+            except KeyError:
+                return QVariant(self.__weather[index.row()])
         if role == Qt.DisplayRole:
             try:
                 if index.column() == 0:
@@ -33,15 +44,21 @@ class WeatherModel(QAbstractTableModel):
         return QVariant()
 
     def headerData(self, section, orientation, role):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
-                if section == 0:
-                    return QVariant("Sector")
-                elif section == 1:
-                    return QVariant("Current")
-                elif section == 2:
-                    return QVariant("Local changes")
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            if section == 0:
+                return QVariant("Sector")
+            elif section == 1:
+                return QVariant("Current")
+            elif section == 2:
+                return QVariant("Local changes")
         return QVariant()
+
+    def setData(self, index, value, role):
+        if index.column() == 2 and role == Qt.EditRole and value != self.__weather[index.row()]:
+            self.__changes[index.row()] = value
+            self.dataChanged.emit(index, index)
+            return True
+        return False
 
     def _setWeather(self, weather):
         for sectId, rain in weather:
