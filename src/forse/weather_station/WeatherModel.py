@@ -13,6 +13,13 @@ class WeatherModel(QAbstractTableModel):
                     ('update', 'weather'): self._setWeather}
         OTPApplication.registerMsgHandlers(handlers)
 
+    def changes(self):
+        return self.__changes.items()
+
+    def discardChanges(self):
+        self.__changes = {}
+        self.reset()
+
     def columnCount(self, _parent):
         return 3
 
@@ -54,13 +61,25 @@ class WeatherModel(QAbstractTableModel):
         return QVariant()
 
     def setData(self, index, value, role):
-        if index.column() == 2 and role == Qt.EditRole and value != self.__weather[index.row()]:
-            self.__changes[index.row()] = value
+        changed = False
+        if index.column() == 2 and role == Qt.EditRole:
+            r = index.row()
+            if value != self.__weather[r]:
+                self.__changes[r] = value
+                changed = True
+            elif r in self.__changes:
+                del self.__changes[r]
+                changed = True
+        if changed:
             self.dataChanged.emit(index, index)
-            return True
-        return False
+        return changed
 
     def _setWeather(self, weather):
         for sectId, rain in weather:
             self.__weather[sectId] = rain
+            try:
+                if self.__changes[sectId] == rain:
+                    del self.__changes[sectId]
+            except KeyError:
+                pass
         self.reset()
