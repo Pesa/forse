@@ -206,12 +206,13 @@ process_next(#state{timing_info = Timing} = State)
 	case State#state.workqueue of
 		[{Time, Callback} | Tail] ->
 			Args = [Time | Callback#callback.args],
+			Now = erlang:max(Time, Timing#timing.start),
 			% check whether a new timer can be started
 			NewTiming = case Tail of
 							[{NextTime, _} | _] ->
-								new_timer(Time, NextTime, State#state.speedup);
+								new_timer(Now, NextTime, State#state.speedup);
 							[] ->
-								#timing{start = erlang:max(Time, Timing#timing.start)}
+								#timing{start = Now}
 						end,
 			% send the token by invoking the provided callback in a separate process
 			scheduler_helper:give_token(Callback#callback{args = Args}),
@@ -242,18 +243,21 @@ recalculate_timer(#timing{timer = undefined, start = Start}, [{NextTime, _} | _]
 	new_timer(Start, NextTime, Speedup);
 recalculate_timer(#timing{expiry = NextTime} = Timing, [{NextTime, _} | _], _Speedup) ->
 	Timing;
-recalculate_timer(#timing{timer = Timer, expiry = Expiry} = Timing, [{NextTime, _} | _], Speedup) ->
+recalculate_timer(#timing{timer = Timer} = Timing, [{NextTime, _} | _], Speedup) ->
 	case erlang:cancel_timer(Timer) of
 		false ->
 			%?DBG("not adjusting an already expired timer."),
 			Timing;
 		RemainingTime ->
 			%?DBG({"adjusting timer to expire at", NextTime}),
-			% RemainingTime is expressed in milliseconds
+			Expiry = Timing#timing.expiry,
+			% note that RemainingTime is expressed in milliseconds
+			% and NextTime is strictly lesser than Expiry
 			SleepAmount = RemainingTime / 1000 - (Expiry - NextTime) / Speedup,
+			Now = Expiry - Speedup * RemainingTime / 1000,
 			#timing{timer = start_timer(SleepAmount),
-					start = Expiry - RemainingTime / 1000 * Speedup,
-					expiry = NextTime}
+					start = Now,
+					expiry = erlang:max(Now, NextTime)}
 	end.
 
 % Starts a timer which fires after SleepAmount seconds.
