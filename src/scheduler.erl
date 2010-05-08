@@ -62,7 +62,8 @@ pause_simulation() ->
 
 -spec queue_work(time(), #callback{}) -> 'ok'.
 
-queue_work(Time, Callback) when is_record(Callback, callback) ->
+queue_work(Time, Callback)
+  when is_number(Time), Time >= 0, is_record(Callback, callback) ->
 	gen_server:call(?GLOBAL_NAME, {enqueue, Time, Callback}, infinity).
 
 -spec work_done() -> 'ok'.
