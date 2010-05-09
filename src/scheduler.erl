@@ -205,17 +205,18 @@ process_next(#state{timing_info = Timing} = State)
 	   State#state.token_available,
 	   Timing#timing.timer == undefined ->
 	case State#state.workqueue of
-		[{Time, Callback} | Tail] ->
-			Args = [Time | Callback#callback.args],
-			Now = erlang:max(Time, Timing#timing.start),
+		[{CurrentJobTime, Callback} | Tail] ->
+			% be careful not to go back in time
+			Now = erlang:max(CurrentJobTime, Timing#timing.start),
 			% check whether a new timer can be started
 			NewTiming = case Tail of
-							[{NextTime, _} | _] ->
-								new_timer(Now, NextTime, State#state.speedup);
+							[{NextJobTime, _} | _] ->
+								new_timer(Now, NextJobTime, State#state.speedup);
 							[] ->
 								#timing{start = Now}
 						end,
 			% send the token by invoking the provided callback in a separate process
+			Args = [Now | Callback#callback.args],
 			scheduler_helper:give_token(Callback#callback{args = Args}),
 			State#state{token_available = false,
 						timing_info = NewTiming,
@@ -227,15 +228,6 @@ process_next(#state{timing_info = Timing} = State)
 process_next(State) ->
 	%?DBG("preconditions not satisfied."),
 	State.
-
-% Starts a new timer to expire at Expiry.
--spec new_timer(time(), time(), number()) -> #timing{}.
-
-new_timer(Now, Expiry, Speedup) ->
-	SleepAmount = (Expiry - Now) / Speedup,
-	#timing{timer = start_timer(SleepAmount),
-			start = Now,
-			expiry = Expiry}.
 
 % Adjusts the expiration time of the currently pending timer, if necessary.
 -spec recalculate_timer(#timing{}, workqueue(), number()) -> #timing{}.
@@ -249,22 +241,26 @@ recalculate_timer(#timing{timer = Timer} = Timing, [{NextTime, _} | _], Speedup)
 		false ->
 			%?DBG("not adjusting an already expired timer."),
 			Timing;
-		RemainingTime ->
+		MsecsLeft ->
 			%?DBG({"adjusting timer to expire at", NextTime}),
-			Expiry = Timing#timing.expiry,
-			% note that RemainingTime is expressed in milliseconds
-			% and NextTime is strictly lesser than Expiry
-			SleepAmount = RemainingTime / 1000 - (Expiry - NextTime) / Speedup,
-			Now = Expiry - Speedup * RemainingTime / 1000,
-			#timing{timer = start_timer(SleepAmount),
-					start = Now,
-					expiry = erlang:max(Now, NextTime)}
+			SecsLeft = MsecsLeft / 1000,
+			Now = Timing#timing.expiry - SecsLeft * Speedup,
+			new_timer(Now, NextTime, Speedup)
 	end.
+
+% Starts a new timer to expire at Expiry.
+-spec new_timer(time(), time(), number()) -> #timing{}.
+
+new_timer(Now, Expiry, Speedup) ->
+	SleepAmount = (Expiry - Now) / Speedup,
+	#timing{timer = start_timer(SleepAmount),
+			start = Now,
+			expiry = erlang:max(Now, Expiry)}.
 
 % Starts a timer which fires after SleepAmount seconds.
 -spec start_timer(time()) -> reference().
 
-start_timer(SleepAmount) ->
+start_timer(SleepAmount) when is_number(SleepAmount) ->
 	erlang:start_timer(erlang:max(0, round(SleepAmount * 1000)), self(), wakeup).
 
 % Cancels any pending timer.
