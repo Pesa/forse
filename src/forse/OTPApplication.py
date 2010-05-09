@@ -14,9 +14,13 @@ class _ProxyHandler(object):
         object.__init__(self)
         self.__handlers = {}
 
+    def clearHandlers(self):
+        self.__handlers = {}
+
     def createHandler(self, name, method):
-        # FIXME: previous handlers are overwritten!
-        setattr(self, "remote_" + name, method)
+        name = "remote_" + name
+        if not hasattr(self, name):
+            setattr(self, name, method)
 
     def installHandler(self, tag, method):
         if tag not in self.__handlers:
@@ -98,6 +102,10 @@ class OTPApplication(QApplication):
     def registerMsgHandlers(cls, handlers):
         for tag, method in handlers.iteritems():
             cls.proxy.installHandler(tag, method)
+
+    @classmethod
+    def removeAllHandlers(cls):
+        cls.proxy.clearHandlers()
 
     @classmethod
     def rpc(cls, mod, fun, *args):

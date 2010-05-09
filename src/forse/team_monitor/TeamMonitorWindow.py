@@ -1,7 +1,8 @@
 from PyQt4.QtCore import QTimer
-from PyQt4.QtGui import QInputDialog, QMainWindow
+from PyQt4.QtGui import QMainWindow
 from Subscriber import SubscriberApplication
 from CarStatusWidget import CarStatusWidget
+from TeamChooser import TeamChooser
 from Util import listToString
 from Ui_TeamMonitorWindow import Ui_TeamMonitorWindow
 
@@ -11,15 +12,19 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
-        handlers = {('init', 'new_pilot'): self._newPilot}
-        SubscriberApplication.registerMsgHandlers(handlers)
         SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
         SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
         QTimer.singleShot(0, self._chooseTeam)
 
     def _chooseTeam(self):
-        teamId, ok = QInputDialog.getInt(self, "Choose team", "Choose a team to monitor:", 1, 1)
-        if ok:
+        dialog = TeamChooser(self)
+        SubscriberApplication.instance().subscribe()
+        if dialog.exec_() == TeamChooser.Accepted:
+            teamId, teamName = dialog.chosenTeam()
+            self.setWindowTitle(teamName + ' ' + self.windowTitle())
+            SubscriberApplication.removeAllHandlers()
+            handlers = {('init', 'new_pilot'): self._newPilot}
+            SubscriberApplication.registerMsgHandlers(handlers)
             SubscriberApplication.instance().setSubscriptionOptions([teamId])
             SubscriberApplication.instance().subscribe()
         else:

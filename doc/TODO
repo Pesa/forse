@@ -1,4 +1,3 @@
-- fare/finire GUI e backend per weather
 - fault tolerance: aggiungere un contatore ad ogni msg che va incrementato quando
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - migliorare gestione errori in bootstrap_server:bootstrap/2
@@ -9,8 +8,8 @@
 - implementare ordine di partenza delle auto casuale
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
-- segfault in control_panel
-- team_monitor: mostrare nome del team
+- backtrace e segfault in control_panel
+- gestire race_notif in weather_backend
 - Arch.dia: * Race Info comunica con Scheduler, aggiungere freccia
 	    * Team Monitor comunica con Car, non con Team
 	    * togliere freccia da Track a Dispatcher?
