@@ -55,10 +55,11 @@ class Car(QGraphicsItem):
         painter.drawText(self._rect, Qt.AlignCenter | Qt.TextDontClip, str(self._id))
 
     def refreshToolTip(self):
-        tooltip = "Car %i (%s)\n%s - %s" % (self._id,
-                                            PilotInfo.get(self._id).state(),
-                                            PilotInfo.get(self._id).name(),
-                                            PilotInfo.get(self._id).teamName())
+        tooltip = "Car %i" % self._id
+        if PilotInfo.get(self._id).state() == "retired":
+            tooltip += " (retired)"
+        tooltip += "\n%s - %s" % (PilotInfo.get(self._id).name(),
+                                  PilotInfo.get(self._id).teamName())
         self.setToolTip(tooltip)
 
     def updatePos(self, pos, pit):
