@@ -31,7 +31,8 @@
 -record(state, {subscribers		= []	:: [#subscriber{}],
 				finish_line_index		:: intermediate(),
 				rain_sum				:: non_neg_integer(),
-				pilots			= []	:: [#pilot_info{}]}).
+				pilots			= []	:: [#pilot_info{}],
+				teams			= []	:: [{team(), Name :: string()}]}).
 
 
 %% ====================================================================
@@ -80,12 +81,13 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	Pred = fun(E) when is_record(E, pilot_info) ->
+	Pred = fun(E) ->
 				   lists:member(E#pilot_info.msg_opt, S#subscriber.opts)
 		   end,
 	Pilots = lists:filter(Pred, State#state.pilots),
 	PilotMsgs = lists:flatmap(fun build_sub_msgs/1, Pilots),
 	List = PilotMsgs ++ [{max_fuel, ?TANK_DIM},
+						 {names, State#state.teams},
 						 {rain_sum, State#state.rain_sum}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
@@ -141,8 +143,19 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	InitMsg = build_new_pilot_msg(PInfo),
 	Subs1 = event_dispatcher:notify_init(Opt, InitMsg, State#state.subscribers),
 	Subs2 = event_dispatcher:notify_init(Opt, CS, Subs1),
-	{noreply, State#state{pilots = [PInfo | State#state.pilots],
+	{noreply, State#state{pilots = State#state.pilots ++ [PInfo],
 						  subscribers = Subs2}};
+
+handle_cast(#config_notif{app = team, config = CarType}, State) ->
+	T = {CarType#car_type.id, CarType#car_type.team_name},
+	Subs = case State#state.teams of
+			   [] ->
+				   event_dispatcher:notify_init({names, [T]}, State#state.subscribers);
+			   _ ->
+				   event_dispatcher:notify_update({names, T}, State#state.subscribers)
+		   end,
+	{noreply, State#state{teams = State#state.teams ++ [T],
+						  subscribers = Subs}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from other apps
