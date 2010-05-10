@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper]{report}
+\documentclass[a4paper]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[italian]{babel}
 \usepackage[pdftex]{hyperref}
@@ -17,10 +17,11 @@
 	pdfauthor={Daniele Battaglia \& Davide Pesavento}
 }
 
-\title{Relazione sul progetto}
+\title{{\huge \textsl{F.O.R.S.E.}}\\
+	{\large Relazione sul progetto di Sistemi Concorrenti e Distribuiti}}
 \author{Daniele Battaglia\\\url{dbat.fk@gmail.com}
 	\and Davide Pesavento\\\url{davidepesa@gmail.com}}
-\date{}
+%\date{}
 
 \newcommand{\term}[2]{\textbf{#1} & #2 \\}
 \newcommand{\Erlang}{\textsl{Erlang}}
@@ -38,12 +39,11 @@
 
 
 \chapter{Introduzione}
-La presente relazione, unitamente al software \textsl{FORSE}, è stata realizzata come prova d'esame per il corso ``Sistemi Concorrenti e Distribuiti''.
+La presente relazione, unitamente al software denominato \textsl{``Formula One Race Simulation Engine''} (\textsl{FORSE}), è stata realizzata come prova d'esame per il corso ``Sistemi Concorrenti e Distribuiti''.
 
-I requisiti considerati in fase di progettazione sono stati ricavati da quelli proposti dal docente (\url{http://www.math.unipd.it/~tullio/SCD/2008/Progetto.html})
-secondo le clausole di partecipazione di livello 3.
+I requisiti considerati in fase di progettazione sono stati ricavati da quelli proposti dal docente\footnote{\url{http://www.math.unipd.it/~tullio/SCD/2008/Progetto.html}} secondo le clausole di partecipazione di livello 3.
 
-\textsl{Formula One Race Simulation Engine} è realizzato utilizzando i linguaggi \Erlang{} e \Python{}. Per la distribuzione dell'applicazione abbiamo
+\textsl{FORSE} è stato realizzato utilizzando i linguaggi di programmazione \Erlang{} e \Python{}. Per la distribuzione dell'applicazione abbiamo
 usato il protocollo di distribuzione \Erlang{}, supportato nativamente dall'omonimo linguaggio e implementato dalla libreria \textsl{TwOTP} per il linguaggio
 \Python{}.
 Per la creazione di interfacce grafiche è stata utilizzata la libreria \textsl{Qt}.
@@ -53,51 +53,50 @@ centrali del corso, a scapito della parte riguardante la correttezza della simul
 gli elementi essenziali della dinamica di una gara automobilistica anche se con alcune semplificazioni.
 
 Nella prima parte del documento verranno esposti i requisiti espliciti, ricavati dalle richieste del docente, ed impliciti, estratti dal contesto reale che il software \textsl{FORSE} deve simulare.
-Successivamente verranno elencati i problemi intrinseci che la progettazione del sistema deve affrontare e questi ultimi verranno analizzati alla luce delle conoscenze acquisite durante il corso.
-Nella seconda parte della relazione verrà esposta la soluzione trovata, prima a livello progettuale/architetturale, poi a livello di implementazione mostrando come i problemi precedentemente trovati vengano risolti in modo soddisfacente dal prototipo.
+In seguito verranno elencati i problemi intrinseci che la progettazione del sistema deve affrontare ed essi verranno analizzati alla luce delle conoscenze acquisite durante il corso.
+Nella seconda parte della relazione verrà illustrata la nostra soluzione, prima a livello progettuale/architetturale e successivamente a livello di implementazione, mostrando come i problemi precedentemente individuati vengano risolti in modo soddisfacente dal prototipo.
 
 
 \chapter{Requisiti}
 \begin{enumerate}
 \item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
 \item La simulazione evolve in modo deterministico.
-\item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. Il file contiene le seguenti informazioni:
+\item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. L'utente deve poter specificare le seguenti informazioni:
 	\begin{itemize}
-	\item[--] tipo di settore (rettilineo, curvilineo, entrata e uscita dai \textit{box}, intermedio cronometrico, traguardo);
-	\item[--] lunghezza e larghezza del segmento;
-	\item[--] se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
-	\item[--] pendenza del suolo;
-	\item[--] tempo atmosferico iniziale;
-	\item[--] eventuali variazioni del tempo atmosferico nel corso della gara.
+	\item tipo di settore (rettilineo, curvilineo, entrata e uscita dai \textit{box}, intermedio cronometrico, traguardo);
+	\item lunghezza e larghezza di ciascun settore;
+	\item se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
+	\item pendenza del suolo;
+	\item tempo atmosferico iniziale;
+	\item eventuali variazioni del tempo atmosferico nel corso della gara.
 	\end{itemize}
 \item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
 	\begin{itemize}
-	\item[--] numero identificativo;
-	\item[--] nome;
-	\item[--] una scuderia di appartenenza;
-	\item[--] esperienza/bravura;
-	\item[--] peso;
-	\item[--] vettura utilizzata.
+	\item nome;
+	\item scuderia di appartenenza;
+	\item esperienza/bravura;
+	\item peso;
+	\item vettura utilizzata.
 	\end{itemize}
 \item Parametri di configurazione delle auto:
 	\begin{itemize}
-	\item[--] capienza del serbatoio;
-	\item[--] quantità di carburante presente nel serbatoio a inizio gara;
-	\item[--] tipo di pneumatici montato ad inizio gara (da asciutto, intermedio, da bagnato);
-	\item[--] potenza del motore;
-	\item[--] potenza dei freni;
-	\item[--] peso a secco.
+	\item capienza del serbatoio;
+	\item quantità di carburante presente nel serbatoio ad inizio gara;
+	\item tipo dei pneumatici montati ad inizio gara (\textit{slick}, intermedi, da bagnato);
+	\item potenza del motore;
+	\item potenza dei freni;
+	\item peso a secco.
 	\end{itemize}
 \item Parametri di configurazione di una competizione:
 	\begin{itemize}
-	\item[--] numero totale di giri da effettuare nella gara;
-	\item[--] ordine di partenza dei piloti nella griglia di partenza;
+	\item numero totale di giri da effettuare;
+	\item opzionalmente, la posizione dei concorrenti sulla griglia di partenza;
 	\end{itemize}
-\item Sistema di controllo:
+\item Il sistema di controllo deve essere composto da:
 	\begin{itemize}
-	\item[--] un pannello generale con posizione dei concorrenti in gara, tempo attuale e migliore sul giro, con la possibilità per l'utente di sospendere e riprendere la simulazione;
-	\item[--] situazione atmosferica della pista, con la possibilità per l'utente di apportare modifiche alle condizioni meteo a gara iniziata;
-	\item[--] un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, usura dei pneumatici e loro tipo) nonché i tempi di percorrenza per settore di pista e totali. Deve essere inoltre possibile per l'utente forzare la sosta ai box e il ritiro di un'auto.
+	\item un pannello generale indicante posizione dei concorrenti in gara, tempi di percorrenza attuali e miglior tempo sul giro, con la possibilità per l'utente di sospendere e riprendere la simulazione;
+	\item situazione atmosferica della pista, con la possibilità per l'utente di apportare modifiche alle condizioni meteo anche dopo che la gara è iniziata;
+	\item un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, mescola dei pneumatici e loro condizioni di usura) nonché i tempi di percorrenza per settore di pista e totali; deve essere inoltre possibile per l'utente forzare la sosta ai box e il ritiro di un'auto.
 	\end{itemize}
 \end{enumerate}
 
@@ -433,17 +432,17 @@ Il prototipo è realizzato in \Erlang{} e \Python{} con l'utilizzo delle libreri
 Di seguito le versioni del software utilizzato:
 \begin{center}
 \begin{tabular}{c|c}
-\textbf{Software} & \textbf{Versione} \\
+\textbf{Software} & \textbf{Versione testata} \\
 \hline
-Erlang & R13B03 \\
+Erlang & R13B04 o successiva \\
 \hline
 Python & 2.6.4 \\
 \hline
-Twisted & 9.0.0 \\
+Twisted & 9.0.0 o successiva \\
 TwOTP & 0.7 \\
 \hline
-Qt & 4.6 \\
-PyQt & 4.7 \\
+Qt & 4.6.x \\
+PyQt & 4.7.3 o successiva \\
 \end{tabular}
 \end{center}
 
