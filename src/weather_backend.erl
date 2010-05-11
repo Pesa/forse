@@ -15,12 +15,14 @@
 
 -include("common.hrl").
 
+-type race_state() :: 'initialized' | 'running' | 'paused' | 'finished' | 'terminated'.
 -type sect_id()	:: non_neg_integer().
 
--record(state, {subscribers	= []	:: [#subscriber{}],
-				map			= []	:: [{sgm_id(), sect_id()}],
-				sectors		= []	:: [tuple()],
-				weather		= []	:: [{sect_id(), rain_amount()}]}).
+-record(state, {subscribers	= []			:: [#subscriber{}],
+				race_state	= initialized	:: race_state(),
+				map			= []			:: [{sgm_id(), sect_id()}],
+				sectors		= []			:: [tuple()],
+				weather		= []			:: [{sect_id(), rain_amount()}]}).
 
 
 %% ====================================================================
@@ -69,7 +71,8 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	List = [{sectors, State#state.sectors},
+	List = [{race_state, State#state.race_state},
+			{sectors, State#state.sectors},
 			{weather, State#state.weather}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
@@ -105,9 +108,15 @@ handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from other apps
 	{noreply, State};
 
-handle_cast(Msg, State) when is_record(Msg, race_notif) ->
-	%TODO elaborare i dati ricevuti
-	{noreply, State};
+handle_cast(#race_notif{event = Ev}, State) ->
+	RaceState = case Ev of
+					started -> running;
+					resumed -> running;
+					Else -> Else
+				end,
+	Subs = event_dispatcher:notify_init({race_state, RaceState}, State#state.subscribers),
+	{noreply, State#state{subscribers = Subs,
+						  race_state = RaceState}};
 
 handle_cast(#weather_notif{changes = Changes}, State) ->
 	SortedChanges = lists:keysort(#weather_change.segment, Changes),
