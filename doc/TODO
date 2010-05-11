@@ -9,4 +9,3 @@
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - backtrace e segfault in control_panel
-- gestire race_notif in weather_backend
