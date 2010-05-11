@@ -1,5 +1,5 @@
 from PyQt4.Qt import Qt
-from PyQt4.QtGui import QDialogButtonBox, QMainWindow
+from PyQt4.QtGui import QDialogButtonBox, QLabel, QMainWindow
 from Subscriber import SubscriberApplication
 from Remote import Weather
 from SpinBoxDelegate import SpinBoxDelegate
@@ -12,6 +12,8 @@ class WeatherStationWindow(QMainWindow, Ui_WeatherStationWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.stateLabel = QLabel()
+        self.statusBar().addPermanentWidget(self.stateLabel)
         self.__model = WeatherModel()
         self.__model.dataChanged.connect(self._handleModelChanges)
         self.__model.modelReset.connect(self._handleModelChanges)
@@ -20,7 +22,8 @@ class WeatherStationWindow(QMainWindow, Ui_WeatherStationWindow):
         self.weatherTable.setItemDelegateForColumn(2, SpinBoxDelegate(self))
         self.buttonBox.clicked.connect(self._handleButtonsClick)
         self.weatherView.sectorClicked.connect(self.weatherTable.selectRow)
-        handlers = {('update', 'weather'): self._weatherChanged}
+        handlers = {('init', 'race_state'): self._setRaceState,
+                    ('update', 'weather'): self._weatherChanged}
         SubscriberApplication.registerMsgHandlers(handlers)
         SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
         SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
@@ -40,6 +43,9 @@ class WeatherStationWindow(QMainWindow, Ui_WeatherStationWindow):
 
     def _handleModelChanges(self, _topLeft=None, _bottomRight=None):
         self.buttonBox.setEnabled(len(self.__model.changes()) > 0)
+
+    def _setRaceState(self, state):
+        self.stateLabel.setText(" Simulation %s   " % state.text)
 
     def _subscriptionError(self):
         self.statusBar().showMessage("Subscription failed, retrying ...", 1500)
