@@ -143,6 +143,9 @@ Deve essere quindi previsto un modo per comunicare a tutte le componenti del sis
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
 
+In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta tutta le componenti del sistema per non renderne difficile la fruizione. E' stata infatti omessa tutta la parte riguardate l'invio di messaggi dalla componente \texttt{event\_dispatcher} verso il resto del sistema, in quanto trattata in dettaglio nella sezione~\ref{sec:event_dispatcher}.
+
+Vengono inoltre omesse nello schema le componenti riguardati l'inizializzazione del prototipo descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.
 \begin{landscape}
 \begin{figure}
 \includegraphics[height=.35\paperheight]{diagrammi/Arch}
@@ -372,6 +375,7 @@ Essendo questa una componente \textit{subscriber}, essa richiede le funzionalit�
 Per quanto riguarda invece la modifica delle condizioni atmosferiche è necessario che la componente \texttt{weather} esponga in interfaccia il metodo \fun{schedule\_change}, in modo da permettere a \texttt{weather\_station} di comunicare le variazioni decise dall'utente a simulazione avviata.
 
 \section{Avvio e Terminazione}
+\label{sec:start-stop}
 Per rendere più usabile il prototipo abbiamo pensato di far svolgere l'avvio e la configurazione del sistema tramite interfaccia grafica.
 L'utente dovrà interagire con due tipi di interfacce di configurazione:
 \begin{itemize}
@@ -1027,7 +1031,39 @@ Inoltre, la validità di tali valori non viene controllata dal prototipo, di con
 
 
 \chapter{Avvio del prototipo}
+%%TODO devo mettere gli hostname da qualche parte?
+Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio.
+I primi tre passi dell'inizializzazione descritti in seguito sono obbligatori per l'avvio della simulazione mentre i rimanenti tre passi sono opzionali.
 
+Le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche a simulazione iniziata:
+\begin{itemize}
+\item \texttt{race\_info},
+\item \texttt{team\_monitor},
+\item \texttt{weather\_station},
+\item \texttt{debug\_log}.
+\end{itemize}
+
+\subsection*{Passo 1 - Control Panel}
+Per prima cosa è necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
+Poiché in tale interfaccia viene richiesto il percorso dei file di configurazione per la simulazione, è necessario che tali file siano raggiungibili dall'elaborare in cui viene eseguito lo script.
+
+\subsection*{Passo 2 - Node Configurator}
+Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
+
+Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textit{bootstrap}, precedentemente disabilitato, in \texttt{control panel}.
+
+\subsection*{Passo 3 - Race Info}
+Per poter avviare la simulazione è necessario che almeno una componente \texttt{race info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato.
+L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
+
+\subsection*{Passo 4 - Team Monitor}
+L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia scelta dall'utente in fase di avvio.
+
+\subsection*{Passo 5 - Weather Station}
+L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_weather\_station}.
+
+\subsection*{Passo 6 - Debug Log}
+L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_logger}.
 
 \chapter{Glossario}
 
