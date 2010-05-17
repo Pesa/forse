@@ -45,13 +45,13 @@
 %% max: maximum value of rain index
 -record(tyres_interval, {type	:: tyres(),
 						 min	:: float(),
-						 max	:: float()}).
+						 max	:: float() | 'infinity'}).
 
 %% List of tyres_interval records, it represents the intervals
 %% within which each different type of tyres performs better.
 -define(TYRES_SPECS, [#tyres_interval{type = slick, min = 0.0, max = 3.0},
 					  #tyres_interval{type = intermediate, min = 3.0, max = 6.5},
-					  #tyres_interval{type = wet, min = 6.5, max = 10.0}]).
+					  #tyres_interval{type = wet, min = 6.5, max = infinity}]).
 
 
 %% ====================================================================
@@ -198,13 +198,7 @@ handle_call({status_update, Status}, _From, State) ->
 
 handle_call({pitstop, CarId, CarStatus, Lap, CarPSCount}, _From, State) ->
 	AvgRain = State#state.rain_sum / utils:get_setting(sgm_number),
-	BestTyres = case best_tyres(AvgRain, ?TYRES_SPECS) of
-					null ->
-						% no appropriate tyres_type found: keep the old one
-						CarStatus#car_status.tyres_type;
-					Else ->
-						Else
-				end,
+	BestTyres = best_tyres(AvgRain, ?TYRES_SPECS),
 	CarStats = lists:keyfind(CarId, #car_stats.car_id, State#state.cars_stats),
 	{_TyresC, FuelC} = CarStats#car_stats.avg_consumption,
 	LapsLeft = utils:get_setting(total_laps) - Lap,
@@ -278,15 +272,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %% --------------------------------------------------------------------
 
--spec best_tyres(float(), [#tyres_interval{}]) -> tyres() | 'null'.
+-spec best_tyres(float(), [#tyres_interval{}]) -> tyres().
 
-best_tyres(Rain, [H | T]) ->
-	case Rain >= H#tyres_interval.min andalso Rain < H#tyres_interval.max of
-		true -> H#tyres_interval.type;
-		false -> best_tyres(Rain, T)
-	end;
-best_tyres(_Rain, []) ->
-	null.
+best_tyres(Rain, [H | _])
+  when Rain >= H#tyres_interval.min, Rain < H#tyres_interval.max ->
+	H#tyres_interval.type;
+best_tyres(Rain, [_ | T]) ->
+	best_tyres(Rain, T).
 
 -spec delta_consumption(#consumption{}, #consumption{}, integer()) -> avg_consumption().
 
