@@ -34,9 +34,11 @@
 								 {ram_copies, Nodes},
 								 {record_name, Record}]).
 
+-type candidate() :: {node(), MaxInstances :: pos_integer()}.
+
 -record(state, {bootstrapped	= false	:: boolean(),
 				ready			= false	:: boolean(),
-				candidates		= []	:: conflist(),
+				candidates		= []	:: [{App :: atom(), [candidate()]}],
 				nodes			= []	:: [node()],
 				gui_node				:: node(),
 				num_cars				:: non_neg_integer(),
@@ -315,18 +317,14 @@ app_spec(weather, Config) ->
 
 -spec check_reqs(#state{}) -> boolean().
 
-check_reqs(State) when State#state.teams_config == undefined ->
+check_reqs(#state{teams_config = undefined}) ->
 	false;
 check_reqs(State) ->
 	Sum = fun({_, N}, Acc) -> Acc + N end,
 	Check = fun({App, Min}) ->
 					case lists:keyfind(App, 1, State#state.candidates) of
 						{App, Nodes} ->
-							MaxAvail = lists:foldl(Sum, 0, Nodes),
-							if
-								MaxAvail >= Min -> true;
-								true -> false
-							end;
+							lists:foldl(Sum, 0, Nodes) >= Min;
 						false ->
 							false
 					end
@@ -342,7 +340,7 @@ check_reqs(State) ->
 			false
 	end.
 
--spec choose_nodes(conflist(), non_neg_integer(), [node()]) -> [node()].
+-spec choose_nodes([candidate()], non_neg_integer(), [node()]) -> [node()].
 
 choose_nodes(_, 0, Config) ->
 	Config;
