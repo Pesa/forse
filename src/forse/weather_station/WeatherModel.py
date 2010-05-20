@@ -1,5 +1,6 @@
 from PyQt4.Qt import Qt
 from PyQt4.QtCore import QAbstractTableModel, QVariant
+from PyQt4.QtGui import QIcon
 from OTPApplication import OTPApplication
 
 
@@ -9,6 +10,14 @@ class WeatherModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self)
         self.__changes = {}
         self.__weather = {}
+        self.__sun = QIcon(":/icons/sun.png")
+        self.__lightRain = QIcon(":/icons/light-rain.png")
+        self.__rain = QIcon(":/icons/rain.png")
+        self.__heavyRain = QIcon(":/icons/heavy-rain.png")
+        self.__icons = [self.__sun]
+        self.__icons[1:3] = [self.__lightRain] * 3
+        self.__icons[4:7] = [self.__rain] * 4
+        self.__icons[8:10] = [self.__heavyRain] * 3
         handlers = {('init', 'weather'): self._setWeather,
                     ('update', 'weather'): self._setWeather}
         OTPApplication.registerMsgHandlers(handlers)
@@ -33,11 +42,6 @@ class WeatherModel(QAbstractTableModel):
         return flags
 
     def data(self, index, role):
-        if index.column() == 2 and role == Qt.EditRole:
-            try:
-                return QVariant(self.__changes[index.row()])
-            except KeyError:
-                return QVariant(self.__weather[index.row()])
         if role == Qt.DisplayRole:
             try:
                 if index.column() == 0:
@@ -48,6 +52,15 @@ class WeatherModel(QAbstractTableModel):
                     return QVariant(self.__changes[index.row()])
             except KeyError:
                 pass
+        elif role == Qt.DecorationRole and index.column() == 1:
+            return QVariant(self.__icons[self.__weather[index.row()]])
+        elif role == Qt.EditRole and index.column() == 2:
+            try:
+                return QVariant(self.__changes[index.row()])
+            except KeyError:
+                return QVariant(self.__weather[index.row()])
+        elif role == Qt.TextAlignmentRole:
+            return QVariant(Qt.AlignCenter)
         return QVariant()
 
     def headerData(self, section, orientation, role):

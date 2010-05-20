@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Weather Station</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../icons.qrc">
+    <normaloff>:/icons/weather-station.png</normaloff>:/icons/weather-station.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
@@ -30,7 +34,7 @@
     <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
    </property>
    <property name="windowTitle">
-    <string>Amount of rain on track</string>
+    <string>Weather conditions</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
@@ -89,6 +93,8 @@
    <header>WeatherView</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../icons.qrc"/>
+ </resources>
  <connections/>
 </ui>
