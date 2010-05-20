@@ -72,7 +72,7 @@ handle_call(Msg, From, State) ->
 %% --------------------------------------------------------------------
 handle_cast(#callback{mod = M, func = F, args = A} = CB, State) ->
 	%?DBG({"sending token to", CB}),
-	case apply(M, F, A) of
+	case catch apply(M, F, A) of
 		{requeue, Time, NewCB}
 		  when is_number(Time), Time >= 0, is_record(NewCB, callback) ->
 			scheduler:queue_work(Time, NewCB);
