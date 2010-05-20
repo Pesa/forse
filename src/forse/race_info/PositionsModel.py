@@ -32,6 +32,9 @@ class PositionsModel(QAbstractTableModel):
                     return QVariant(PilotInfo.get(i).state())
             except KeyError:
                 pass
+        elif role == Qt.TextAlignmentRole:
+            if index.column() == 1:
+                return QVariant(Qt.AlignCenter)
         return QVariant()
 
     def headerData(self, section, orientation, role):
