@@ -203,16 +203,32 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 		[Track] = consult(TrackFile),
 		[Weather] = consult(WeatherFile),
 		
-		% count the number of cars declared in the config file
-		Count = fun(Team, Acc) ->
+		% count the number of cars declared in the config
+		% file and check that there are no duplicate IDs
+		Dup = fun(Car, Acc) ->
+					  case lists:keyfind(id, 1, Car) of
+						  {id, Id} ->
+							  case lists:member(Id, Acc) of
+								  true ->
+									  throw(lists:concat(["duplicate car ID ", Id]));
+								  false ->
+									  [Id | Acc]
+							  end;
+						  _ ->
+							  Acc
+					  end
+			  end,
+		Count = fun(Team, {N, Acc}) ->
 						case lists:keyfind(cars, 1, Team) of
 							{cars, Cars} when is_list(Cars) ->
-								Acc + length(Cars);
+								{N + length(Cars), lists:foldl(Dup, Acc, Cars)};
 							_ ->
-								Acc
+								{N, Acc}
 						end
 				end,
-		NewState = State#state{num_cars = lists:foldl(Count, 0, Teams),
+		{NumCars, _} = lists:foldl(Count, {0, []}, Teams),
+		
+		NewState = State#state{num_cars = NumCars,
 							   num_teams = length(Teams),
 							   teams_config = Teams,
 							   track_config = Track,
