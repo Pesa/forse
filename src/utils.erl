@@ -3,6 +3,7 @@
 %% Exported functions
 -export([build_id_atom/2,
 		 digits/1,
+		 shuffle/1,
 		 get_setting/1,
 		 set_setting/2,
 		 mnesia_read/2,
@@ -46,6 +47,13 @@ digits(Float) ->
 		_ ->
 			R
 	end.
+
+%% Generates a random permutation of the given list
+%% using the Fisher-Yates shuffling algorithm.
+-spec shuffle(list()) -> list().
+
+shuffle(List) when is_list(List) ->
+	shuffle(List, []).
 
 %% Returns the value associated with the setting Key.
 -spec get_setting(atom()) -> term().
@@ -262,3 +270,10 @@ log2floor(0, N) ->
 	N;
 log2floor(Int, N) ->
 	log2floor(Int bsr 1, 1 + N).
+
+shuffle([], Acc) ->
+	Acc;
+shuffle(List, Acc) ->
+	Rand = random:uniform(length(List)),
+	{Prefix, [H | T]} = lists:split(Rand - 1, List),
+	shuffle(Prefix ++ T, [H | Acc]).
