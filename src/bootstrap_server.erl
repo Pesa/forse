@@ -207,7 +207,7 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 		% file and check that there are no duplicate IDs
 		Dup = fun(Car, Acc) ->
 					  case lists:keyfind(id, 1, Car) of
-						  {id, Id} ->
+						  {id, Id} when is_integer(Id), Id > 0 ->
 							  case lists:member(Id, Acc) of
 								  true ->
 									  throw(lists:concat(["duplicate car ID ", Id]));
@@ -380,6 +380,7 @@ consult(Filename) ->
 -spec split_config(conflist()) -> {conflist(), [team()], conflist(), [car()]}.
 
 split_config(Config) ->
+	% split up cars config from teams config
 	Split = fun(Team, {Id, T, C} = Acc) ->
 					SetTeam = fun(Car) ->
 									  [{team, Id} | Car]
@@ -394,14 +395,32 @@ split_config(Config) ->
 							Acc
 					end
 			end,
-	ExtractIDs = fun(Car) ->
+	{_, T, C} = lists:foldl(Split, {1, [], []}, Config),
+	
+	% extract cars IDs and check if every car has one
+	ExtractIDs = fun(Car, Acc) ->
 						 case lists:keyfind(id, 1, Car) of
-							 {id, Id} -> Id;
-							 false -> throw("car id not found")
+							 {id, Id} when is_integer(Id), Id > 0 ->
+								 {Id, Acc};
+							 _ ->
+								 {0, false}
 						 end
 				 end,
-	{N, T, C} = lists:foldl(Split, {1, [], []}, Config),
-	{T, lists:seq(1, N - 1), C, lists:map(ExtractIDs, C)}.
+	{ConfigIDs, Valid} = lists:mapfoldl(ExtractIDs, true, C),
+	
+	{Cars, CarsIDs} = case Valid of
+						  true ->
+							  {C, ConfigIDs};
+						  false ->
+							  % not every car has a valid ID: generate a new
+							  % list of IDs and assign each of them to a car
+							  RandomIDs = utils:shuffle(lists:seq(1, length(C))),
+							  Combine = fun(Car, Id) ->
+												lists:keystore(id, 1, Car, {id, Id})
+										end,
+							  {lists:zipwith(Combine, C, RandomIDs), RandomIDs}
+					  end,
+	{T, lists:seq(1, length(T)), Cars, CarsIDs}.
 
 -spec start_apps([tuple()], [node()], [node()]) -> 'ok'.
 

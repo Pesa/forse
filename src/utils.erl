@@ -53,6 +53,7 @@ digits(Float) ->
 -spec shuffle(list()) -> list().
 
 shuffle(List) when is_list(List) ->
+	random:seed(now()),
 	shuffle(List, []).
 
 %% Returns the value associated with the setting Key.

@@ -5,7 +5,6 @@
 - migliorare la Reason restituita quando access:check_move fallisce
 - team_sup: i processi dei team vengono avviati come transient...
 		non dovrebbero essere permanent?
-- implementare ordine di partenza delle auto casuale
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - backtrace e segfault in control_panel
