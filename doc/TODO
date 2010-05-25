@@ -3,8 +3,6 @@
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
 - migliorare la Reason restituita quando access:check_move fallisce
-- team_sup: i processi dei team vengono avviati come transient...
-		non dovrebbero essere permanent?
 - quando la simulazione viene terminata bisogna mandare alle GUI
 		#race_notif{event = terminated}
 - backtrace e segfault in control_panel

@@ -31,6 +31,6 @@ init(Config) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	Team = {utils:build_id_atom("team_", Id),
 			{team, start_link, [Config]},
-			transient, 5000, worker,
+			permanent, 5000, worker,
 			[team]},
 	{ok, {{one_for_one, 20, 30}, [Team]}}.
