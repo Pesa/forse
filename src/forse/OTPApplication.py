@@ -1,5 +1,5 @@
 import os, qt4reactor, sys, twotp
-from twotp.term import Atom
+from twotp import Atom
 from PyQt4.QtCore import QProcess, QTimer
 from PyQt4.QtGui import QApplication
 from Util import buildNodeName

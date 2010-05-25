@@ -1,5 +1,5 @@
 import hashlib, random, socket
-from twotp.term import Atom
+from twotp import Atom
 from PyQt4.QtCore import QString
 
 

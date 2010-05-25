@@ -1,4 +1,4 @@
-from twotp.term import Atom
+from twotp import Atom
 from PyQt4.QtCore import QTimer, pyqtSignal
 from OTPApplication import OTPApplication
 from Remote import EventDispatcher
