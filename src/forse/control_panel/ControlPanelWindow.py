@@ -1,3 +1,4 @@
+from twotp import Atom
 from PyQt4.QtCore import QTimer, pyqtSlot
 from PyQt4.QtGui import QMainWindow, QMessageBox, QStringListModel
 from ConfigDialog import ConfigDialog
@@ -61,7 +62,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
             QTimer.singleShot(500, self._setGuiNode)
 
     def _shutdown(self):
-        BootstrapServer.stop(lambda _: OTPApplication.quit())
+        BootstrapServer.shutdown(lambda _: OTPApplication.quit(), Atom("true"))
 
     def _startup(self):
         if BootstrapServer.start():

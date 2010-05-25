@@ -86,11 +86,11 @@ class _RPCFrom(object):
 
 class BootstrapServer(object):
 
+    start = staticmethod(lambda: OTPApplication.spawnErlangNode("bootstrap_server"))
     bootstrap = _RPCTo("bootstrap_server", "bootstrap")
     readConfigFiles = _RPCTo("bootstrap_server", "read_config_files")
     setGuiNode = _RPCTo("bootstrap_server", "set_gui_node")
-    start = staticmethod(lambda: OTPApplication.spawnErlangNode("bootstrap_server"))
-    stop = _RPCTo("init", "stop")
+    shutdown = _RPCTo("bootstrap_server", "shutdown")
 
     nodeDown = _RPCFrom("node_down")
     nodeUp = _RPCFrom("node_up")
@@ -111,8 +111,8 @@ class EventDispatcher(object):
 
 class NodeManager(object):
 
-    configure = _RPCTo("node_manager", "configure")
     start = staticmethod(lambda: OTPApplication.spawnErlangNode("node_manager", "node", randomize=True))
+    configure = _RPCTo("node_manager", "configure")
 
 
 class Scheduler(object):
