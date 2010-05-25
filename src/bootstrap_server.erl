@@ -8,7 +8,8 @@
 		 add_node/1,
 		 bootstrap/2,
 		 read_config_files/3,
-		 set_gui_node/1]).
+		 set_gui_node/1,
+		 shutdown/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -83,6 +84,11 @@ read_config_files(TeamsFile, TrackFile, WeatherFile)
 
 set_gui_node(Node) when is_atom(Node) ->
 	gen_server:call(?GLOBAL_NAME, {set_gui_node, Node}).
+
+-spec shutdown(boolean()) -> 'ok'.
+
+shutdown(StopNodes) when is_boolean(StopNodes) ->
+	gen_server:call(?GLOBAL_NAME, {shutdown, StopNodes}, infinity).
 
 
 %% ====================================================================
@@ -246,6 +252,19 @@ handle_call({read_config_files, TeamsFile, TrackFile, WeatherFile}, _From, State
 
 handle_call({set_gui_node, Node}, _From, State) ->
 	{reply, ok, State#state{gui_node = Node}};
+
+handle_call({shutdown, StopNodes}, _From, State) ->
+	Nodes = State#state.nodes,
+	if
+		StopNodes ->
+			rpc:multicall(Nodes, init, stop, []),
+			init:stop();
+		State#state.bootstrapped ->
+			gen_server:multi_call(Nodes, node_manager, stop_apps);
+		true ->
+			ok
+	end,
+	{reply, ok, State#state{bootstrapped = false}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),

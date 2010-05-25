@@ -17,7 +17,7 @@
 
 -include("common.hrl").
 
--record(state, {}).
+-record(state, {started_apps = [] :: [atom()]}).
 
 
 %% ====================================================================
@@ -82,9 +82,16 @@ handle_call({load_app, AppSpec, MainNode, FailoverNodes}, _From, State) ->
 	Reply = application:load(AppSpec, Dist),
 	{reply, Reply, State};
 
-handle_call({start_app, App}, _From, State) ->
+handle_call({start_app, App}, _From, State) when is_atom(App) ->
 	Reply = application:start(App),
-	{reply, Reply, State};
+	NewApps = [App | State#state.started_apps],
+	{reply, Reply, State#state{started_apps = NewApps}};
+
+handle_call(stop_apps, _From, State) ->
+	lists:foreach(fun(App) ->
+						  application:stop(App)
+				  end, State#state.started_apps),
+	{reply, ok, State#state{started_apps = []}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
