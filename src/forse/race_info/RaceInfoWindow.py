@@ -101,6 +101,7 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
             self.startpauseButton.setEnabled(True)
         elif state.text == "finished" or state.text == "terminated":
             self.startpauseButton.setEnabled(False)
+            self.speedupSlider.setEnabled(False)
         else:
             self.statusBar().showMessage("Unknown race_state: " + state.text, 5000)
 
