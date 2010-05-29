@@ -1,7 +1,13 @@
 AC_INIT(FORSE, [1.0-beta])
 
+AC_PREREQ([2.60])
+
 AC_ERLANG_NEED_ERLC
 AC_ERLANG_NEED_ERL
+
+AC_ERLANG_CHECK_LIB([kernel], [], [AC_MSG_ERROR([kernel not found!])])
+AC_ERLANG_CHECK_LIB([stdlib], [], [AC_MSG_ERROR([stdlib not found!])])
+AC_ERLANG_CHECK_LIB([mnesia], [], [AC_MSG_ERROR([mnesia not found!])])
 
 AX_PYTHON_PATH
 AX_PYTHON_VERSION_ENSURE([2.6])
