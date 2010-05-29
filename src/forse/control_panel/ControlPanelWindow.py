@@ -57,7 +57,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
 
     def _setGuiNodeDone(self, reply):
         if reply == "ok":
-            self.actionNewSimulation.trigger()
+            QTimer.singleShot(0, self.actionNewSimulation.trigger)
         else:
             QTimer.singleShot(500, self._setGuiNode)
 
