@@ -12,7 +12,7 @@ class ConfigDialog(QDialog, Ui_ConfigDialog):
         self.teamsFileChooser.setLabel("Teams")
         self.teamsFileChooser.setDefaultPath("examples/teams.conf")
         self.trackFileChooser.setLabel("Track")
-        self.trackFileChooser.setDefaultPath("examples/track.conf")
+        self.trackFileChooser.setDefaultPath("examples/monza.conf")
         self.weatherFileChooser.setLabel("Weather")
         self.weatherFileChooser.setDefaultPath("examples/weather.conf")
 
