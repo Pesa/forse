@@ -89,7 +89,8 @@ handle_call({start_app, App}, _From, State) when is_atom(App) ->
 
 handle_call(stop_apps, _From, State) ->
 	lists:foreach(fun(App) ->
-						  application:stop(App)
+						  application:stop(App),
+						  application:unload(App)
 				  end, State#state.started_apps),
 	{reply, ok, State#state{started_apps = []}};
 
