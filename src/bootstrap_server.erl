@@ -260,7 +260,8 @@ handle_call({shutdown, StopNodes}, _From, State) ->
 			rpc:multicall(Nodes, init, stop, []),
 			init:stop();
 		State#state.bootstrapped ->
-			gen_server:multi_call(Nodes, node_manager, stop_apps);
+			gen_server:multi_call(Nodes, node_manager, stop_apps),
+			rpc:multicall(Nodes, mnesia, stop, []);
 		true ->
 			ok
 	end,
