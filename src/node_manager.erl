@@ -5,7 +5,9 @@
 %% External exports
 -export([start/0,
 		 start_link/0,
-		 configure/1]).
+		 configure/1,
+		 start_app/2,
+		 stop_app/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -17,7 +19,7 @@
 
 -include("common.hrl").
 
--record(state, {started_apps = [] :: [atom()]}).
+-record(state, {}).
 
 
 %% ====================================================================
@@ -38,6 +40,16 @@ start_link() ->
 
 configure(SupportedApps) when is_list(SupportedApps) ->
 	gen_server:call(?MODULE, {configure, SupportedApps}, infinity).
+
+-spec start_app(node(), tuple()) -> 'ok' | {'error', Reason :: term()}.
+
+start_app(Node, AppSpec) when is_atom(Node) ->
+	gen_server:call({?MODULE, Node}, {start_app, AppSpec}, infinity).
+
+-spec stop_app(node(), atom()) -> 'ok' | {'error', Reason :: term()}.
+
+stop_app(Node, App) when is_atom(Node), is_atom(App) ->
+	gen_server:call({?MODULE, Node}, {stop_app, App}, infinity).
 
 
 %% ====================================================================
@@ -76,23 +88,23 @@ handle_call({configure, SupportedApps}, _From, State) ->
 	Reply = bootstrap_server:add_node(SupportedApps),
 	{reply, Reply, State};
 
-handle_call({load_app, AppSpec, MainNode, FailoverNodes}, _From, State) ->
-	App = element(2, AppSpec),
-	Dist = {App, [MainNode, list_to_tuple(FailoverNodes)]},
-	Reply = application:load(AppSpec, Dist),
+handle_call({start_app, AppSpec}, _From, State) ->
+	Reply = case application:load(AppSpec) of
+				ok ->
+					application:start(element(2, AppSpec));
+				{error, Reason} ->
+					{error, Reason}
+			end,
 	{reply, Reply, State};
 
-handle_call({start_app, App}, _From, State) when is_atom(App) ->
-	Reply = application:start(App),
-	NewApps = [App | State#state.started_apps],
-	{reply, Reply, State#state{started_apps = NewApps}};
-
-handle_call(stop_apps, _From, State) ->
-	lists:foreach(fun(App) ->
-						  application:stop(App),
-						  application:unload(App)
-				  end, State#state.started_apps),
-	{reply, ok, State#state{started_apps = []}};
+handle_call({stop_app, App}, _From, State) ->
+	Reply = case application:stop(App) of
+				ok ->
+					application:unload(App);
+				{error, Reason} ->
+					{error, Reason}
+			end,
+	{reply, Reply, State};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),

@@ -42,6 +42,7 @@
 				candidates		= []	:: [{App :: atom(), [candidate()]}],
 				nodes			= []	:: [node()],
 				gui_node				:: node(),
+				started_apps	= []	:: [{App :: atom(), node()}],
 				num_cars				:: non_neg_integer(),
 				num_teams				:: non_neg_integer(),
 				teams_config			:: conflist(),
@@ -176,7 +177,7 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 						  {App, choose_nodes(AppNodes, N, [])}
 				  end,
 	NodesConfig = lists:map(ChooseNodes, ?GEN_REQS(State#state.num_cars, State#state.num_teams)),
-	Start = fun(App) ->
+	Start = fun(App, Acc) ->
 					Configs = case App of
 								  car -> Cars;
 								  event_dispatcher -> [Dispatcher];
@@ -186,9 +187,9 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 							  end,
 					AppSpecs = lists:map(fun(C) -> app_spec(App, C) end, Configs),
 					{_, AppNodes} = lists:keyfind(App, 1, NodesConfig),
-					start_apps(AppSpecs, AppNodes, Nodes)
+					start_apps(AppSpecs, AppNodes, Acc)
 			end,
-	lists:foreach(Start, ?BOOTSTRAP_ORDER),
+	StartedApps = lists:foldl(Start, [], ?BOOTSTRAP_ORDER),
 	
 	% track & settings initialization
 	% FTNOTE: change the following line when track becomes a gen_server
@@ -196,7 +197,8 @@ handle_call({bootstrap, Laps, Speedup}, _From, #state{nodes = Nodes} = State)
 	rpc:call(Master, utils, set_setting, [running_cars, State#state.num_cars]),
 	rpc:call(Master, utils, set_setting, [total_laps, Laps]),
 	
-	{reply, ok, State#state{bootstrapped = true}};
+	{reply, ok, State#state{bootstrapped = true,
+							started_apps = StartedApps}};
 handle_call({bootstrap, _Laps, _Speedup}, _From, State) ->
 	{reply, {error, "requirements not satisfied"}, State};
 
@@ -260,12 +262,15 @@ handle_call({shutdown, StopNodes}, _From, State) ->
 			rpc:multicall(Nodes, init, stop, []),
 			init:stop();
 		State#state.bootstrapped ->
-			gen_server:multi_call(Nodes, node_manager, stop_apps),
+			lists:foreach(fun({App, Node}) ->
+								  node_manager:stop_app(Node, App)
+						  end, State#state.started_apps),
 			rpc:multicall(Nodes, mnesia, stop, []);
 		true ->
 			ok
 	end,
-	{reply, ok, State#state{bootstrapped = false}};
+	{reply, ok, State#state{bootstrapped = false,
+							started_apps = []}};
 
 handle_call(Msg, From, State) ->
 	?WARN({"unhandled call", Msg, "from", From}),
@@ -442,14 +447,11 @@ split_config(Config) ->
 					  end,
 	{T, lists:seq(1, length(T)), Cars, CarsIDs}.
 
--spec start_apps([tuple()], [node()], [node()]) -> 'ok'.
+-spec start_apps([tuple()], [node()], [{atom(), node()}]) -> [{atom(), node()}].
 
-start_apps([AppSpec | SpecsTail], [MainNode | NodesTail], Nodes) ->
-	FailoverNodes = lists:delete(MainNode, Nodes),
-	gen_server:multi_call(Nodes, node_manager,
-						  {load_app, AppSpec, MainNode, FailoverNodes}),
-	gen_server:multi_call(Nodes, node_manager,
-						  {start_app, element(2, AppSpec)}),
-	start_apps(SpecsTail, NodesTail, Nodes);
-start_apps([], [], _Nodes) ->
-	ok.
+start_apps([AppSpec | SpecsTail], [Node | NodesTail], Started) ->
+	App = element(2, AppSpec),
+	node_manager:start_app(Node, AppSpec),
+	start_apps(SpecsTail, NodesTail, [{App, Node} | Started]);
+start_apps([], [], Started) ->
+	Started.
