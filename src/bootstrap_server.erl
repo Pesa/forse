@@ -336,7 +336,7 @@ code_change(_OldVsn, State, _Extra) ->
 app_spec(car, Config) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	{application, utils:build_id_atom("car_", Id),
-	 [{applications, [kernel, stdlib, event_dispatcher, scheduler]},
+	 [{applications, [kernel, stdlib]},
 	  {mod, {car_app, Config}}]};
 app_spec(event_dispatcher, Config) ->
 	{application, event_dispatcher,
@@ -344,16 +344,16 @@ app_spec(event_dispatcher, Config) ->
 	  {mod, {dispatcher_app, Config}}]};
 app_spec(scheduler, Config) ->
 	{application, scheduler,
-	 [{applications, [kernel, stdlib, event_dispatcher]},
+	 [{applications, [kernel, stdlib]},
 	  {mod, {scheduler_app, Config}}]};
 app_spec(team, Config) ->
 	{id, Id} = lists:keyfind(id, 1, Config),
 	{application, utils:build_id_atom("team_", Id),
-	 [{applications, [kernel, stdlib, event_dispatcher]},
+	 [{applications, [kernel, stdlib]},
 	  {mod, {team_app, Config}}]};
 app_spec(weather, Config) ->
 	{application, weather,
-	 [{applications, [kernel, stdlib, scheduler]},
+	 [{applications, [kernel, stdlib]},
 	  {mod, {weather_app, Config}}]}.
 
 -spec check_reqs(#state{}) -> boolean().
