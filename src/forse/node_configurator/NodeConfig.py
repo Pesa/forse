@@ -11,13 +11,6 @@ class NodeConfig(QDialog, Ui_NodeConfig):
         QDialog.__init__(self, parent)
         self.setupUi(self)
         QTimer.singleShot(0, self._startup)
-        ### FIXME: temporary stuff, remove me!! ###
-        self.dispatcherSpinBox.setValue(1)
-        self.schedulerSpinBox.setValue(1)
-        self.carSpinBox.setValue(10)
-        self.teamSpinBox.setValue(5)
-        self.weatherSpinBox.setValue(1)
-        ######
 
     @pyqtSlot(name="on_buttons_accepted")
     def _configure(self):
