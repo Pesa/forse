@@ -19,7 +19,7 @@ doc/*.lot
 doc/*.out
 doc/*.pdf
 doc/*.toc
-doc/diagrammi/*.eps
+doc/diagrammi/*.pdf
 
 ebin/*.beam
 
