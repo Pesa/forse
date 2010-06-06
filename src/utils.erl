@@ -126,7 +126,7 @@ digits1(Float, Exp, Frac) ->
 	case Exp >= 0 of
 		true ->
 			BExp = 1 bsl Exp,
-			case (Frac /= ?BIG_POW) of
+			case (Frac =/= ?BIG_POW) of
 				true ->
 					scale((Frac * BExp * 2), 2, BExp, BExp,
 						  Round, Round, Float);
@@ -135,7 +135,7 @@ digits1(Float, Exp, Frac) ->
 						  Round, Round, Float)
 			end;
 		false ->
-			case (Exp == ?MIN_EXP) orelse (Frac /= ?BIG_POW) of
+			case (Exp =:= ?MIN_EXP) orelse (Frac =/= ?BIG_POW) of
 				true ->
 					scale((Frac * 2), 1 bsl (1 - Exp), 1, 1,
 						  Round, Round, Float);
