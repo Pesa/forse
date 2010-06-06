@@ -4,4 +4,5 @@ ERL="@ERL@"
 PYTHON="@PYTHON@"
 PYTHONPATH="src/forse${PYTHONPATH:+:}${PYTHONPATH}"
 : ${FORSE_COOKIE:=42}
-: ${FORSE_NS:=forse_bootstrap_server@$(hostname)}
+: ${FORSE_NS:=$(hostname)}
+[ "${FORSE_NS}" = *"@"* ] || FORSE_NS="forse_bootstrap_server@${FORSE_NS}"
