@@ -112,7 +112,6 @@
 
 %% ------------------------------------------------------------
 %% consumption
-%% TODO: write fields documentation
 %% ------------------------------------------------------------
 -record(consumption, {car 				:: car(),
 					  intermediate		:: intermediate() | 'start',

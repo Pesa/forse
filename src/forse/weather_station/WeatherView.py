@@ -60,7 +60,6 @@ class WeatherView(TrackView):
 
     def _setWeather(self, weather):
         for sectId, rain in weather:
-            #rain = sectId % 11 # FIXME: only for testing
             r = g = 100 - rain * 10
             b = 50 + (360 / (12 - rain))
             self._track.setSectorColor(sectId, QColor(r, g, b))
