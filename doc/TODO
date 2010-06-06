@@ -3,4 +3,3 @@
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
 - migliorare la Reason restituita quando access:check_move fallisce
-- backtrace e segfault in control_panel
