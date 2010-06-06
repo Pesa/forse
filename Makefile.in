@@ -1,6 +1,6 @@
 ERLC = @ERLC@
 ERL = @ERL@
-ERLCFLAGS = -D debug @ERLCFLAGS@
+ERLCFLAGS = @ERLCFLAGS@
 
 SUBDIRS = src/forse
 
