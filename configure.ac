@@ -1,4 +1,4 @@
-AC_INIT(FORSE, [1.0-beta])
+AC_INIT(FORSE, [1.0-rc])
 
 AC_PREREQ([2.60])
 
