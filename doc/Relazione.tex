@@ -977,6 +977,8 @@ I parametri di configurazione sono descritti in \Erlang{} per risparmiare tempo 
 \end{tabular}
 \end{center}
 
+L'unico parametro opzionale tra quelli appena elencati è \texttt{id}. Nel caso in cui nel file di configurazione esista almeno un pilota in cui il parametro \texttt{id} è omesso allora l'ordine nella griglia di partenza di tutti i concorrenti sarà generato casualmente.
+
 \section*{Track}
 Il file di configurazione di \texttt{track} contiene le informazioni riguardanti la conformazione della pista espressa in settori. La configurazione è composta da una lista di tuple, ciascuna delle quali rappresenta un settore.
 
@@ -1025,15 +1027,13 @@ Queste costanti sono raggruppate nel file \texttt{include/config.hrl} e una loro
 
 La maggior parte delle costanti presenti in questo file agisce direttamente sul modello fisico della simulazione e sulla rappresentazione interna della pista per ottenere una simulazione a grana più o meno fine. Una delle costanti più importanti è infatti la lunghezza dei segmenti in cui viene diviso il tracciato, attualmente impostata a 5 metri.
 
-Questi valori possono essere modificati, tuttavia tale operazione è sconsigliata poiché si potrebbe facilmente dare luogo a situazioni limite nelle quali, per esempio, nessun'auto riuscirebbe a percorrere nemmeno un tratto senza uscire di pista.
+Questi valori possono essere modificati, tuttavia tale operazione è sconsigliata poiché si potrebbe facilmente dare luogo a situazioni limite nelle quali, per esempio, nessuna auto riuscirebbe a percorrere nemmeno un tratto senza uscire di pista.
 
 Inoltre, la validità di tali valori non viene controllata dal prototipo, di conseguenza potrebbero addirittura essere sollevate eccezioni durante i calcoli (divisione per zero, estrazione di radice quadrata di un numero negativo, e così via).
 
 
 \chapter{Avvio del prototipo}
-%%TODO devo mettere gli hostname da qualche parte?
 Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio.
-I primi tre passi dell'inizializzazione descritti in seguito sono obbligatori per l'avvio della simulazione mentre i rimanenti tre passi sono opzionali.
 
 Le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche a simulazione iniziata:
 \begin{itemize}
@@ -1043,27 +1043,41 @@ Le seguenti componenti possono essere presenti nel sistema in istanze multiple e
 \item \texttt{debug\_log}.
 \end{itemize}
 
-\subsection*{Passo 1 - Control Panel}
-Per prima cosa è necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
+\subsection*{Passo 0 - Configurazione e Compilazione}
+Per effettuare la configurazione del prototipo in base al proprio sistema è necessario eseguire il comando \texttt{configure} ed eventualmente impostare i seguenti parametri utili qualora la procedura automatica non riesca ad individuare le componenti necessarie:
+\begin{itemize}
+\item \texttt{ERLC}: percorso del compilatore \Erlang{},
+\item \texttt{ERLCFLAGS}: \textsl{flags} per il compilatore \Erlang{},
+\item \texttt{ERL}: percorso dell'interprete \Erlang{},
+\item \texttt{PYTHON}: percorso dell'interprete \Python{},
+\item \texttt{PYRCC}: percorso dell'eseguibile \texttt{pyrcc4} di \textsl{PyQt4},
+\item \texttt{PYUIC}: percorso dell'eseguibile \texttt{pyuic4} di \textsl{PyQt4}.
+\end{itemize}
+La compilazione può dunque essere eseguita tramite il comando \texttt{make}.
+
+\subsection*{Passo 1 - \texttt{.hosts.erlang}}
+Per prima cosa bisogna inserire i nomi degli \textsl{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo.
+
+\subsection*{Passo 2 - Control Panel}
+\`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
 Poiché in tale interfaccia viene richiesto il percorso dei file di configurazione per la simulazione, è necessario che tali file siano raggiungibili dall'elaborare in cui viene eseguito lo script.
 
-\subsection*{Passo 2 - Node Configurator}
+\subsection*{Passo 3 - Node Configurator}
 Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
 
 Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textit{bootstrap}, precedentemente disabilitato, in \texttt{control panel}.
 
-\subsection*{Passo 3 - Race Info}
+\subsection*{Passo 4 - Interfacce Grafiche}
+Per avviare le componenti grafiche del prototipo è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textsl{hostname} dell'elaboratore in cui è stato avviata la componente \texttt{control\_panel} qualora non coincida con l'\textsl{host} locale.
+
 Per poter avviare la simulazione è necessario che almeno una componente \texttt{race info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato.
 L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
 
-\subsection*{Passo 4 - Team Monitor}
-L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia scelta dall'utente in fase di avvio.
+L'avvio \texttt{team\_monitor} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia scelta dall'utente in fase di avvio.
 
-\subsection*{Passo 5 - Weather Station}
-L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_weather\_station}.
+L'avvio di \texttt{weather\_station} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_weather\_station}.
 
-\subsection*{Passo 6 - Debug Log}
-L'avvio di questa componente è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_logger}.
+L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_logger}.
 
 \chapter{Glossario}
 
