@@ -952,7 +952,7 @@ Le impostazioni delle scuderie, delle auto e dei piloti sono contenuti in uno st
 ].
 \end{lstlisting}
 
-I parametri di configurazione sono descritti in \Erlang{} per risparmiare tempo sfruttando le funzioni di \textit{parsing} offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore il cui significato è spiegato nella seguente tabella:
+I parametri di configurazione sono descritti in \Erlang{} per risparmiare tempo sfruttando le funzioni di \textit{parsing} offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore la cui semantica è spiegata nella seguente tabella:
 
 \begin{center}
 \begin{tabular}{|p{0.15\textwidth}|p{0.75\textwidth}|}
@@ -1044,7 +1044,7 @@ Le seguenti componenti possono essere presenti nel sistema in istanze multiple e
 \end{itemize}
 
 \subsection*{Passo 0 - Configurazione e Compilazione}
-Per effettuare la configurazione del prototipo in base al proprio sistema è necessario eseguire il comando \texttt{configure} ed eventualmente impostare i seguenti parametri utili qualora la procedura automatica non riesca ad individuare le componenti necessarie:
+Il comando \texttt{./configure} effettua la configurazione del prototipo in base al proprio sistema. Qualora la procedura automatica non andasse a buon fine, è possibile definire le seguenti variabili d'ambiente:
 \begin{itemize}
 \item \texttt{ERLC}: percorso del compilatore \Erlang{},
 \item \texttt{ERLCFLAGS}: \textsl{flags} per il compilatore \Erlang{},
@@ -1053,10 +1053,10 @@ Per effettuare la configurazione del prototipo in base al proprio sistema è nec
 \item \texttt{PYRCC}: percorso dell'eseguibile \texttt{pyrcc4} di \textsl{PyQt4},
 \item \texttt{PYUIC}: percorso dell'eseguibile \texttt{pyuic4} di \textsl{PyQt4}.
 \end{itemize}
-La compilazione può dunque essere eseguita tramite il comando \texttt{make}.
+La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{make}.
 
 \subsection*{Passo 1 - \texttt{.hosts.erlang}}
-Per prima cosa bisogna inserire i nomi degli \textsl{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo.
+Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo.
 
 \subsection*{Passo 2 - Control Panel}
 \`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
@@ -1065,15 +1065,14 @@ Poiché in tale interfaccia viene richiesto il percorso dei file di configurazio
 \subsection*{Passo 3 - Node Configurator}
 Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
 
-Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textit{bootstrap}, precedentemente disabilitato, in \texttt{control panel}.
+Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
 
 \subsection*{Passo 4 - Interfacce Grafiche}
-Per avviare le componenti grafiche del prototipo è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textsl{hostname} dell'elaboratore in cui è stato avviata la componente \texttt{control\_panel} qualora non coincida con l'\textsl{host} locale.
+Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
 
-Per poter avviare la simulazione è necessario che almeno una componente \texttt{race info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato.
-L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
+Per poter avviare la simulazione è necessario che almeno una componente \texttt{race\_info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato. L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
 
-L'avvio \texttt{team\_monitor} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia scelta dall'utente in fase di avvio.
+L'avvio di \texttt{team\_monitor} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia, a seconda della scelta compiuta dall'utente all'avvio di ciascuna istanza.
 
 L'avvio di \texttt{weather\_station} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_weather\_station}.
 
