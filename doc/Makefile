@@ -30,7 +30,10 @@ $(DIADIR)/%.pdf: $(DIADIR)/%.dia
 	$(Q) rm -f $(@:.pdf=.eps)
 
 clean:
+	$(Q) rm -f *~
+	$(Q) rm -f *.pdf *.dvi *.aux *.bbl *.lof *.log *.lot *.out *.toc
+
+distclean: clean
 	$(Q) rm -f $(PDF_FILES)
-	$(Q) rm -f *~ *.pdf *.dvi *.aux *.bbl *.log *.lot *.out *.toc
 
 .PHONY: all clean

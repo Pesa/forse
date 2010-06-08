@@ -57,7 +57,7 @@ distclean: clean
 	$(NQ) "distcleaning"
 	$(Q) rm -f aclocal.m4 config.log config.status environment Makefile
 	$(Q) rm -rf autom4te.cache
-	$(Q) for dir in $(SUBDIRS) ; do \
+	$(Q) for dir in $(SUBDIRS) doc ; do \
 		$(MAKE) -C $$dir distclean ; \
 	done
 

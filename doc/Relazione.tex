@@ -3,17 +3,17 @@
 \usepackage[italian]{babel}
 \usepackage[pdftex]{hyperref}
 \usepackage{graphicx}
-\usepackage{tabularx}
-\usepackage{pdflscape}
 \usepackage{listings}
 \usepackage{multirow}
+\usepackage{pdflscape}
+\usepackage{tabularx}
 
 \hypersetup{
 	breaklinks,
 	colorlinks,
 	linkcolor=blue,
 	pdftitle={Relazione},
-	pdfsubject={Relazione sul progetto di Sistemi Concorrenti e Distribuiti},
+	pdfsubject={FORSE - Relazione sul progetto di Sistemi Concorrenti e Distribuiti},
 	pdfauthor={Daniele Battaglia \& Davide Pesavento}
 }
 
@@ -34,6 +34,8 @@
 \maketitle
 
 \tableofcontents
+
+\listoffigures
 
 \clearpage
 
@@ -161,7 +163,7 @@ Questo tipo di comunicazione segue il modello \textit{publish/subscribe} ed è q
 
 Viste le caratteristiche che deve avere tale componente, nell'ottica di un sistema distribuito possiamo considerarla un server.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 \texttt{event\_dispatcher} deve fornire metodi di interfaccia verso due insiemi di attori:
 \begin{itemize}
 \item \textit{subscribers}, ovvero i processi che si registrano per ottenere le informazioni riguardanti la gara attraverso il metodo \fun{subscribe},
@@ -169,7 +171,7 @@ Viste le caratteristiche che deve avere tale componente, nell'ottica di un siste
 \end{itemize}
 Il metodo \fun{subscribe} prevede che il processo chiamante indichi tra i parametri anche una funzione di \textit{callback} che faccia da canale per l'invio delle notifiche di gara.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Da un punto di vista puramente pratico non vi è nessuna interfaccia richiesta da questa componente poiché \texttt{event\_dispatcher}, in assenza di \textit{subscribers}, non effettua invocazioni di metodi. Tuttavia abbiamo preferito considerare l'interfaccia richiesta come dinamica, ovvero inizialmente vuota e che acquisisce metodi all'aumentare del numero di \textit{subscribers}. Al momento della registrazione i \textit{subscribers} devono indicare ad \texttt{event\_dispatcher} quale metodo di \textit{callback} utilizzare e che va quindi ad aggiungersi all'interfaccia richiesta della presente componente.
 
 
@@ -184,11 +186,11 @@ Al momento della prenotazione, \texttt{car} e \texttt{weather} devono indicare a
 Per poter soddisfare le caratteristiche sopra indicate è risultato naturale progettare l'entità \texttt{scheduler} come attiva.
 Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione della simulazione.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Lo \texttt{scheduler} deve fornire un metodo \fun{queue\_work} che permette alle altre entità attive di effettuare la procedura di \textit{booking} precedentemente descritta.
 Il metodo \fun{set\_speedup} serve a regolare la velocità con cui evolve la simulazione, mentre i metodi \fun{start\_simulation} e \fun{pause\_simulation} servono rispettivamente ad avviare e fermare momentaneamente la simulazione.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Nessuna.
 
 \section{Track}
@@ -215,7 +217,7 @@ Un altro gruppo di informazioni dinamiche fondamentali contenute in \texttt{trac
 
 Oltre ai dati visti finora, la componente \texttt{track} deve anche gestire la logica che determina quali spostamenti siano concessi alle auto e soprattutto secondo quali vincoli tali spostamenti siano possibili. Deve quindi esporre un metodo che permetta alle auto di simulare l'esito di un eventuale spostamento nella pista e un metodo che invece implementi l'effettivo spostamento dell'auto. Fornire un metodo per la simulazione della mossa permette di dare dei dati al chiamante che può quindi scegliere, secondo la sua logica interna e strategia di gara, quale sia la migliore mossa da eseguire e in un momento successivo effettuare tale mossa.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Grazie al metodo \fun{simulate} le entità \texttt{car} possono simulare l'esito di uno spostamento, una volta scelta la corsia di uscita e espressa la volontà o meno di effettuare una sosta ai \textit{box} in quel giro.
 
 L'utilità di questa funzionalità è evidente se si considera il fatto che, essendo l'informazione ritornata dal metodo \fun{simulate} un'informazione basata sullo stato della pista e non su stime statiche, essa viene influenzata dalla posizione delle altre auto. Una scelta statica ragionevole del percorso migliore da seguire poterebbe essere quella individuata come traiettoria ottima a circuito vuoto. Tuttavia in questo modo tutte le auto seguirebbero lo stesso percorso non riuscendo mai a sorpassarsi.
@@ -224,7 +226,7 @@ Avendo a disposizione la posizione degli altri concorrenti è invece possibile p
 
 Il metodo \fun{move} necessita degli stessi parametri del metodo \fun{simulate} e serve a spostare effettivamente l'auto sul tracciato di gara e ad effettuare le eventuali notifiche di eventi scatenati da tale spostamento.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Da un punto di vista funzionale la componente \texttt{track} contiene il meccanismo che guida l'erogazione delle operazioni di rifornimento, tuttavia non può decidere quali operazioni effettuare, poiché questo tipo di scelte è inerente la strategia di gara e quindi è da considerarsi a carico della componente \texttt{team}. Di conseguenza \texttt{track} necessita di un metodo \fun{pitstop\_operations} da invocare presso la componente \texttt{team} associata all'auto ai \textit{box}, tale metodo deve avere come valore di ritorno le informazioni su che operazioni di rifornimento da effettuare.
 
 Durante la simulazione, nel momento in cui un'auto effettua uno spostamento, è la componente \texttt{track} che riconosce eventi come un sorpasso o l'attraversamento di un intermedio cronometrico e deve provvedere ad inviare le notifiche di tali eventi al sistema. La componente \texttt{track} non deve tuttavia incaricarsi di notificare direttamente tali eventi a chi è interessato ma, come previsto dall'architettura di sistema, si limita ad inviare le notifiche alla componente \texttt{event\_dispatcher} e delega a quest'ultima la propagazione di tali informazioni nel sistema.
@@ -253,7 +255,7 @@ Le notifiche possibili riguardano:
 Prima dell'inizio della competizione \texttt{car} deve prenotarsi presso lo \texttt{scheduler} e stare poi in attesa del permesso di muoversi sulla pista.
 Questa componente ha il compito di decidere quale traiettoria adottare per percorrere un segmento e deve farlo basandosi sullo stato dell'auto, sulle direttive dei \texttt{team} e dell'utente e sulle informazioni fornite da \texttt{track}.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 L'autorizzazione a muoversi sul circuito di gara viene data a questa componente dallo \texttt{scheduler} attraverso l'invocazione del metodo \fun{move}. L'esecuzione di questo metodo è divisa in due fasi:
 \begin{itemize}
 \item simulazione, ovvero la fase in cui \texttt{car} utilizza l'interfaccia fornita dalla componente \texttt{track} per simulare tutte le mosse consentite e decidere, secondo la logica che governa la strategia di gara del pilota, quale tra le possibili traiettorie adottare.
@@ -268,7 +270,7 @@ L'utente può anche decidere di forzare il pilota ad effettuare mosse non previs
 \item forzare il ritiro dalla competizione, a tale scopo viene esposto dall'interfaccia il metodo \fun{retire}.
 \end{itemize}
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Questa componente necessita delle funzionalità \fun{simulate} (fase di simulazione) e \fun{move} (fase di spostamento) fornite dalla componente \texttt{track} per poter realizzare il metodo \fun{move} prima descritto.
 Durante la fase di inizializzazione del sistema ogni componente \texttt{car} deve notificare i dati di interesse relativi alla sua configurazione al resto del sistema. Questo viene ottenuto grazie al canale \fun{notify} fornito da \texttt{event\_dispatcher}.
 
@@ -277,12 +279,12 @@ Questa componente nel contesto della simulazione rappresenta le scuderie in gara
 
 Le decisioni che la logica di questa componente deve prendere sono inerenti le operazioni da eseguire in fase di rifornimento e comprendono la quantità di carburante aggiuntivo da imbarcare, se sostituire o meno i pneumatici ed eventualmente il tipo di pneumatici più appropriato alle condizioni atmosferiche della pista.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 \texttt{team} espone il metodo \fun{pitstop\_operations} nella sua interfaccia con lo scopo di fornire alla componente \texttt{track}, durante la fase di sosta ai \textit{box} di un'auto, le informazioni necessarie ad effettuare le operazioni di rifornimento.
 
-Il metodo \fun{update} serve a fornire un canale di comunicazione che \texttt{event\_dispatcher} usa per la notifica di eventi relativi alla gara considerati importanti per le scuderie.
+Il metodo \fun{update} fornisce un canale di comunicazione che \texttt{event\_dispatcher} usa per la notifica di eventi relativi alla gara considerati importanti per le scuderie.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Per poter comunicare la strategia di gara decisa alle auto appartenenti alla scuderia rappresentata, questa componente necessita del metodo \fun{set\_next\_pitstop} fornito da \texttt{car}.
 Come la componente \texttt{car} anche \texttt{team} deve comunicare le proprie informazioni di configurazione al sistema tramite il metodo \fun{notify} di \texttt{event\_dispatcher}.
 
@@ -291,11 +293,12 @@ Come la componente \texttt{car} anche \texttt{team} deve comunicare le proprie i
 
 Poiché questa entità attiva va a modificare lo stato della pista, essa è evidentemente in concorrenza con le entità \texttt{car} presenti nel sistema. \`E pertanto necessario che l'accesso alla risorsa \texttt{track} avvenga in modo controllato: in particolare è previsto che le modifiche sulla pista avvengano attraverso \textit{booking} presso lo \texttt{scheduler}.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Al momento della prenotazione presso lo \texttt{scheduler} questa componente indica il metodo \fun{apply\_change} come metodo di \textit{callback}, di conseguenza, nel momento in cui lo \texttt{scheduler} permetterà a questa entità di eseguire, invocherà tale metodo. Questo metodo ha il compito di cambiare il tempo atmosferico di \texttt{track} secondo quanto precedentemente definito dall'utente.
+
 L'altro metodo che l'interfaccia di \texttt{weather} espone è \fun{schedule\_change} che serve per impostare eventuali ulteriori variazioni a simulazione avviata.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Conformemente a quanto visto finora, anche la modifica del tempo atmosferico necessita dell'autorizzazione dello \texttt{scheduler} per essere portata a termine poiché richiede l'accesso a \texttt{track}. Di conseguenza tutte le modifiche saranno procedute da un'invocazione del metodo \fun{queue\_work} dello \texttt{scheduler} per assolvere alla fase di prenotazione.
 
 Le condizioni atmosferiche sono un fattore importante per la simulazione e una variazione delle medesime può essere di interesse a diverse componenti del sistema. Per questo motivo ogni volta che viene invocato il metodo \fun{apply\_change}, viene notificata la modifica grazie al metodo \fun{notify} di \texttt{event\_dispatcher}.
@@ -303,10 +306,10 @@ Le condizioni atmosferiche sono un fattore importante per la simulazione e una v
 \section{Debug Log}
 Questa componente è pensata principalmente per essere d'ausilio nella fase di sviluppo e test. In fase di inizializzazione essa effettua la procedura di \textit{subscription} presso \texttt{event\_dispatcher} per tutte le categorie di notifiche in modo da rendere i dati disponibili in formato testuale tramite una semplice interfaccia grafica.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Al fine di poter riceve le notifiche da \texttt{event\_dispatcher} questa componente espone in interfaccia un metodo di \textit{callback} che serve a ricevere le notifiche e mostrare le informazioni trasportate in forma testuale all'utente.
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Facendo parte del gruppo di componenti \textit{subscribers}, \texttt{debug\_log} necessita della possibilità di registrarsi presso \texttt{event\_dispatcher} con il metodo \fun{subscribe}.
 
 \section{Race Info}
@@ -328,11 +331,11 @@ Attraverso questa componente l'utente può interagire con lo stato della simulaz
 \item modifica del fattore di \textit{simulation speed}.
 \end{itemize}
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Essendo \texttt{race\_info} una GUI, dal punto di vista funzionale espone sicuramente un'interfaccia verso l'utente con lo scopo di rendere facilmente fruibili i dati riguardanti l'evolvere della simulazione.
 Questa componente, conformemente a quanto avviene nel resto del sistema, riceve le informazioni sulla competizione da \texttt{event\_dispatcher}. Per questo motivo deve fornire ad \texttt{event\_dispatcher} almeno un canale di comunicazione (metodo di \textit{callback}).
 
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Per poter interagire con la simulazione come descritto precedentemente \texttt{race\_info} necessita di diversi metodi forniti della componente \texttt{scheduler}:
 \begin{itemize}
 \item \fun{start\_simulation},
@@ -357,24 +360,24 @@ I dati da mostrare all'utente sono:
 \end{itemize}
 L'utente può inoltre forzare la sosta ai \textit{box} o il ritiro per un'auto appartenente alla scuderia.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Le informazioni sulla gara sono ottenute tramite \texttt{event\_dispatcher}, di conseguenza, \texttt{team\_monitor} deve esporre i canali di comunicazione necessari come metodi di \textit{callback}.
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Al fine di permettere all'utente l'interazione con le auto appartenenti alla scuderia, questa componente necessita dei metodi \fun{retire} e \fun{force\_pitstop} esposti da \texttt{car}.
 
-Per poter registrarsi presso \texttt{event\_dispatcher}, ed ottenere quindi le informazioni da mostrare all'utente, \texttt{team\_monitor} necessita del metodo \fun{event\_dispatcher:subscribe}.
+Per poter registrarsi presso \texttt{event\_dispatcher}, ed ottenere quindi le informazioni da mostrare all'utente, \texttt{team\_monitor} necessita del metodo \\\fun{event\_dispatcher:subscribe}.
 
 \section{Weather Station}
 Questa componente è un'interfaccia grafica che mostra all'utente le condizioni atmosferiche sulla pista e permette ad esso di modificarle durante il corso della competizione. Le informazioni sullo stato della pista sono ottenute tramite notifiche da \texttt{event\_dispatcher} mentre le richieste di variazioni vengono inviate alla componente \texttt{weather}.
 
-\subsection*{Interfaccia Fornita}
+\subsection*{Interfaccia fornita}
 Deve fornire un \textit{callback} per la ricezione dei dati inerenti le condizioni atmosferiche sul circuito di gara.
-\subsection*{Interfaccia Richiesta}
+\subsection*{Interfaccia richiesta}
 Essendo questa una componente \textit{subscriber}, essa richiede le funzionalità offerte da \fun{event\_dispatcher:subscribe}.
 
 Per quanto riguarda invece la modifica delle condizioni atmosferiche è necessario che la componente \texttt{weather} esponga in interfaccia il metodo \fun{schedule\_change}, in modo da permettere a \texttt{weather\_station} di comunicare le variazioni decise dall'utente a simulazione avviata.
 
-\section{Avvio e Terminazione}
+\section{Avvio e terminazione}
 \label{sec:start-stop}
 Per rendere più usabile il prototipo abbiamo pensato di far svolgere l'avvio e la configurazione del sistema tramite interfaccia grafica.
 L'utente dovrà interagire con due tipi di interfacce di configurazione:
@@ -404,7 +407,7 @@ Una volta avviato \texttt{node\_configurator}, questo istanzia un nodo \Erlang{}
 
 La componente \texttt{node\_manager} ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del \texttt{bootstrap\_server}.
 
-Una volta terminata la fase di \textit{bootstrap} del sistema, \texttt{node\_manager} deve rimanere in attesa del comando di terminazione del nodo da parte di \texttt{bootstrap\_server}, mentre \texttt{node\_configurator} viene terminato una volta che l'utente ha inserito le informazioni necessarie.
+Una volta terminata la fase di \textit{bootstrap} del sistema, \texttt{node\_manager} deve rimanere in attesa del comando di terminazione del nodo che verrà eventualmente inviato da \texttt{bootstrap\_server}, mentre \texttt{node\_configurator} viene terminato una volta che l'utente ha inserito le informazioni necessarie.
 
 \subsection*{Terminazione}
 \`E necessario distinguere tra terminazione della simulazione e terminazione del sistema.
@@ -497,14 +500,6 @@ Affermare che due processi comunichino allo stesso modo, indipendentemente dal f
 \section{Avvio del sistema}
 \label{sec:avvio}
 
-\begin{landscape}
-\begin{figure}
-\includegraphics[height=.24\paperheight]{diagrammi/Bootstrap}
-\caption{Fase di \textit{bootstrap}}
-\label{fig:bootstrap}
-\end{figure}
-\end{landscape}
-
 Il diagramma di comunicazione\footnote{Per poter evidenziare efficacemente il comportamento parallelo delle entità, si è reso necessario deviare leggermente dallo standard UML sui diagrammi di comunicazione. Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo se indicate da lettere diverse, secondo la numerazione se iniziano con la stessa lettera.} in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \Erlang{} sullo stesso elaboratore.
 
 Nel nodo \Erlang{} istanziato da \texttt{control\_panel} viene eseguito \texttt{bootstrap\_server} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \texttt{node\_manager}. Durante l'avvio di \texttt{node\_manager} viene consultato il file \texttt{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
@@ -527,15 +522,23 @@ Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti
 
 Una volta che queste informazioni sono state inserite, queste vengono comunicate alle rispettive componenti \Erlang{} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
 
-Effettuando il \textit{parsing} dei file di configurazione, \fun{bootstrap\_server:read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
+\begin{landscape}
+\begin{figure}
+\includegraphics[height=.24\paperheight]{diagrammi/Bootstrap}
+\caption{Diagramma della fase di \textit{bootstrap}}
+\label{fig:bootstrap}
+\end{figure}
+\end{landscape}
 
-A questo punto l'utente può interagire con l'interfaccia grafica e causare l'invocazione del metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata e inizializzata la tabella contenete la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:load\_app}, tutte le componenti di simulazione necessarie, nell'ordine:
+Effettuando il \textit{parsing} dei file di configurazione, la logica di \fun{read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \texttt{bootstrap\_server} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
+
+A questo punto l'utente può interagire con l'interfaccia grafica e causare l'invocazione del metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata la tabella contenente la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:start\_app}, tutte le componenti di simulazione necessarie, nell'ordine:
 \begin{enumerate}
-\item \texttt{event\_dispatcher},
-\item \texttt{scheduler},
-\item \texttt{weather},
-\item \texttt{team},
-\item \texttt{car}.
+\item \texttt{event\_dispatcher}
+\item \texttt{scheduler}
+\item \texttt{weather}
+\item \texttt{team}
+\item \texttt{car}
 \end{enumerate}
 
 Così si conclude la fase di avvio del sistema e si può passare quindi alla fase di simulazione.
@@ -551,16 +554,16 @@ La disposizione iniziale delle auto sulla pista avviene similmente a quanto ripo
 \label{fig:startGrid}
 \end{figure}
 
-\subsection{Percorrenza di un Segmento}
+\subsection{Percorrenza di un segmento}
 \label{sec:percorrenza}
 Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
 \begin{itemize}
-\item Corsia di ingresso,
-\item Velocità di ingresso,
-\item Tempo di ingresso,
-\item Conformazione e stato del segmento,
-\item Caratteristiche e stato dell'auto,
-\item Informazioni su altre auto che stanno percorrendo quel segmento.
+\item corsia di ingresso,
+\item velocità di ingresso,
+\item tempo di ingresso,
+\item conformazione e stato del segmento,
+\item caratteristiche e stato dell'auto,
+\item informazioni su altre auto che stanno percorrendo quel segmento.
 \end{itemize}
 
 Grazie alle informazioni sopra elencate e indicando in quale corsia il pilota vuole trovarsi all'uscita del segmento è possibile calcolare il tempo e la velocità di uscita dell'auto. Sono principalmente due i gruppi di fattori che influenzano questo calcolo: in primo luogo l'auto stessa e le caratteristiche della pista, poi la presenza di altre auto nello stesso segmento e l'interazione con esse.
@@ -585,13 +588,13 @@ Il calcolo al punto 1 avviene poiché non è possibile per un'auto effettuare un
 Nel calcolo dei limiti di velocità indiretti è molto importante la decelerazione massima che un'auto può raggiungere: per rendere la simulazione più verosimile abbiamo deciso di trattare in modo abbastanza dettagliato la parte fisica della competizione, facendo dipendere accelerazione e decelerazione massime sia dalle caratteristiche dell'auto che da quelle della pista.
 In particolare l'accelerazione/decelerazione che un auto può erogare in un determinato segmento dipende da:
 \begin{itemize}
-\item potenza del motore/dei freni
-\item peso dell'auto a secco
-\item peso del pilota
-\item peso del carburante
-\item stato di usura e tipo dei pneumatici
-\item condizioni atmosferiche
-\item inclinazione della pista
+\item potenza del motore/dei freni,
+\item peso dell'auto a secco,
+\item peso del pilota,
+\item peso del carburante,
+\item stato di usura e tipo dei pneumatici,
+\item condizioni atmosferiche,
+\item inclinazione della pista.
 \end{itemize}
 
 \begin{figure}
@@ -619,12 +622,12 @@ Come si può vedere in figura~\ref{fig:simulation}, la prima operazione è l'eve
 \item \texttt{Time}: il tempo in cui l'auto uscirà da quel segmento calcolato come tempo di ingresso più tempo di percorrenza.
 \end{itemize}
 Una volta ottenuti i risultati della simulazione, la logica di \texttt{car} decide quale sia la corsia migliore da percorrere, in particolare l'auto sceglierà la corsia la cui simulazione ritorna il valore (in ordine di priorità decrescente):
-\begin{itemize}
-\item \texttt{race\_ended}
-\item \texttt{pits}
-\item il valore \texttt{Time} minore
-\item \texttt{fail}
-\end{itemize}
+\begin{enumerate}
+\item \texttt{race\_ended};
+\item \texttt{pits};
+\item il valore \texttt{Time} minore;
+\item \texttt{fail}.
+\end{enumerate}
 
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Move}
@@ -641,17 +644,17 @@ Il metodo \fun{move\_car} è particolarmente importante ai fini della simulazion
 Il metodo \fun{move\_car} deve anche calcolare i consumi dell'auto derivanti dall'aver percorso quel segmento.
 Il consumo di carburante è pari a una quantità fissa per segmento moltiplicata per un coefficiente dipendente dall'inclinazione della pista in quel punto, mentre il consumo dei pneumatici dipende dalla curvatura del segmento, dal tipo di pneumatici usati e dalle condizioni atmosferiche.
 
-\subsection{Intermedi Cronometrici}
-Gli intermedi cronometrici e il traguardo sono dei particolari segmenti aventi lunghezza nulla. Dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero, non è necessario effettuare il calcolo del tempo di percorrenza: infatti per questo tipo di segmenti, detti:
+\subsection{Intermedi cronometrici}
+Gli intermedi cronometrici e il traguardo sono dei particolari segmenti aventi lunghezza nulla. Dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero, non è necessario effettuare il calcolo del tempo di percorrenza. Infatti per questo tipo di segmenti, detti:
 \begin{itemize}
-\item $n+1$ l'indice di tale segmento;
-\item $L_{ex_A}^{n}$: la corsia di uscita di A dal segmento $n$,
-\item $L_{ex_A}^{n+1}$: la corsia di uscita di A dal segmento $n+1$,
-\item $T_{en_A}^{n+1}$: il tempo di ingresso di A nel segmento $n+1$,
-\item $T_{ex_A}^{n}$: il tempo di uscita di A dal segmento $n$,
-\item $T_{ex_A}^{n+1}$: il tempo di uscita di A dal segmento $n+1$,
+\item $n+1$: l'indice di tale segmento;
+\item $L_{ex_A}^{n}$: la corsia di uscita di A dal segmento $n$;
+\item $L_{ex_A}^{n+1}$: la corsia di uscita di A dal segmento $n+1$;
+\item $T_{en_A}^{n+1}$: il tempo di ingresso di A nel segmento $n+1$;
+\item $T_{ex_A}^{n}$: il tempo di uscita di A dal segmento $n$;
+\item $T_{ex_A}^{n+1}$: il tempo di uscita di A dal segmento $n+1$;
 \end{itemize}
-allora vale:
+allora valgono:
 \begin{itemize}
 \item $L_{ex_A}^{n} = L_{ex_A}^{n+1}$: imposto dal modulo \texttt{access} poiché non è possibile cambiare corsia in un segmento di lunghezza nulla;
 \item $T_{ex_A}^{n} = T_{en_A}^{n+1} = T_{ex_A}^{n+1}$: poiché il tempo impiegato a percorrere un tratto di lunghezza nulla è nullo;
@@ -661,14 +664,14 @@ allora vale:
 \end{itemize}
 Come si può notare in figura~\ref{fig:move} in corrispondenza del transito di un'auto attraverso un intermedio cronometrico viene emessa da \texttt{track} una \texttt{chrono\_notif} verso \texttt{event\_dispatcher}. Questo tipo di messaggio contiene:
 \begin{itemize}
-\item ID dell'auto
-\item ID dell'intermedio e numero del giro
-\item tempo di gara in cui l'auto attraversa l'intermedio
-\item velocità massima raggiunta dall'auto dopo l'intermedio precedente
-\item stato corrente di carburante e pneumatici dell'auto
+\item ID dell'auto;
+\item ID dell'intermedio e numero del giro;
+\item tempo di gara in cui l'auto attraversa l'intermedio;
+\item velocità massima raggiunta dall'auto dopo l'intermedio precedente;
+\item stato corrente di carburante e pneumatici dell'auto.
 \end{itemize}
 
-\subsection{Pit Lane}
+\subsection{Pit lane}
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/PitLane}
 \caption{Rappresentazione della zona dei \textit{box}}
@@ -703,7 +706,7 @@ dove B è l'auto accodata nello stesso segmento e in corsia $-2$ con tempo di us
 
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/NextPitstop}
-\caption{Algoritmo \texttt{set\_next\_pitstop} di \texttt{car}}
+\caption{Algoritmo di \fun{car:set\_next\_pitstop}}
 \label{fig:nextPitstop}
 \end{figure}
 
@@ -733,8 +736,6 @@ Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in
 
 In questo modo le componenti del sistema non più necessarie possono terminare la propria esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili ma restare comunque attive per permettere all'utente di consultare i dati relativi alla simulazione.
 
-\section{Event Dispatcher}
-\label{sec:event_dispatcher}
 \begin{landscape}
 \begin{figure}
 \includegraphics[width=0.75\paperheight]{diagrammi/NotifFlow}
@@ -743,6 +744,8 @@ In questo modo le componenti del sistema non più necessarie possono terminare l
 \end{figure}
 \end{landscape}
 
+\section{Event Dispatcher}
+\label{sec:event_dispatcher}
 In figura~\ref{fig:notifFlow}, sulla sinistra si possono vedere quali sono i tipi di notifica presenti nel sistema e da che componenti sono inviati, mentre sulla destra sono rappresentate le componenti che ricevono i dati, eventualmente rielaborati, derivanti dalle notifiche.
 
 Un compito molto importante di \texttt{event\_dispatcher} è quello di mantenere l'ordine delle notifiche rispetto ogni destinazione, non è quindi possibile affidarsi a comunicazioni asincrone.
@@ -845,7 +848,7 @@ Abbiamo limitato il non determinismo a livello di simulazione alle sole situazio
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.6\textwidth]{diagrammi/NonDet}
-\caption{Situazione di non determinismo}
+\caption{Esemplificazione di una situazione di non determinismo}
 \label{fig:nonDet}
 \end{center}
 \end{figure}
@@ -1035,39 +1038,34 @@ Inoltre, la validità di tali valori non viene controllata dal prototipo, di con
 \chapter{Avvio del prototipo}
 Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio.
 
-Le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche a simulazione iniziata:
-\begin{itemize}
-\item \texttt{race\_info},
-\item \texttt{team\_monitor},
-\item \texttt{weather\_station},
-\item \texttt{debug\_log}.
-\end{itemize}
+Si noti che le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche quando la simulazione è già in corso: \texttt{race\_info}, \texttt{team\_monitor}, \texttt{weather\_station} e \texttt{debug\_log}.
 
-\subsection*{Passo 0 - Configurazione e Compilazione}
+\subsection*{Passo 0 -- Configurazione e compilazione}
 Il comando \texttt{./configure} effettua la configurazione del prototipo in base al proprio sistema. Qualora la procedura automatica non andasse a buon fine, è possibile definire le seguenti variabili d'ambiente:
 \begin{itemize}
-\item \texttt{ERLC}: percorso del compilatore \Erlang{},
-\item \texttt{ERLCFLAGS}: \textsl{flags} per il compilatore \Erlang{},
-\item \texttt{ERL}: percorso dell'interprete \Erlang{},
-\item \texttt{PYTHON}: percorso dell'interprete \Python{},
-\item \texttt{PYRCC}: percorso dell'eseguibile \texttt{pyrcc4} di \textsl{PyQt4},
+\item \texttt{ERLC}: percorso del compilatore \Erlang{};
+\item \texttt{ERLCFLAGS}: \textsl{flags} per il compilatore \Erlang{};
+\item \texttt{ERL}: percorso dell'interprete \Erlang{};
+\item \texttt{PYTHON}: percorso dell'interprete \Python{};
+\item \texttt{PYTHONPATH}: eventuali percorsi addizionali in cui cercare i moduli \Python{};
+\item \texttt{PYRCC}: percorso dell'eseguibile \texttt{pyrcc4} di \textsl{PyQt4};
 \item \texttt{PYUIC}: percorso dell'eseguibile \texttt{pyuic4} di \textsl{PyQt4}.
 \end{itemize}
 La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{make}.
 
-\subsection*{Passo 1 - \texttt{.hosts.erlang}}
-Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo.
+\subsection*{Passo 1 -- Il file \texttt{.hosts.erlang}}
+Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo. Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
 
-\subsection*{Passo 2 - Control Panel}
+\subsection*{Passo 2 -- Control Panel}
 \`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
 Poiché in tale interfaccia viene richiesto il percorso dei file di configurazione per la simulazione, è necessario che tali file siano raggiungibili dall'elaborare in cui viene eseguito lo script.
 
-\subsection*{Passo 3 - Node Configurator}
+\subsection*{Passo 3 -- Node Configurator}
 Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
 
 Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
 
-\subsection*{Passo 4 - Interfacce Grafiche}
+\subsection*{Passo 4 -- Interfacce grafiche}
 Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
 
 Per poter avviare la simulazione è necessario che almeno una componente \texttt{race\_info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato. L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
