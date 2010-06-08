@@ -56,6 +56,8 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         else:
             self.statusBar().showMessage("Bootstrap failed", 5000)
             QMessageBox.critical(self, "Error", "An error occurred during bootstrap:\n\n   %s" % reply)
+            self.actionNew.setEnabled(True)
+            self.actionBootstrap.setEnabled(True)
 
     @pyqtSlot(name="on_actionNew_triggered")
     def _newSimulation(self):
@@ -98,6 +100,7 @@ class ControlPanelWindow(QMainWindow, Ui_ControlPanelWindow):
         else:
             self.statusBar().showMessage("Shutdown failed", 5000)
             QMessageBox.critical(self, "Error", "An error occurred during shutdown:\n\n   %s" % reply)
+            self.actionShutdown.setEnabled(True)
 
     def _startup(self):
         if BootstrapServer.start():
