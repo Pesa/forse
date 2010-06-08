@@ -279,19 +279,23 @@ handle_call({set_gui_node, Node}, _From, State) ->
 
 handle_call({shutdown, StopNodes}, _From, State) ->
 	Nodes = State#state.nodes,
-	if
-		StopNodes ->
-			rpc:multicall(Nodes, init, stop, []),
-			init:stop();
-		State#state.bootstrapped ->
-			lists:foreach(fun({App, Node}) ->
-								  node_manager:stop_app(Node, App)
-						  end, State#state.started_apps),
-			rpc:multicall(Nodes, mnesia, stop, []);
-		true ->
-			ok
-	end,
+	Ready = if
+				StopNodes ->
+					rpc:multicall(Nodes, init, stop, []),
+					init:stop(),
+					false;
+				State#state.bootstrapped ->
+					StopApp = fun({App, Node}) ->
+									  catch node_manager:stop_app(Node, App)
+							  end,
+					lists:foreach(StopApp, State#state.started_apps),
+					rpc:multicall(Nodes, mnesia, stop, []),
+					check_reqs(State);
+				true ->
+					State#state.ready
+			end,
 	{reply, ok, State#state{bootstrapped = false,
+							ready = Ready,
 							started_apps = []}};
 
 handle_call(Msg, From, State) ->
@@ -325,8 +329,12 @@ handle_info({nodedown, Node}, State) ->
 			 end,
 	NewState = State#state{candidates = lists:map(Delete, State#state.candidates),
 						   nodes = lists:delete(Node, State#state.nodes)},
-	% re-check the requirements
-	{noreply, NewState#state{ready = check_reqs(NewState)}};
+	% maybe re-check the requirements
+	Ready = case State#state.bootstrapped of
+				true -> State#state.ready;
+				false -> check_reqs(NewState)
+			end,
+	{noreply, NewState#state{ready = Ready}};
 
 handle_info(Info, State) ->
 	?WARN({"unhandled info", Info}),
