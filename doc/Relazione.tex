@@ -23,7 +23,7 @@
 	\and Davide Pesavento\\\url{davidepesa@gmail.com}}
 %\date{}
 
-\newcommand{\term}[2]{\textbf{#1} & #2 \\}
+\newcommand{\term}[2]{\textbf{#1} & #2 \\ \\}
 \newcommand{\Erlang}{\textsl{Erlang}}
 \newcommand{\Python}{\textsl{Python}}
 \newcommand{\fun}[1]{\texttt{#1}}
@@ -103,7 +103,7 @@ Nella seconda parte della relazione verrà illustrata la nostra soluzione, prima
 \end{enumerate}
 
 
-\chapter{Problemi}
+\chapter{Problematiche di progettazione}
 
 In questo capitolo verranno individuati i principali problemi incontrati nella progettazione del sistema, sia a livello di coordinazione delle componenti distribuite, sia a livello di meccaniche di simulazione.
 
@@ -546,7 +546,7 @@ Così si conclude la fase di avvio del sistema e si può passare quindi alla fas
 \section{Dinamiche della competizione}
 \subsection{Partenza}
 Prima che l'utente possa dare il via alla competizione tutte le auto devono essersi registrate presso lo \texttt{scheduler} indicando come tempo di prenotazione $0$. \`E importante precisare che, in questa situazione, l'ordine in cui lo \texttt{scheduler} permette ai processi \texttt{car} di andare in esecuzione non influenza l'esito della gara: infatti alla partenza le auto sono tutte su segmenti diversi e di conseguenza non concorrono tra di loro per l'accesso ad uno stesso segmento. Ne deriva quindi che sebbene l'ordine di esecuzione alla partenza possa essere considerato casuale (dipende dall'ordine di registrazione presso lo \texttt{scheduler}, che è una componente distribuita del sistema), questo non va ad influenzare i tempi di percorrenza dei segmenti da parte delle auto e non influisce quindi con il risultato della gara.
-La disposizione iniziale delle auto sulla pista avviene similmente a quanto riportato in figura~\ref{fig:startGrid}, ed è richiesto all'utente che nella zona di pista che precede la linea di arrivo vi siamo almeno tre corsie.
+La disposizione iniziale delle auto sulla pista avviene similmente a quanto riportato in figura~\ref{fig:startGrid}, ed è richiesto all'utente che nella zona di pista che precede la linea di arrivo vi siano almeno tre corsie.
 
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/StartGrid}
@@ -1083,6 +1083,7 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
 \term{Simulation speed}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
+\term{Intermedio cronometrico}{Segmento di lunghezza nulla in corrispondenza del quale vengono raccolti dati sulle prestazioni dell'auto. Anche il traguardo è considerato un segmento di questo tipo.}
 \end{tabularx}
 
 \end{document}
