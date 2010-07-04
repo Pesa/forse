@@ -1,10 +1,11 @@
-TARGET = Relazione.pdf
+TARGET = Relazione
 
 DIADIR = diagrammi
 
 DIA_FILES := $(wildcard $(DIADIR)/*.dia)
 PDF_FILES := $(DIA_FILES:.dia=.pdf)
 PNG_FILES := $(wildcard $(DIADIR)/*.png)
+TEX_FILES := $(wildcard *.tex)
 
 ifeq ($(V),1)
 Q =
@@ -14,13 +15,13 @@ Q = @
 NQ = @echo
 endif
 
-all: $(TARGET)
+all: $(TARGET).pdf
 
-$(TARGET): $(TARGET:.pdf=.tex) $(PDF_FILES) $(PNG_FILES)
-	$(NQ) "running pdflatex on" $<
-	$(Q) pdflatex $<
-	$(Q) pdflatex $<
-	$(Q) pdflatex $<
+$(TARGET).pdf: $(TEX_FILES) $(PDF_FILES) $(PNG_FILES)
+	$(NQ) "running pdflatex on" $(TARGET).tex
+	$(Q) pdflatex $(TARGET).tex
+	$(Q) pdflatex $(TARGET).tex
+	$(Q) pdflatex $(TARGET).tex
 
 $(DIADIR)/%.pdf: $(DIADIR)/%.dia
 	$(NQ) "converting" $< "to" $@
