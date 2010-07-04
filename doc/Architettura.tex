@@ -22,7 +22,7 @@ Gli aggiornamenti vengono inviati dalla componente \texttt{event\_dispatcher} ai
 
 I \textit{subscribers} devono indicare che informazioni desiderano ricevere di modo che \texttt{event\_dispatcher} possa effettuare una procedura di filtraggio per evitare l'invio di dati non richiesti.
 
-\texttt{event\_dispatcher} assume quindi il ruolo di \textit{message broker} poiché traduce i messaggi provenienti dai \textit{publishers} e li inoltra e smista verso i \textit{subscribers}. In questo modo si ottiene un basso livello di accoppiamento, a dimostrazione di ciò basta notare che non è nemmeno necessario che il gruppo delle componenti \textit{publishers} sia al corrente dell'esistenza delle componenti \textit{subscribers}.
+\texttt{event\_dispatcher} assume quindi il ruolo di \textit{message broker} poiché smista e traduce i messaggi provenienti dai \textit{publishers} e li inoltra ai \textit{subscribers}. In questo modo si ottiene un basso livello di accoppiamento, a dimostrazione di ciò è sufficiente notare che non è nemmeno necessario che il gruppo delle componenti \textit{publishers} sia al corrente dell'esistenza delle componenti \textit{subscribers}.
 
 Viste le caratteristiche che deve avere tale componente, nell'ottica di un sistema distribuito possiamo considerarla un server poiché non effettua comunicazioni con altre componenti del sistema se non in risposta ad azioni esterne rientrando quindi nella categoria delle entità reattive.
 
@@ -83,7 +83,7 @@ Oltre ai dati visti finora, la componente \texttt{track} deve anche gestire la l
 \subsection*{Interfaccia fornita}
 Grazie al metodo \fun{simulate} le entità \texttt{car} possono simulare l'esito di uno spostamento, una volta scelta la corsia di uscita ed espressa la volontà o meno di effettuare una sosta ai \textit{box} in quel giro.
 
-La presenza del metodo \fun{simulate} è giustificata dal fatto che la logica di \fun{car}, al fine di scegliere il modo migliore di percorrere un segmento, ha bisogno non solo di informazioni sulla fisica del segmento ma deve considerare anche l'interazione che l'auto può avere con altre eventuali vetture che stanno percorrendo il medesimo segmento.
+La presenza del metodo \fun{simulate} è giustificata dal fatto che la logica di \fun{car}, al fine di scegliere il modo migliore di percorrere un segmento, ha bisogno non solo di informazioni sulla fisica dello stesso ma deve considerare anche l'interazione che l'auto può avere con altre eventuali vetture che stanno percorrendo il medesimo segmento.
 
 Grazie a questo metodo \fun{car} può conoscere i tempi di percorrenza del segmento (uno per ogni corsia raggiungibile dall'auto) prima di effettuare l'effettivo spostamento sulla pista e scegliere conseguentemente la corsia di uscita ritenuta migliore.
 
@@ -157,7 +157,7 @@ Come la componente \texttt{car} anche \texttt{team} deve comunicare le proprie i
 Poiché questa entità attiva va a modificare lo stato della pista, essa è evidentemente in concorrenza con le entità \texttt{car} presenti nel sistema. \`E pertanto necessario che l'accesso alla risorsa \texttt{track} avvenga in modo controllato: in particolare è previsto che le modifiche sulla pista avvengano attraverso \textit{booking} presso lo \texttt{scheduler}.
 
 \subsection*{Interfaccia fornita}
-Al momento della prenotazione presso lo \texttt{scheduler} questa componente indica il metodo \fun{apply\_change} come metodo di \textit{callback}, di conseguenza, nel momento in cui lo \texttt{scheduler} permetterà a questa entità di eseguire, invocherà tale metodo. Questo metodo ha il compito di cambiare il tempo atmosferico di \texttt{track} secondo quanto precedentemente definito dall'utente.
+Al momento della prenotazione presso lo \texttt{scheduler} questa componente indica il metodo \fun{apply\_change} come metodo di \textit{callback}. Così facendo l'accoppiamento tra le due componenti è mantenuto minimo. Questo metodo ha il compito di cambiare il tempo atmosferico di \texttt{track} secondo quanto precedentemente definito dall'utente.
 
 L'altro metodo che l'interfaccia di \texttt{weather} espone è \fun{schedule\_change} che serve per impostare eventuali ulteriori variazioni a simulazione avviata.
 
