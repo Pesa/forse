@@ -1,0 +1,161 @@
+\chapter{Correttezza}
+\section{Avvio del sistema}
+L'avvio del sistema è coordinato da \texttt{bootstrap\_server} che stabilisce l'ordine di avvio delle componenti del sistema (come descritto nella sezione~\ref{sec:avvio}) e controlla che l'avvio delle stesse avvenga in modo corretto.
+
+\texttt{event\_dispatcher} è la prima componente ad essere avviata in modo da permettere l'invio di \fun{config\_notif} da parte delle componenti del sistema durante la loro fase di avvio.
+
+Successivamente viene avviato lo \texttt{scheduler} di modo che i processi \texttt{weather} e \texttt{car} possano prenotarsi per l'esecuzione e l'accesso a \texttt{track}. In questo modo ogni componente del sistema dispone delle informazioni e delle altre componenti necessarie affinché il proprio avvio avvenga correttamente.
+
+Nel caso in cui qualcuna delle componenti del sistema non riuscisse ad avviarsi questo sarebbe rilevato da \texttt{bootstrap\_server} e comunicato all'utente. Di conseguenza, se l'esecuzione del metodo \fun{bootstrap\_server:bootstrap} termina senza errori vuol dire che la simulazione è pronta ad essere avviata.
+
+Una possibile situazione di errore si può avere nel caso in cui vengano istanziati due nodi \Erlang{} con lo stesso nome. Ciò tuttavia è estremamente improbabile poiché la parte del nome che viene generata casualmente da \texttt{node\_configurator} è una stringa di 8 cifre esadecimali. Nel caso in cui si verifichi una situazione del genere non è possibile riparare all'errore ed è quindi necessario riavviare il sistema.
+
+\section{Accesso alla pista}
+L'accesso alla componente \texttt{track} è disciplinato dallo \texttt{scheduler}; gli unici processi che vi possono accedere sono \texttt{car} e \texttt{weather}. Ogniqualvolta \texttt{car} o \texttt{weather} necessitino dell'accesso alla risorsa \texttt{track}, essi effettuano la procedura di prenotazione presso lo \texttt{scheduler} a cui è delegato il compito di gestire il protocollo di accesso a \texttt{track}.
+
+La componente \texttt{scheduler} utilizza una politica \textit{FIFO within priorities} per gestire la coda dei processi prenotati, assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione. Viene eletto un solo processo alla volta (la testa della coda) per l'accesso a \texttt{track} e non è permesso l'accesso ad altri processi. Questo finché il processo che sta utilizzando \texttt{track} non notifica allo \texttt{scheduler} di non aver più bisogno della risorsa.
+
+Lo \texttt{scheduler} garantisce quindi un accesso sequenziale a \texttt{track} e assicura che la pista si trovi sempre in uno stato consistente.
+
+\section{Tempo di percorrenza}
+Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impiegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente \texttt{track}. Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tanto meno influisce l'orologio di sistema. Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino.
+
+Non è possibile che avvenga il fenomeno dello ``scavalcamento'' tra auto, per convincersi di ciò basta analizzare attentamente l'algoritmo che gestisce il calcolo del tempo di percorrenza di un segmento e l'eventuale interazione tra le auto.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.5\textwidth]{diagrammi/Surpass}
+\caption{Interazione tra auto nello stesso segmento}
+\label{fig:surpass}
+\end{center}
+\end{figure}
+La figura~\ref{fig:surpass} rappresenta le situazioni che si possono creare nel momento in cui un'auto percorre un segmento di pista in cui è presente un altra auto.
+
+Individuare le auto sorpassate a seguito della mossa che un'auto (chiamiamola A) sta effettuando è semplice: detto $T_{en_X}$ il tempo di ingresso di un'auto X nel segmento e $T_{ex_X}$ il suo tempo di uscita, l'insieme delle auto $\mathcal{S}$ sorpassate da A in quel segmento sarà:
+\[ \mathcal{S} = \{ X \mid T_{en_X} \leq T_{en_A} \;\wedge\; T_{ex_X} > T_{ex_A}\} \]
+
+Nel momento in cui l'auto A effettua il suo turno sono noti:
+\begin{itemize}
+\item $T_{en_B}^{n+1}$: il tempo di ingresso di B nel segmento $n+1$,
+\item $T_{ex_B}^{n+1}$: il tempo di uscita di B dal segmento $n+1$,
+\item $L_{en_B}^{n+1}$: la corsia di ingresso di B nel segmento $n+1$,
+\item $L_{ex_B}^{n+1}$: la corsia di uscita di B dal segmento $n+1$,
+\item $T_{en_A}^{n+1}$: il tempo di ingresso di A nel segmento $n+1$,
+\item $L_{en_A}^{n+1}$: la corsia di ingresso di A nel segmento $n+1$,
+\item $L_{ex_A}^{n+1}$: la corsia di uscita di A dal segmento $n+1$ (scelta dall'auto quindi si può considerare fissata).
+\end{itemize}
+Obiettivo dell'algoritmo è quindi il calcolo di $T_{ex_A}^{n+1}$. Sia $T_{lc}$ il tempo che un'auto impiega a spostarsi da una corsia ad una adiacente: esso è considerato fisso ed uguale per tutte le auto e ogni auto può spostarsi di una sola corsia per ogni segmento.
+Come precondizione si ha inoltre che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ poiché B si è spostata in quel segmento prima di A, e che $T_{en_A}^{n+1} \leq T_{ex_B}^{n+1}$ altrimenti lo \texttt{scheduler} avrebbe eletto B per l'esecuzione al posto di A.
+
+Per poter calcolare il tempo di uscita di A dal segmento $n+1$ è necessario prima valutare se B interferisce con la mossa di A.
+Considerando lo scenario~(a) di figura~\ref{fig:surpass} possiamo distinguere due casi:
+\begin{enumerate}
+\item $L_{ex_A}^{n+1} = m+2$: non vi è alcuna interferenza da parte di B poiché la corsia $m+2$ è libera.
+\item $L_{ex_A}^{n+1} = m+1$:
+        \begin{enumerate}
+        \item $L_{en_B}^{n+1} = m+2$: A sta seguendo esattamente la stessa traiettoria che ha seguito B per percorrere il segmento $n+1$ ed è quindi corretto che l'auto A si accodi a B e non possa superarla.
+        \item $L_{en_B}^{n+1}  = m+1$: A cerca di inserirsi davanti a B tagliandole la strada; tuttavia, visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$, vale anche che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1} + T_{lc}$ e non è quindi possibile che A si posizioni davanti a B.
+        \item $L_{en_B}^{n+1} = m$: A e B si spostano entrambe sulla stessa corsia $m+1$ provenendo da corsie differenti ma visto che $T_{en_B}^{n+1} \leq T_{en_A}^{n+1}$ allora vale anche $T_{en_B}^{n+1} + T_{lc} \leq T_{en_A}^{n+1} + T_{lc}$ e di conseguenza A può solo accodarsi a B.
+        \end{enumerate}
+\end{enumerate}
+
+Per quanto riguarda lo scenario~(b) di figura~\ref{fig:surpass} vi sono due casi:
+\begin{enumerate}
+\item $L_{ex_A}^{n+1} = m+2$ oppure $L_{ex_A}^{n+1} = m$: non vi è alcuna interferenza da parte di B poiché le corsie sono libere.
+\item $L_{ex_A}^{n+1} = m+1$:
+        \begin{enumerate}
+        \item $L_{en_B}^{n+1} = m+1$: A si accoda a B (vedi caso 1.a dello scenario (a)).
+        \item $L_{en_B}^{n+1} = m+2$ oppure $L_{en_B}^{n+1} = m$: A cerca di inserirsi davanti a B prima che questa occupi la corsia $m+1$ e se $T_{en_B}^{n+1} + T_{lc} < T_{en_A}^{n+1}$ vuol dire che A deve accodarsi a B, altrimenti è A ed essere in testa e non viene quindi influenzata dalla presenza di B.
+        \end{enumerate}
+\end{enumerate}
+
+Nei casi in cui non vi è interferenza da parte di B nella mossa di A, $T_{ex_A}^{n+1}$ viene calcolato solo sulla base delle caratteristiche dell'auto e della pista.
+Nei casi in cui A deve accodarsi a B viene aggiunto il vincolo che $T_{ex_A}^{n+1} > T_{ex_B}^{n+1}$ e calcolata la velocità di uscita di conseguenza.
+
+La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
+
+
+L'ultima considerazione riguarda l'influenza che il fattore di \textit{simulation speed} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto. Il fattore di \textit{simulation speed} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \texttt{scheduler} fa trascorrere tra il rilascio della componente \texttt{track} da parte di un processo e la concessione di tale risorsa ad un altro. Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
+
+\section{Non determinismo}
+Abbiamo limitato il non determinismo a livello di simulazione alle sole situazioni in cui esso sia desiderabile. L'unico caso in cui l'ordine di esecuzione può infatti influire sul risultato della simulazione è quello in cui anche nella realtà non si riesce a prevedere in modo certo l'esito dell'interazione tra due auto.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{diagrammi/NonDet}
+\caption{Esemplificazione di una situazione di non determinismo}
+\label{fig:nonDet}
+\end{center}
+\end{figure}
+
+Consideriamo lo scenario riportato in figura~\ref{fig:nonDet}, e assumiamo che:
+\begin{itemize}
+\item le auto e i piloti abbiano caratteristiche identiche;
+\item $T_{en_A}^{n+1} = T_{en_B}^{n+1}$: le auto abbiano tempi di ingresso uguali;
+\item $V_{en_A}^{n+1} = V_{en_B}^{n+1}$: le auto abbiano velocità di ingresso uguali.
+\end{itemize}
+
+Sotto queste ipotesi non vi sono problemi di interazione tra le auto finché $L_{ex_A}^{n+1} \neq L_{ex_B}^{n+1}$ poiché, avendo traiettorie che non si intersecano, i tempi di percorrenza dell'una non sono influenzabili in alcun modo dall'altra.
+
+Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo, in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo, ma le due auto si troverebbero allora a collidere in uscita dal segmento. La prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e di conseguenza, per quanto visto in~\ref{sec:percorrenza}, la seconda auto si dovrà accodare alla prima, facendo registrare un tempo di uscita dal segmento leggermente maggiore.
+
+C'è da dire che il verificarsi di tale situazione è altamente improbabile e non è quindi possibile cogliere questo comportamento in una generica simulazione ma bisogna invece creare una situazione \textit{ad-hoc} per ottenere dei test ripetibili e poter apprezzare la presenza del non determinismo.
+
+\section{Deadlocks}
+Durante la fase di progettazione del sistema abbiamo posto particolare attenzione alla prevenzione di situazioni di \textit{deadlock}. In particolare ci siamo resi conto che il flusso di notifiche presente nel sistema, se non trattato in modo attento poteva facilmente essere causa di situazioni di stallo.
+
+Come si può notare in figura~\ref{fig:notifFlow}, per esempio, la componente \texttt{team} compare sia come mittente che come destinatario e se il percorso della notifica fosse totalmente sincrono si avrebbe una situazione di \textit{deadlock} dovuta al ciclo \texttt{team} $\rightarrow$ \texttt{event\_dispatcher} $\rightarrow$ \texttt{team}.
+
+Abbiamo quindi deciso di intervenire in modo strutturale sulla componente maggiormente coinvolta nel flusso di notifiche: \texttt{event\_dispatcher}. Come descritto in~\ref{sec:event_dispatcher}, \texttt{event\_dispatcher} al suo interno usa comunicazioni asincrone appunto per evitare possibili \textit{deadlocks}, intervenendo sulla condizione di attesa circolare. In questo modo, una volta che un processo mittente ha depositato la sua notifica presso \texttt{event\_dispatcher}, non deve bloccarsi in attesa dei processi destinatari ma può continuare la sua esecuzione.
+
+Questa soluzione ci assicura l'assenza di \textit{deadlocks} causati dalle notifiche, poiché la propagazione di queste ultime coinvolge \texttt{event\_dispatcher} che, grazie alla sua struttura interna, evita il formarsi di cicli.
+
+\section{Realismo}
+\subsection*{Fisico}
+Al fine di ottenere un buon livello di realismo della simulazione da un punto di vista fisico, abbiamo deciso di far dipendere le \textit{performance} dell'auto da diversi fattori modellando i fenomeni fisici coinvolti nel miglior modo possibile, con particolare attenzione alla decelerazione.
+
+Nella seguente tabella vengono riportati i valori utilizzati nel modello fisico della simulazione e da quali parametri di configurazione tali valori dipendono.
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Valore} & \textbf{Ricavato da} \\
+\hline
+\multirow{5}{*}{Velocità massima in curva} & Raggio di curvatura\\
+& Inclinazione del tratto\\
+& Condizioni atmosferiche\\
+& Tipo di pneumatici\\
+& Usura dei pneumatici\\
+\hline
+\multirow{8}{*}{Accelerazione/Decelerazione massima} & Potenza del motore/dei freni\\
+& Peso dell'auto\\
+& Peso del carburante\\
+& Peso del pilota\\
+& Inclinazione del tratto\\
+& Condizioni atmosferiche\\
+& Tipo di pneumatici\\
+& Usura dei pneumatici\\
+\hline
+\multirow{3}{*}{Consumo dei pneumatici} & Raggio di curvatura\\
+& Tipo di pneumatici\\
+& Condizioni atmosferiche\\
+\hline
+Consumo di carburante & Inclinazione del tratto\\
+\hline
+\end{tabular}
+\end{center}
+
+Considerando la fase di decelerazione che un'auto deve generalmente intraprendere prima di entrare in curva o prima di accedere alla \textit{pit lane}, è stato necessario introdurre nelle meccaniche di simulazione il calcolo della tabella di preelaborazione. Questo principalmente per evitare che le auto arrivassero all'entrata della curva e, non avendo il tempo di frenare, uscissero di pista sistematicamente.
+
+\subsection*{Dinamiche di gara}
+Per quanto riguarda il realismo nelle dinamiche di gara, abbiamo considerato la possibilità per un'auto di ritirarsi dalla competizione a seguito di:
+\begin{itemize}
+\item uscita di pista per velocità troppo elevata;
+\item uscita di pista per evitare incidenti qualora l'auto non riesca a frenare in tempo per evitare gli altri concorrenti;
+\item esplosione pneumatici a causa di un'eccessiva usura;
+\item esaurimento del carburante;
+\item potenza del motore insufficiente a percorrere il tratto.
+\end{itemize}
+
+Si è cercato poi di descrivere l'interazione tra le auto in uno stesso segmento in modo preciso, per poter distinguere le condizioni di sorpasso e quelle di accodamento anche in base alla traiettoria di un'auto. Limitare il cambio di corsia ad uno solo per segmento è stato utile per avere un maggior controllo sull'algoritmo di percorrenza di un segmento e sull'aderenza della simulazione alla realtà.
+ 

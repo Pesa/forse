@@ -1,0 +1,158 @@
+\chapter{File di configurazione}
+\section*{Team e Car}
+Le impostazioni delle scuderie, delle auto e dei piloti sono contenuti in uno stesso file di configurazione.
+
+\begin{lstlisting}
+[
+        {team_name, "McLaren"},
+        {brake, 34000},
+        {power, 25000},
+        {weight, 650},
+        {cars, [
+                [{id, 2},
+                {name, "Lewis Hamilton"},
+                {skill, 6},
+                {weight, 68},
+                {fuel, 70},
+                {tyres, slick}],
+                [{id, 6},
+                {name, "Heikki Kovalainen"},
+                {skill, 4},
+                {weight, 62},
+                {fuel, 80},
+                {tyres, slick}]
+                ]}
+].
+\end{lstlisting}
+
+I parametri di configurazione sono descritti in \Erlang{} per risparmiare tempo sfruttando le funzioni di \textit{parsing} offerte dal linguaggio. Si tratta di una lista di coppie chiave-valore la cui semantica è spiegata nella seguente tabella:
+
+\begin{center}
+\begin{tabular}{|p{0.15\textwidth}|p{0.75\textwidth}|}
+\hline
+\multicolumn{2}{|c|}{Scuderia e Auto}\\
+\hline
+\texttt{team\_name} & Nome della scuderia\\
+\texttt{brake} & Potenza dei freni\\
+\texttt{power} & Potenza del motore\\
+\texttt{weight} & Peso dell'auto a secco\\
+\texttt{cars} & Lista dei piloti e della configurazione iniziale delle auto\\
+\hline
+\multicolumn{2}{|c|}{Pilota e Auto}\\
+\hline
+\texttt{id} & Posizione nella griglia di partenza\\
+\texttt{name} & Nome del pilota\\
+\texttt{skill} & Abilità del pilota (intero tra 1 e 10 compresi)\\
+\texttt{weight} & Peso del pilota\\
+\texttt{fuel} & Carburante presente nell'auto ad inizio gara\\
+\texttt{tyres} & Tipo di gomme montate sull'auto ad inizio gara\\
+\hline
+\end{tabular}
+\end{center}
+
+L'unico parametro opzionale tra quelli appena elencati è \texttt{id}. Nel caso in cui nel file di configurazione esista almeno un pilota in cui il parametro \texttt{id} è omesso allora l'ordine nella griglia di partenza di tutti i concorrenti sarà generato casualmente.
+
+\section*{Track}
+Il file di configurazione di \texttt{track} contiene le informazioni riguardanti la conformazione della pista espressa in settori. La configurazione è composta da una lista di tuple, ciascuna delle quali rappresenta un settore.
+
+Di seguito la sintassi per descrivere i tipi di settore possibili e i parametri consentiti.
+
+\begin{itemize}
+\item \verb!{straight, LENGTH, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Rettilineo
+\item \verb!{right, LENGTH, RADIUS, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Curva a destra
+\item \verb!{left, LENGTH, RADIUS, MIN_LANE, MAX_LANE, INCL, RAIN}!\\ Curva a sinistra
+\item \verb!{finish_line}!\\ Traguardo
+\item \verb!{intermediate}!\\ Intermedio cronometrico
+\item \verb!{pitlane_entrance}!\\ Inizio della zona dei \textit{box}
+\item \verb!{pitlane_exit}!\\ Fine della zona dei \textit{box}
+\end{itemize}
+
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\texttt{LENGTH} & Lunghezza del settore in metri, possibilmente un valore multiplo di 5\\
+\hline
+\texttt{RADIUS} & Raggio di curvatura in metri\\
+\hline
+\texttt{MIN\_LANE} & Minimo indice di corsia consentito, intero positivo\\
+\hline
+\texttt{MAX\_LANE} & Massimo indice di corsia consentito, intero positivo\\
+\hline
+\texttt{INCL} & Inclinazione della pista, deve appartenere all'intervallo $(-90^\circ, +90^\circ)$\\
+\hline
+\texttt{RAIN} & Condizioni atmosferiche all'inizio della gara, intero tra 0 e 10 inclusi\\
+\hline
+\end{tabularx}
+
+\section*{Weather}
+Questo file contiene una lista di tuple, ciascuna delle quali rappresenta le variazioni del tempo atmosferico in un istante di gara.
+
+Le tuple sono nella forma:
+\[ \{\mbox{\texttt{WHEN}},\;\: [\{\mbox{\texttt{WHERE}},\; \mbox{\texttt{RAIN}}\},\; \ldots\;\: ]\} \]
+\begin{itemize}
+\item \texttt{WHEN}: quando, rispetto al tempo di gara, avverrà il cambiamento. Può essere espresso in secondi oppure nel formato $\{h,m,s\}$.
+\item \texttt{WHERE}: in che settore avverrà il cambiamento, l'indice si riferisce alla posizione del settore nel file di configurazione della pista.
+\item \texttt{RAIN}: quantità di pioggia presente nel settore, un intero nell'intervallo $[0, 10]$.
+\end{itemize}
+
+\section*{config.hrl}
+Il prototipo consente di modificare delle costanti utilizzate per la simulazione.
+Queste costanti sono raggruppate nel file \texttt{include/config.hrl} e una loro modifica richiede la ricompilazione del prototipo per avere effetto.
+
+La maggior parte delle costanti presenti in questo file agisce direttamente sul modello fisico della simulazione e sulla rappresentazione interna della pista per ottenere una simulazione a grana più o meno fine. Una delle costanti più importanti è infatti la lunghezza dei segmenti in cui viene diviso il tracciato, attualmente impostata a 5 metri.
+
+Questi valori possono essere modificati, tuttavia tale operazione è sconsigliata poiché si potrebbe facilmente dare luogo a situazioni limite nelle quali, per esempio, nessuna auto riuscirebbe a percorrere nemmeno un tratto senza uscire di pista.
+
+Inoltre, la validità di tali valori non viene controllata dal prototipo, di conseguenza potrebbero addirittura essere sollevate eccezioni durante i calcoli (divisione per zero, estrazione di radice quadrata di un numero negativo, e così via).
+
+
+\chapter{Avvio del prototipo}
+Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio.
+
+Si noti che le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche quando la simulazione è già in corso: \texttt{race\_info}, \texttt{team\_monitor}, \texttt{weather\_station} e \texttt{debug\_log}.
+
+\subsection*{Passo 0 -- Configurazione e compilazione}
+Il comando \texttt{./configure} effettua la configurazione del prototipo in base al proprio sistema. Qualora la procedura automatica non andasse a buon fine, è possibile definire le seguenti variabili d'ambiente:
+\begin{itemize}
+\item \texttt{ERLC}: percorso del compilatore \Erlang{};
+\item \texttt{ERLCFLAGS}: \textsl{flags} per il compilatore \Erlang{};
+\item \texttt{ERL}: percorso dell'interprete \Erlang{};
+\item \texttt{PYTHON}: percorso dell'interprete \Python{};
+\item \texttt{PYTHONPATH}: eventuali percorsi addizionali in cui cercare i moduli \Python{};
+\item \texttt{PYRCC}: percorso dell'eseguibile \texttt{pyrcc4} di \textsl{PyQt4};
+\item \texttt{PYUIC}: percorso dell'eseguibile \texttt{pyuic4} di \textsl{PyQt4}.
+\end{itemize}
+La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{make}.
+
+\subsection*{Passo 1 -- Il file \texttt{.hosts.erlang}}
+Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo. Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
+
+\subsection*{Passo 2 -- Control Panel}
+\`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
+Poiché in tale interfaccia viene richiesto il percorso dei file di configurazione per la simulazione, è necessario che tali file siano raggiungibili dall'elaborare in cui viene eseguito lo script.
+
+\subsection*{Passo 3 -- Node Configurator}
+Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
+
+Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
+
+\subsection*{Passo 4 -- Interfacce grafiche}
+Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
+
+Per poter avviare la simulazione è necessario che almeno una componente \texttt{race\_info} sia avviata in un elaboratore in rete con quelli che ospitano il sistema precedentemente avviato. L'avvio di tale componente avviene tramite l'esecuzione di \texttt{start\_race\_info}.
+
+L'avvio di \texttt{team\_monitor} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_team\_monitor}. Ogni istanza di tale componente viene associata ad una sola scuderia, a seconda della scelta compiuta dall'utente all'avvio di ciascuna istanza.
+
+L'avvio di \texttt{weather\_station} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_weather\_station}.
+
+L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo \textit{script} \texttt{start\_logger}.
+
+\chapter{Glossario}
+
+\begin{tabularx}{\textwidth}{lX}
+\term{Intermedio cronometrico}{Segmento di lunghezza nulla in corrispondenza del quale vengono raccolti dati sulle prestazioni dell'auto. Anche il traguardo è considerato un segmento di questo tipo.}
+\term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
+\term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
+\term{Simulation speed}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
+\term{Tabella di preelaborazione}{Struttura dati riferita ad un'auto in cui sono contenute le triple (ID segmento, velocità massima, velocità massima con \textit{pit stop}) per ogni segmento della pista.}
+\end{tabularx}
+ 

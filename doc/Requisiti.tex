@@ -1,0 +1,43 @@
+\chapter{Requisiti}
+\begin{enumerate}
+\item Il sistema deve essere composto da più entità concorrenti e distribuite su una rete.
+\item La simulazione evolve in modo deterministico.
+\item Il circuito è suddiviso in settori ed è configurabile dall'utente tramite file di configurazione. L'utente deve poter specificare le seguenti informazioni:
+        \begin{itemize}
+        \item tipo di settore (rettilineo, curvilineo, entrata e uscita dai \textit{box}, intermedio cronometrico, traguardo);
+        \item lunghezza e larghezza di ciascun settore;
+        \item se il settore è una curva, direzione (destra o sinistra) e raggio di curvatura;
+        \item pendenza del suolo;
+        \item tempo atmosferico iniziale;
+        \item eventuali variazioni del tempo atmosferico nel corso della gara.
+        \end{itemize}
+\item Insieme configurabile di concorrenti aventi le seguenti caratteristiche:
+        \begin{itemize}
+        \item nome;
+        \item scuderia di appartenenza;
+        \item esperienza/bravura;
+        \item peso;
+        \item vettura utilizzata.
+        \end{itemize}
+\item Parametri di configurazione delle auto:
+        \begin{itemize}
+        \item capienza del serbatoio;
+        \item quantità di carburante presente nel serbatoio ad inizio gara;
+        \item tipo dei pneumatici montati ad inizio gara (\textit{slick}, intermedi, da bagnato);
+        \item potenza del motore;
+        \item potenza dei freni;
+        \item peso a secco.
+        \end{itemize}
+\item Parametri di configurazione di una competizione:
+        \begin{itemize}
+        \item numero totale di giri da effettuare;
+        \item opzionalmente, la posizione dei concorrenti sulla griglia di partenza;
+        \end{itemize}
+\item Il sistema di controllo deve essere composto da:
+        \begin{itemize}
+        \item un pannello generale indicante posizione dei concorrenti in gara, tempi di percorrenza attuali e miglior tempo sul giro, con la possibilità per l'utente di sospendere e riprendere la simulazione;
+        \item situazione atmosferica della pista, con la possibilità per l'utente di apportare modifiche alle condizioni meteo anche dopo che la gara è iniziata;
+        \item un pannello per ciascuna scuderia che riporta i parametri tecnici rilevanti delle vetture dei propri piloti (carburante residuo, mescola dei pneumatici e loro condizioni di usura) nonché i tempi di percorrenza per settore di pista e totali; deve essere inoltre possibile per l'utente forzare la sosta ai box e il ritiro di un'auto.
+        \end{itemize}
+\end{enumerate}
+ 
