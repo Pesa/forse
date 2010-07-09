@@ -42,9 +42,8 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \subsection*{Caratteristiche di Erlang}
 \Erlang{} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \Erlang{}.
 
-I processi \Erlang{} sono processi di macchina virtuale e non veri e propri processi di sistema operativo. Sono estremamente leggeri dal punto di vista dell'occupazione memoria e per questo il linguaggio si presta bene ad applicazioni che usano un gran numero di processi concorrenti, anche perché il cambio di contesto fra processi \Erlang{} risulta molto meno dispendioso rispetto ad un cambio di contesto normale.
-Non vi è memoria condivisa e i processi comunicano tramite scambio di messaggi asincrono.
-
+Le caratterestiche del linguaggio che incidono particolarmente sul progetto sono l'assenza di memoria condivisa e la modalità di comunicazione tra processi (scambio di messaggi asincrono).
+Per informazioni più dettagliate sul linguaggio fare riferimento alla documentazione presente all'indirizzo \url{http://www.erlang.org/}.
 
 
 Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre al protocollo nativo, \Erlang{} supporta anche CORBA v2.0 tramite il modulo \texttt{orber}.
@@ -61,7 +60,7 @@ Il linguaggio usato per le query è \Erlang{} stesso, differentemente da quanto 
 
 \textsl{Twisted} è un framework per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} asincrono basato su eventi e \textit{callbacks}.
 
-\subsection*{Eventuali problemi riscontrati}
+\subsection*{Problemi riscontrati}
 Affermare che due processi comunichino allo stesso modo, indipendentemente dal fatto che siano sullo stesso nodo o su nodi differenti, non è del tutto corretto. Vi è infatti una differenza fondamentale nelle garanzie offerte dal linguaggio per le chiamate asincrone eseguite remotamente rispetto a quelle eseguite in locale. L'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui tali processi si trovino su nodi differenti; al contrario l'ordine viene sempre preservato qualora i due processi comunicanti si trovino sullo stesso nodo. Ciò potrebbe costituire un problema, in quanto è l'unico aspetto del linguaggio che impone dei vincoli sulla distribuzione delle varie componenti e quindi deve essere attentamente considerato in fase di progettazione.
 
 \section{Avvio del sistema}
@@ -123,7 +122,7 @@ La disposizione iniziale delle auto sulla pista avviene similmente a quanto ripo
 
 \subsection{Percorrenza di un segmento}
 \label{sec:percorrenza}
-Nel momento in cui un'auto si appresta a percorrere un segmento sono noti:
+Nel momento in cui un'auto si appresta a percorrere un segmento sono noti alla componente \fun{track}:
 \begin{itemize}
 \item corsia di ingresso,
 \item velocità di ingresso,
@@ -172,6 +171,16 @@ In particolare l'accelerazione/decelerazione che un auto può erogare in un dete
 
 Passiamo ora a descrivere le operazioni che il processo \texttt{car} effettua nel momento in cui lo \texttt{scheduler} gli consente di eseguire una mossa.
 
+Dal punto di vista del processo \texttt{car} la sequenza di invocazioni neccessaria per effettuare uno spostamento sulla pista è indipendente sia dalla posizione dell'auto che dalla conformazione della pista stessa.
+
+Restando ad alto livello, il protocollo di interazione tra \texttt{car} e \texttt{track} è il seguente: per percorrere il segmento successivo, la componente \texttt{car} prima utilizza il metodo \texttt{track:simulate} per ottenere i dati necessari a scegliere quale sia la corsia più conveniente e successivamente invoca il metodo \texttt{track:move} per effettuare lo spostamento.
+Grazie a questo schema le componenti \texttt{car} non devono essere a conoscenza della conformazione della pista per poterla percorrere in quanto i segmenti vengono trattati tutti in modo omogeneo.
+
+In altre parole è la componente \texttt{track} che si occupa di individuare il segmento che l'auto dovrà percorrere e più in generale di gestire l'accesso ai segmenti. In base al tipo di segmento \texttt{track} provvederà ad effettuare tutte le operazioni del caso (rilevazioni cronometriche, comunicazione con la relativa componente \texttt{team} in caso di sosta ai box, etc..) nascondendo quindi le differenze tra i vari tipi di segmenti alla componente \texttt{car}.
+
+Un altra conseguenza della soluzione adottata è che non è necessario che un'auto conosca esplicitamente la posizione sulla pista degli altri concorrenti, in quanto questo aspetto viene gestito da \texttt{track}.
+
+
 Come si può vedere in figura~\ref{fig:simulation}, la prima operazione è l'eventuale ricalcolo della tabella di preelaborazione; successivamente viene controllato se è prevista una sosta ai \textit{box} per il giro corrente; infine si passa alla fase di simulazione vera e propria. Nella fase di simulazione \texttt{car} richiede a \texttt{track} quali sono le corsie raggiungibili nel segmento che sta per percorrere e successivamente di simulare l'esito dello spostamento per ogni corsia che l'auto può raggiungere. Questa fase, implementata da \fun{track:simulate}, può restituire diversi risultati a \texttt{car}.
 \begin{itemize}
 \item \texttt{race\_ended}: l'auto nella mossa precedente ha superato il traguardo nell'ultimo giro e ha quindi terminato la sua gara.
@@ -204,7 +213,12 @@ Una volta ottenuti i risultati della simulazione, la logica di \texttt{car} deci
 
 Una volta scelta la corsia migliore \texttt{car} effettua lo spostamento sulla pista grazie all'invocazione \fun{track:move} (figura~\ref{fig:move}) e resta in attesa del risultato che può essere o il tempo di uscita dal segmento che si sta percorrendo oppure \texttt{race\_ended} oppure \texttt{fail}. Nel primo caso l'auto provvederà a prenotarsi presso lo \texttt{scheduler} indicando il tempo di uscita, negli altri casi \texttt{car} non effettuerà alcuna nuova prenotazione.
 
-La prima parte della fase di spostamento è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita anche nel caso in cui si tratti di una sosta ai \textit{box}. Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso \texttt{event\_dispatcher}.
+La prima parte della fase di spostamento è molto simile alla fase di simulazione poiché viene controllato se la mossa è consentita o meno e viene eventualmente calcolato il tempo di uscita dal segmento anche nel caso in cui si tratti di una sosta ai \textit{box}.
+
+Un fatto importante da notare è che una mossa è ritenuta non consentita dalla funzione \texttt{move} se e solo se l'invocazione del metodo \texttt{simulate} effettuata con gli stessi parametri ha come valore di ritorno \texttt{fail}.
+Di conseguenza nel momento in cui \texttt{car} va ad invocare \texttt{track:move} con parametri relativi ad una mossa non consentita, visto il criterio di scelta utilizzato per la corsia di uscita precedentemente descritto, siamo certi che non esistevano mosse consentite e che tutte le invocazioni del metodo \texttt{track:simulate}, effettuate nella precedente fase di simulazione, hanno avuto come esito \texttt{fail}.
+
+Nella seconda parte dello spostamento vengono emesse eventuali notifiche verso \texttt{event\_dispatcher}.
 
 Il metodo \fun{move\_car} è particolarmente importante ai fini della simulazione poiché serve a individuare eventuali sorpassi avvenuti all'interno del segmento e notificarli. Un ulteriore compito del suddetto metodo è quello di aggiornare lo stato di \texttt{track} contenuto nel \textit{database}.
 
@@ -212,7 +226,7 @@ Il metodo \fun{move\_car} deve anche calcolare i consumi dell'auto derivanti dal
 Il consumo di carburante è pari a una quantità fissa per segmento moltiplicata per un coefficiente dipendente dall'inclinazione della pista in quel punto, mentre il consumo dei pneumatici dipende dalla curvatura del segmento, dal tipo di pneumatici usati e dalle condizioni atmosferiche.
 
 \subsection{Intermedi cronometrici}
-Gli intermedi cronometrici e il traguardo sono dei particolari segmenti aventi lunghezza nulla. Dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero, non è necessario effettuare il calcolo del tempo di percorrenza. Infatti per questo tipo di segmenti, detti:
+Gli intermedi cronometrici e il traguardo sono particolari segmenti aventi lunghezza nulla. Dal punto di vista di \texttt{car} sono trattati esattamente come tutti gli altri segmenti in quanto è compito di \texttt{track} nascondere le differenze ed effettuare semplificazioni dove possibile. Avendo lunghezza zero, non è necessario effettuare il calcolo del tempo di percorrenza. Infatti per questo tipo di segmenti, detti:
 \begin{itemize}
 \item $n+1$: l'indice di tale segmento;
 \item $L_{ex_A}^{n}$: la corsia di uscita di A dal segmento $n$;
