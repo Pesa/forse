@@ -96,10 +96,17 @@ class PhysicalSector(Sector):
         self.graphicsEffect().setEnabled(False)
         Sector.hoverLeaveEvent(self, event)
 
-    def projection(self, pos, _pit=False):
-        percent = float(pos) / self.length()
+    def projection(self, pos, pit=False, retired=False):
+        percent = self.path().percentAtLength(pos)
         point = self.path().pointAtPercent(percent)
-        return self.mapToScene(point)
+        if not retired:
+            return self.mapToScene(point)
+        d = 1.5 * (_pitWidth if pit else _trackWidth)
+        angle = math.radians(self.path().angleAtPercent(percent))
+        dx = d * math.sin(angle)
+        dy = d * math.cos(angle)
+        dpoint = QPointF(dx if abs(dx) >= 1 else 0, dy if abs(dy) >= 1 else 0)
+        return self.mapToScene(point + dpoint)
 
     def setColor(self, color):
         pen = QPen(self.pen())
