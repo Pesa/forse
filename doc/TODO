@@ -3,3 +3,6 @@
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
 - migliorare la Reason restituita quando access:check_move fallisce
+- spostare get_car_ahead da physics a track
+- un nodo con zero istanze di ogni componente non viene terminato dal bootstrap_server
+	se si chiude tutto prima del bootstrap
