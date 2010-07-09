@@ -96,7 +96,7 @@ class PhysicalSector(Sector):
         self.graphicsEffect().setEnabled(False)
         Sector.hoverLeaveEvent(self, event)
 
-    def projection(self, pos, pit=False, retired=False):
+    def projection(self, pos, pit, retired):
         percent = self.path().percentAtLength(pos)
         point = self.path().pointAtPercent(percent)
         if not retired:
@@ -222,11 +222,11 @@ class SectorWithPitlane(QGraphicsItemGroup):
         self.setSectorId = self.regular.setSectorId
         self.setToolTip = self.regular.setToolTip
 
-    def projection(self, pos, pit):
+    def projection(self, pos, pit, retired):
         if pit:
-            return self.pit.projection(pos, pit)
+            return self.pit.projection(pos, pit, retired)
         else:
-            return self.regular.projection(pos, pit)
+            return self.regular.projection(pos, pit, retired)
 
 
 class BentSectorWithPitlane(SectorWithPitlane):
@@ -262,7 +262,7 @@ class Track(QGraphicsItemGroup):
         for s in self.__sectors:
             s.enableHoverEffect()
 
-    def projection(self, pos, pit):
+    def projection(self, pos, pit, retired):
         """
         Returns the position of an object on the track in scene coordinates.
         """
@@ -271,7 +271,7 @@ class Track(QGraphicsItemGroup):
         for s in self.__sectors:
             relative = normalized - current
             if relative < s.length():
-                return s.projection(relative, pit)
+                return s.projection(relative, pit, retired)
             current += s.length()
 
     def setSectorColor(self, sectId, color):

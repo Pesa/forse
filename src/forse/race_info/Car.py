@@ -39,6 +39,7 @@ class Car(QGraphicsItem):
         self._id = carId
         self._position = startPos
         self._pit = pitLane
+        self._retired = False # TODO
         self._font = QFont()
         self._font.setPointSize(16)
         self._pen = QPen(Qt.black, self.carSize, Qt.SolidLine, Qt.RoundCap)
@@ -88,4 +89,4 @@ class Car(QGraphicsItem):
         self._pit = pit
 
     def _translateToNewPos(self):
-        self.setPos(self._track.projection(self._position, self._pit))
+        self.setPos(self._track.projection(self._position, self._pit, self._retired))
