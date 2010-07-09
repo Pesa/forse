@@ -224,9 +224,9 @@ class SectorWithPitlane(QGraphicsItemGroup):
 
     def projection(self, pos, pit):
         if pit:
-            return self.pit.projection(pos)
+            return self.pit.projection(pos, pit)
         else:
-            return self.regular.projection(pos)
+            return self.regular.projection(pos, pit)
 
 
 class BentSectorWithPitlane(SectorWithPitlane):
