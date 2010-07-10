@@ -28,8 +28,7 @@
 		 sgm_max_speed/3,
 		 engine_max_speed/1,
 		 acceleration/5,
-		 deg_to_rad/1,
-		 get_car_ahead/3]).
+		 deg_to_rad/1]).
 
 -include("db_schema.hrl").
 
@@ -52,7 +51,7 @@ simulate(Sgm, EnterLane, ExitLane, EnterTime, Index, Space,
 			EnterLane == ExitLane -> 0;
 			true -> ?LANE_CHANGE_TIME
 		end,
-	K = get_car_ahead(Sgm, ExitLane, Index),
+	K = track:get_car_ahead(Sgm, ExitLane, Index),
 	GK = if
 			 K#car_position.enter_lane == K#car_position.exit_lane -> 0;
 			 true -> ?LANE_CHANGE_TIME
@@ -104,30 +103,6 @@ acceleration(F, M, Inclination, CarStatus, Rain) ->
 -spec deg_to_rad(number()) -> float().
 deg_to_rad(Angle) when is_number(Angle) ->
 	Angle * math:pi() / 180.0.
-
-%% Returns null or a car_position record.
-%% Index starts from 1
-% FTNOTE: non deve considerare se stessa
-% (altrimenti una simulate dopo un fault non funziona)
--spec get_car_ahead(#segment{}, lane(), pos_integer()) ->
-					#car_position{} | 'null'.
-get_car_ahead(#segment{queued_cars = Q}, Lane, Index) ->
-	Filter = fun(Pos) ->
-					 case Pos of
-						 #car_position{exit_lane = Lane} -> true;
-						 _ -> false
-					 end
-			 end,
-	Sort = fun(E1, E2) ->
-				   E1#car_position.exit_t >= E2#car_position.exit_t
-		   end,
-	Slist = lists:sort(Sort, lists:filter(Filter, Q)),
-	if
-		length(Slist) >= Index ->
-			lists:nth(Index, Slist);
-		true ->
-			null
-	end.
 
 
 %% --------------------------------------------------------------------

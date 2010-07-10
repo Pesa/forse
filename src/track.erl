@@ -27,6 +27,7 @@
 		 move/3,
 		 simulate/3,
 		 preelaborate/1,
+		 get_car_ahead/3,
 		 is_pre_pitlane/1,
 		 reachable_lanes/2,
 		 where_am_i/1]).
@@ -337,7 +338,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 										  Pilot#pilot.lap, Pilot#pilot.pitstop_count),
 			PitstopTime = pitstop_time(Ops),
 			% check if there's another car at the pits
-			CarBoxPos = physics:get_car_ahead(S, ExitLane, 1),
+			CarBoxPos = get_car_ahead(S, ExitLane, 1),
 			CPExitTime = CarPos#car_position.exit_t,
 			ETime = case CarBoxPos of
 						null ->
@@ -599,6 +600,30 @@ bent_and_pit(CarStatus, Sgm, {NextBentB, NextPitB}) ->
 							 bound = BentB,
 							 pit_bound = PitB},
 			[R | bent_and_pit(CarStatus, Sgm - 1, {BentBound, BentBound})]
+	end.
+
+
+%% Returns null or a car_position record.
+%% Index starts from 1.
+% FTNOTE: it should not consider itself
+-spec get_car_ahead(#segment{}, lane(), pos_integer()) ->
+					#car_position{} | 'null'.
+get_car_ahead(#segment{queued_cars = Q}, Lane, Index) when Index >= 1 ->
+	Filter = fun(Pos) ->
+					 case Pos of
+						 #car_position{exit_lane = Lane} -> true;
+						 _ -> false
+					 end
+			 end,
+	Sort = fun(E1, E2) ->
+				   E1#car_position.exit_t >= E2#car_position.exit_t
+		   end,
+	Slist = lists:sort(Sort, lists:filter(Filter, Q)),
+	if
+		Index =< length(Slist) ->
+			lists:nth(Index, Slist);
+		true ->
+			null
 	end.
 
 
