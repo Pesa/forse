@@ -38,7 +38,7 @@ class PositionsModel(QAbstractTableModel):
         OTPApplication.registerMsgHandlers(handlers)
 
     def columnCount(self, _parent):
-        return 2
+        return 3
 
     def rowCount(self, _parent):
         return len(self.__positions)
@@ -48,13 +48,15 @@ class PositionsModel(QAbstractTableModel):
             try:
                 i = self.__positions[index.row() + 1]
                 if index.column() == 0:
-                    return QVariant(PilotInfo.get(i).name())
+                    return QVariant(i)
                 elif index.column() == 1:
+                    return QVariant(PilotInfo.get(i).name())
+                elif index.column() == 2:
                     return QVariant(PilotInfo.get(i).state())
             except KeyError:
                 pass
         elif role == Qt.TextAlignmentRole:
-            if index.column() == 1:
+            if index.column() == 0 or index.column() == 2:
                 return QVariant(Qt.AlignCenter)
         return QVariant()
 
@@ -62,8 +64,10 @@ class PositionsModel(QAbstractTableModel):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
                 if section == 0:
-                    return QVariant("Pilot")
+                    return QVariant("ID")
                 elif section == 1:
+                    return QVariant("Pilot")
+                elif section == 2:
                     return QVariant("State")
             else:
                 return QVariant(section + 1)
