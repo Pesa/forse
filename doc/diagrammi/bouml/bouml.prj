@@ -1,6 +1,6 @@
 format 70
 "bouml"
-  revision 4
+  revision 5
   modified_by 3 "daniele"
 
 
@@ -233,6 +233,16 @@ format 70
 
       activitynode 129027 activity_final ""
       end
+    end
+
+    sequencediagram 141187 "pitstop_deadlock"
+      show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
+      overlapping_bars size A4
+    end
+
+    sequencediagram 141315 "piststop_solution"
+      show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
+      overlapping_bars size A4
     end
   end
 end

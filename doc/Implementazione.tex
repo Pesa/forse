@@ -285,11 +285,6 @@ Visto che ogni scuderia può rifornire una sola auto alla volta il tempo di usci
 \[ T_{ex_A} = \max \left\{ T_{en_A}, T_{ex_B} \right\} + T_{ops} \]
 dove B è l'auto accodata nello stesso segmento e in corsia $-2$ con tempo di uscita maggiore (ovvero l'auto che eventualmente precede A nella sosta ai \textit{box}) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
 
-\begin{figure}
-\includegraphics[width=\textwidth]{diagrammi/NextPitstop}
-\caption{Algoritmo di \fun{car:set\_next\_pitstop}}
-\label{fig:nextPitstop}
-\end{figure}
 
 Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 \begin{itemize}
@@ -297,7 +292,33 @@ Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 \item su richiesta di \texttt{team}, in base ai dati ottenuti nel corso della competizione, indicando il giro a cui l'auto deve recarsi ai \textit{box}.
 \end{itemize}
 
-Il primo tipo di richiesta arriva direttamente dalla componente \texttt{team\_monitor}, mentre il secondo tipo arriva da \texttt{team} che comunica con l'auto attraverso l'invio di un messaggio di tipo \texttt{next\_pitstop} in modo asincrono per evitare possibili situazioni di \textit{deadlock}. Il fatto che il messaggio sia asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento \texttt{pitstop} di una scuderia vi sia un segmento di tipo \texttt{intermediate} e supponiamo anche che l'auto A di tale scuderia stia percorrendo la \textit{pit lane} per effettuare una sosta.
+Il primo tipo di richiesta arriva direttamente dalla componente \texttt{team\_monitor}, mentre il secondo tipo arriva da \texttt{team} che comunica con l'auto attraverso l'invio di un messaggio di tipo \texttt{next\_pitstop} in modo asincrono per evitare possibili situazioni di \textit{deadlock}.
+
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{diagrammi/PitstopDeadlock}
+\caption{Possibile situazione di \textit{deadlock}}
+\label{fig:pitstopDeadlock}
+\end{figure}
+
+La possibile situazione di \textit{deadlock}, qualora il messaggio \texttt{next\_pitstop} fosse inviato in modo sincrono, scaturisce dalla sequenza di messaggi illustrata in figura~\ref{fig:pitstopDeadlock}.
+
+Nello scenario descritto, mentre \texttt{car} sta percorrendo il segmento relativo ai \textit{box} della propria scuderia per effettuare il rifornimento, ovvero invocando il metodo \texttt{track:move}, \texttt{team} tenta di inviare un messaggio \texttt{next\_pitstop} a \texttt{car} rimanendo però bloccato in attesa di una sincronizzazione.
+
+Il metodo \texttt{track:move}, qualora debba simulare una sosta per il rifornimento e calcolare quindi il tempo impegato per le operazioni, deve invocare il metodo \texttt{team:pitstop\_operations} per ottenere le informazioni su quali operazioni devono essere effettuate durante la sosta. Anche in questo caso la sincronizzazione fallisce e il chiamante rimane bloccato poiché il destinatario del messaggio è ancora bloccato a causa dell'invio del messaggio \texttt{next\_pitstop}.
+
+In questo modo si concretizza una situazione di attesa circolare che porta conseguentemente al \textit{deadlock} precedentemente accennato.
+
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{diagrammi/PitstopSolution}
+\caption{Prevenzione dell'attesa circolare}
+\label{fig:pitstopSol}
+\end{figure}
+
+La soluzione strutturale adottata per evitare questa situazione di attesa circolare è descritta in figura~\ref{fig:pitstopSol}. L'invio del messaggio \texttt{next\_pitstop} è stato reso asincrono per evitare che \texttt{team} rimanga bloccato, come invece accade nello scenario precedente, e sia quindi disponibile alla successiva sincronizzazione causata dalla ricezione del messaggio \texttt{pitstop\_operations}.
+
+Una volta completato lo spostamento l'auto può quindi andare a considerare il messaggio \texttt{next\_pitstop}.
+
+La soluzione appena descritta tuttavia è fonte di un nuovo problema: il fatto che il messaggio \texttt{next\_pitstop} sia inviato in modo asincrono introduce il problema relativo alla freschezza delle informazioni che il messaggio veicola. Supponiamo infatti di avere una conformazione della pista tale per cui appena prima del segmento \texttt{pitstop} di una scuderia vi sia un segmento di tipo \texttt{intermediate} e supponiamo anche che l'auto A di tale scuderia stia percorrendo la \textit{pit lane} per effettuare una sosta.
 \`E possibile che si verifichi la seguente sequenza di eventi:
 \begin{enumerate}
 \item A percorre il segmento \texttt{intermediate} e viene inviata una \texttt{chrono\_notif} a \texttt{event\_dispatcher};
@@ -307,6 +328,12 @@ Il primo tipo di richiesta arriva direttamente dalla componente \texttt{team\_mo
 \end{enumerate}
 
 La soluzione che abbiamo adottato per evitare questo genere di incongruenze prevede che \texttt{car} e \texttt{team} mantengano un contatore delle soste effettuate dall'auto fino a quel momento e che \texttt{team} nel messaggio \fun{next\_pitstop} inserisca anche il valore di tale contatore. Di conseguenza, nel momento in cui viene ricevuto il messaggio, l'auto può verificare la freschezza delle informazioni in esso contenute ed eventualmente ignorarlo. I messaggi provenienti dall'utente ovviamente non necessitano di tale contatore poiché sono considerati dall'auto sempre corretti.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{diagrammi/NextPitstop}
+\caption{Algoritmo di \fun{car:set\_next\_pitstop}}
+\label{fig:nextPitstop}
+\end{figure}
 
 Lato \texttt{car}, l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pitstop} è quello rappresentato in figura~\ref{fig:nextPitstop}. Il parametro \fun{new\_stop} presente nel messaggio \fun{next\_pitstop} può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare il pitstop successivo se la sosta è richiesta dalla logica di \texttt{team}. Come si può notare dalla figura, viene data priorità maggiore alle decisioni dell'utente ignorando i messaggi dei \texttt{team} che potrebbero interferire. Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero positivo oppure \fun{undefined}. In particolare il valore \fun{undefined} serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai \texttt{team} o dall'utente.
 

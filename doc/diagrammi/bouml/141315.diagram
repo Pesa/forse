@@ -1,0 +1,60 @@
+format 70
+
+classinstance 128003 class_ref 128259 // track
+  name ""   xyz 159.5 4 2000 life_line_z 2000
+classinstance 128131 class_ref 128131 // car
+  name "car_n"   xyz 26.5 4 2000 life_line_z 2000
+classinstance 128259 class_ref 128643 // team
+  name "team_m"   xyz 302.5 4 2000 life_line_z 2000
+durationcanvas 128387 classinstance_ref 128259 // team_m:team
+  xyzwh 350 90.5 2010 11 27
+end
+durationcanvas 128643 classinstance_ref 128003 // :track
+  xyzwh 178 60.5 2010 11 178
+end
+durationcanvas 128771 classinstance_ref 128131 // car_n:car
+  xyzwh 59 56.5 2010 11 183
+  overlappingdurationcanvas 128899
+    xyzwh 65 92.5 2020 11 25
+  end
+end
+durationcanvas 129539 classinstance_ref 128259 // team_m:team
+  xyzwh 350 145 2010 11 62
+end
+durationcanvas 130051 classinstance_ref 128131 // car_n:car
+  xyzwh 59 269 2010 11 37
+end
+msg 129027 synchronous
+  from durationcanvas_ref 128771
+  to durationcanvas_ref 128643
+  yz 62.5 2015 explicitmsg "move"
+  show_full_operations_definition default drawing_language default
+  label_xy 102.5 43.5
+msg 129283 asynchronous
+  from durationcanvas_ref 128387
+  to durationcanvas_ref 128899
+  yz 92.5 2025 explicitmsg "next_pitstop"
+  show_full_operations_definition default drawing_language default
+  label_xy 226.5 75.5
+msg 129667 synchronous
+  from durationcanvas_ref 128643
+  to durationcanvas_ref 129539
+  yz 148 2015 explicitmsg "pitstop_operations"
+  show_full_operations_definition default drawing_language default
+  label_xy 202 126
+msg 129795 return
+  from durationcanvas_ref 129539
+  to durationcanvas_ref 128643
+  yz 196 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+msg 129923 return
+  from durationcanvas_ref 128643
+  to durationcanvas_ref 128771
+  yz 227 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+reflexivemsg 130179 synchronous
+  to durationcanvas_ref 130051
+  yz 269 2015 explicitmsg "handle(next_pitstop)"
+  show_full_operations_definition default drawing_language default
+  label_xy 94 262
+end
