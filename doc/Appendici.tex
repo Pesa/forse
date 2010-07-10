@@ -124,7 +124,7 @@ Il comando \texttt{./configure} effettua la configurazione del prototipo in base
 La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{make}.
 
 \subsection*{Passo 1 -- Il file \texttt{.hosts.erlang}}
-Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textsl{directory} degli script di avvio del prototipo. Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
+Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textit{directory} degli script di avvio del prototipo. Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
 
 \subsection*{Passo 2 -- Control Panel}
 \`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
@@ -150,6 +150,7 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 
 \begin{tabularx}{\textwidth}{lX}
 \term{Intermedio cronometrico}{Segmento di lunghezza nulla in corrispondenza del quale vengono raccolti dati sulle prestazioni dell'auto. Anche il traguardo è considerato un segmento di questo tipo.}
+\term{Processo}{Un singolo flusso di controllo all'interno di un programma.}
 \term{Segmento}{L'unità di spazio più piccola e indivisibile che costituisce il tracciato, utilizzata per la rappresentazione interna dello stesso.}
 \term{Settore}{Porzione di tracciato che presenta caratteristiche fisiche costanti per tutta la sua lunghezza. Definito dall'utente in fase di configurazione.}
 \term{Simulation speed}{Fattore numerico che serve ad impostare la velocità con la quale la simulazione evolve.}
