@@ -107,9 +107,9 @@ Inoltre, la validità di tali valori non viene controllata dal prototipo, di con
 
 
 \chapter{Avvio del prototipo}
-Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio.
+Per facilitare l'utilizzo del prototipo vengono forniti degli \textit{script} di avvio, uno per ogni applicazione grafica del sistema.
 
-Si noti che le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche quando la simulazione è già in corso: \texttt{race\_info}, \texttt{team\_monitor}, \texttt{weather\_station} e \texttt{debug\_log}.
+Si ricorda che le seguenti componenti possono essere presenti nel sistema in istanze multiple ed avviate anche quando la simulazione è già in corso: \texttt{race\_info}, \texttt{team\_monitor}, \texttt{weather\_station} e \texttt{debug\_log}.
 
 \subsection*{Passo 0 -- Configurazione e compilazione}
 Il comando \texttt{./configure} effettua la configurazione del prototipo in base al proprio sistema. Qualora la procedura automatica non andasse a buon fine, è possibile definire le seguenti variabili d'ambiente:
@@ -125,16 +125,18 @@ Il comando \texttt{./configure} effettua la configurazione del prototipo in base
 La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{make}.
 
 \subsection*{Passo 1 -- Il file \texttt{.hosts.erlang}}
-Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima \textit{directory} degli script di avvio del prototipo. Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
+Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima directory degli \textit{script} di avvio del prototipo. Questo file deve contenere un \textit{hostname} per riga, racchiuso tra apici singoli; ogni riga deve terminare con un punto e dev'essere lasciata una riga vuota alla fine del file\footnote{\url{http://www.erlang.org/doc/man/net_adm.html\#world-0}}.
+
+Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
 
 \subsection*{Passo 2 -- Control Panel}
-\`E necessario eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dell'interfaccia grafica.
-Poiché in tale interfaccia viene richiesto il percorso dei file di configurazione per la simulazione, è necessario che tali file siano raggiungibili dall'elaborare in cui viene eseguito lo script.
+Eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e inserire i dati richiesti dall'interfaccia grafica.
+Poiché bisognerà specificare i percorsi dei file di configurazione per la simulazione, tali file dovranno essere raggiungibili dall'elaboratore sul quale viene lanciato lo \textit{script}.
 
 \subsection*{Passo 3 -- Node Configurator}
-Per fare in modo che diversi elaboratori partecipino alla simulazione è necessario che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare.
+Per fare in modo che diversi elaboratori partecipino alla simulazione è sufficiente che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare su quel determinato nodo.
 
-Una volta che la disponibilità indicata dai diversi nodi distribuiti sarà sufficiente ad ospitare la simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
+Una volta che la somma delle disponibilità indicate dai diversi nodi distribuiti sarà maggiore o uguale al numero di componenti necessarie\footnote{Per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}.} alla simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
 
 \subsection*{Passo 4 -- Interfacce grafiche}
 Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
@@ -166,10 +168,11 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 
 \subsection*{Modifiche alla relazione}
 \begin{itemize}
+\item Documentato il formato del file \texttt{.hosts.erlang} e rese più chiare le istruzioni per l'avvio del prototipo.
 \item Aggiunta la definizione di ``processo'' nel glossario.
 \end{itemize}
 
 \subsection*{Modifiche al prototipo}
 \begin{itemize}
-\item
+\item{} [Race Info] Aggiunta una colonna con l'ID del concorrente nella tabella delle posizioni in classifica.
 \end{itemize}
