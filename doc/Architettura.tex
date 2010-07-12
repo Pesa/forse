@@ -22,6 +22,8 @@ I \textit{subscribers} devono indicare che informazioni desiderano ricevere di m
 
 \evdisp{} assume quindi il ruolo di \textit{message broker} poiché smista e traduce i messaggi provenienti dai \textit{publishers} e li inoltra ai \textit{subscribers}. In questo modo si ottiene un basso livello di accoppiamento, a dimostrazione di ciò è sufficiente notare che non è nemmeno necessario che il gruppo delle componenti \textit{publishers} sia al corrente dell'esistenza delle componenti \textit{subscribers}.
 
+\`E previsto inoltre che i \textit{subscribers} possano registrarsi presso \evdisp{} in un qualsiasi momento dopo la fase di \textit{bootstrap} e prima della terminazione della simulazione. Per questo motivo \evdisp{} deve essere progettato per fornire informazioni coerenti anche ai \textit{subscribers} che si aggiungono al sistema a simulazione iniziata.
+
 Viste le caratteristiche che deve avere tale componente, nell'ottica di un sistema distribuito possiamo considerarla un server poiché non effettua comunicazioni con altre componenti del sistema se non in risposta ad azioni esterne, rientrando quindi nella categoria delle entità reattive.
 
 \subsection*{Interfaccia fornita}
