@@ -1,0 +1,5 @@
+/Makefile
+/icons_rc.py
+*.pyc
+*.pyo
+Ui_*.py
