@@ -134,9 +134,9 @@ Eseguire in un terminale lo \textit{script} \texttt{start\_control\_panel} e ins
 Poiché bisognerà specificare i percorsi dei file di configurazione per la simulazione, tali file dovranno essere raggiungibili dall'elaboratore sul quale viene lanciato lo \textit{script}.
 
 \subsection*{Passo 3 -- Node Configurator}
-Per fare in modo che diversi elaboratori partecipino alla simulazione è sufficiente che in ognuno di questi venga eseguito \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare su quel determinato nodo.
+A questo punto dev'essere avviata un'istanza di \textsl{Node Configurator} su ciascun elaboratore che si vuole che partecipi alla simulazione (minimo 1). Per fare ciò è sufficiente eseguire \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare su quel determinato nodo.
 
-Una volta che la somma delle disponibilità indicate dai diversi nodi distribuiti sarà maggiore o uguale al numero di componenti necessarie\footnote{Per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}.} alla simulazione, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
+Una volta che la somma delle disponibilità indicate dai diversi nodi distribuiti sarà maggiore o uguale al numero di componenti necessarie\footnote{Per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}.}, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
 
 \subsection*{Passo 4 -- Interfacce grafiche}
 Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
