@@ -14,9 +14,12 @@ Una possibile situazione di errore si può avere nel caso in cui vengano istanzi
 \section{Accesso alla pista}
 L'accesso alla componente \texttt{track} è disciplinato dallo \texttt{scheduler}; gli unici processi che vi possono accedere sono \texttt{car} e \texttt{weather}. Ogniqualvolta \texttt{car} o \texttt{weather} necessitino dell'accesso alla risorsa \texttt{track}, essi effettuano la procedura di prenotazione presso lo \texttt{scheduler} a cui è delegato il compito di gestire il protocollo di accesso a \texttt{track}.
 
-La componente \texttt{scheduler} utilizza una politica \textit{FIFO within priorities} per gestire la coda dei processi prenotati, assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione. Viene eletto un solo processo alla volta (la testa della coda) per l'accesso a \texttt{track} e non è permesso l'accesso ad altri processi. Questo finché il processo che sta utilizzando \texttt{track} non notifica allo \texttt{scheduler} di non aver più bisogno della risorsa.
+La componente \texttt{scheduler} utilizza una politica \textit{FIFO within priorities} per gestire la coda dei processi prenotati, assegnando priorità maggiore ai processi che indicano un tempo minore in fase di prenotazione.
+Tale politica di ordinamento è necessaria al fine di mantenere la coerenza della simulazione, come già precedentemente giustificato in~\ref{sec:motivazioneSched}.
 
-Lo \texttt{scheduler} garantisce quindi un accesso sequenziale a \texttt{track} e assicura che la pista si trovi sempre in uno stato consistente.
+Viene eletto un solo processo alla volta (la testa della coda) per l'accesso a \texttt{track}. La componente \sched{} non concede l'uso della risorsa ad altri processi finché la risorsa stessa non viene rilasciata secondo la modalità descritta in~\ref{sec:scheduler}.
+
+Grazie ai due fatti appena riassunti sappiamo quindi che \texttt{scheduler} garantisce un accesso sequenziale a \texttt{track} e assicura che la pista si trovi sempre in uno stato consistente.
 
 \section{Tempo di percorrenza}
 Il tempo che un'auto impiega a percorrere la pista è la somma del tempo impiegato a percorrere i singoli segmenti ed è calcolato algoritmicamente dalla componente \texttt{track}. Risulta quindi evidente che il sistema su cui sta eseguendo l'applicazione non influisce minimamente sui tempi di percorrenza delle auto, tanto meno influisce l'orologio di sistema. Il tempo di percorrenza di un segmento da parte di un'auto è influenzato dagli altri partecipanti solo qualora le traiettorie delle auto si intersechino.
@@ -153,7 +156,7 @@ Per quanto riguarda il realismo nelle dinamiche di gara, abbiamo considerato la 
 \begin{itemize}
 \item uscita di pista per velocità troppo elevata;
 \item uscita di pista per evitare incidenti qualora l'auto non riesca a frenare in tempo per evitare gli altri concorrenti;
-\item esplosione pneumatici a causa di un'eccessiva usura;
+\item esplosione pneumatici a causa di eccessiva usura;
 \item esaurimento del carburante;
 \item potenza del motore insufficiente a percorrere il tratto.
 \end{itemize}
