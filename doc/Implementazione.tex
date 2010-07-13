@@ -29,7 +29,7 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 & \weather{}\\
 & \track{}\\
 & \team{}\\
-& \car{} \\
+& \car{}\\
 \hline
 \multirow{4}{*}{\textbf{Python}} & \texttt{race\_info}\\
 & \texttt{debug\_log}\\
@@ -43,10 +43,9 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \Erlang{} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \Erlang{}.
 
 Le caratterestiche del linguaggio che incidono particolarmente sul progetto sono l'assenza di memoria condivisa e la modalità di comunicazione tra processi (scambio di messaggi asincrono).
-Per informazioni più dettagliate sul linguaggio fare riferimento alla documentazione presente all'indirizzo \url{http://www.erlang.org/}.
+Per informazioni più dettagliate sul linguaggio fare riferimento alla documentazione consultabile all'indirizzo \url{http://www.erlang.org/doc/getting_started/conc_prog.html}.
 
-
-Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo. Oltre al protocollo nativo, \Erlang{} supporta anche CORBA v2.0 tramite il modulo \texttt{orber}.
+Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo.
 
 Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
 
@@ -332,7 +331,7 @@ La soluzione che abbiamo adottato per evitare questo genere di incongruenze prev
 \label{fig:nextPitstop}
 \end{figure}
 
-Lato \car{}, l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pitstop} è quello rappresentato in figura~\ref{fig:nextPitstop}. Il parametro \fun{new\_stop} presente nel messaggio \fun{next\_pitstop} può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare il pitstop successivo se la sosta è richiesta dalla logica di \team{}. Come si può notare dalla figura, viene data priorità maggiore alle decisioni dell'utente ignorando i messaggi dei \team{} che potrebbero interferire. Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero positivo oppure \fun{undefined}. In particolare il valore \fun{undefined} serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai \team{} o dall'utente.
+Lato \car{}, l'algoritmo che gestisce l'arrivo di messaggi \fun{next\_pitstop} è quello rappresentato in figura~\ref{fig:nextPitstop}. Il parametro \fun{new\_stop} presente nel messaggio \fun{next\_pitstop} può assumere il valore \fun{now} nel caso in cui la sosta sia imposta dall'utente oppure può essere l'indice del giro in cui effettuare il \textit{pit stop} successivo se la sosta è richiesta dalla logica di \team{}. Come si può notare dalla figura, viene data priorità maggiore alle decisioni dell'utente ignorando i messaggi dei \team{} che potrebbero interferire. Nello stato interno dell'auto, il campo \fun{next\_stop} può assumere i valori \fun{now}, un intero positivo oppure \fun{undefined}. In particolare il valore \fun{undefined} serve ad indicare che non sono state ancora previste soste oppure che l'auto ha appena effettuato un rifornimento e non ha ancora ottenuto direttive dai \team{} o dall'utente.
 
 \subsection{Arrivo}
 Un'auto termina la competizione nel momento in cui va a percorrere il segmento successivo al traguardo nell'ultimo giro di gara oppure se si ritira, come descritto in~\ref{sec:percorrenza}. Come si può notare in figura~\ref{fig:move}, nel momento in cui un'auto esce dalla competizione viene invocato il metodo \fun{track:remove\_car} e successivamente il processo termina la propria esecuzione.
@@ -342,9 +341,8 @@ Tale metodo serve anche a mantenere aggiornato il contatore delle auto ancora in
 In questo modo le componenti del sistema non più necessarie possono terminare la propria esecuzione, mentre le componenti grafiche possono disabilitare le funzionalità non più disponibili ma restare comunque attive per permettere all'utente di consultare i dati relativi alla simulazione.
 
 \section{Event Dispatcher}
-\label{sec:event_dispatcher}
-
-In questa sezione verrà in primo luogo descritta l'architettura interna del \evdisp{} per poi andarne a motivare le scelte sottostanti.
+\label{sec:dispatcherImpl}
+In questa sezione verrà in primo luogo descritta l'architettura interna della componente \evdisp{}, per poi andarne a motivare le scelte sottostanti.
 
 \begin{figure}
 \includegraphics[width=\textwidth]{diagrammi/Dispatcher}
@@ -352,16 +350,13 @@ In questa sezione verrà in primo luogo descritta l'architettura interna del \ev
 \label{fig:dispatcher}
 \end{figure}
 
-Come si può vedere in figura~\ref{fig:dispatcher}, \evdisp{} è composto di un processo detto \textit{front-end} che ha il compito di ricevere ogni notifica in ingresso e inoltrarla ai processi \textit{back-end} interessati in modo asincrono. Oltre a ciò, il \textit{front-end} deve anche ricevere le richieste di \textit{subscription} e registrare quindi i processi richiedenti presso il corretto \textit{back-end}. Al ricevimento di una notifica un \textit{back-end} provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di \textit{subscribers}.
+Come si può vedere in figura~\ref{fig:dispatcher}, \evdisp{} è composto da un processo detto \textit{front-end} che ha il compito di ricevere ogni notifica in ingresso e inoltrarla ai processi \textit{back-end} interessati in modo asincrono. Oltre a ciò, il \textit{front-end} deve anche ricevere le richieste di \textit{subscription} e registrare quindi i processi richiedenti presso il corretto \textit{back-end}. Al ricevimento di una notifica un \textit{back-end} provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di \textit{subscribers}.
 
 Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i \textit{back-end} mantengano uno stato interno in modo da poter inviare al \textit{subscriber} che si registra un'immagine parziale dello stato della competizione fino al momento della \textit{subscription}. Successivamente, al richiedente verranno inviate solo le informazioni contenenti i cambiamenti relativi allo stato della competizione e non lo stato stesso in modo da ridurre la quantità di dati inviati. In questo modo non vengono inviati dati ridondanti.
 
 \subsection*{\textit{Publisher} $\rightarrow$ \textit{front-end}}
-\label{text:front-end}
-
 Le notifiche relative alla simulazione sono interpretabili in modo corretto solo se considerate nell'ordine in cui vengono emesse.
-Per fare un paragone, la visione di un film in cui i fotogrammi vengono permutati casualmente renderebbe la comprensione della trama molto complessa se non impossibile.
-Allo stesso modo la visione della simulazione che si può ricostruire dalle notifiche di gara differisce a seconda dell'ordine stesso in cui queste vengono considerate.
+Per fare un paragone, la visione di un film in cui i fotogrammi vengono permutati casualmente renderebbe la comprensione della trama molto complessa se non impossibile. Allo stesso modo la visione della simulazione che si può ricostruire dalle notifiche di gara differisce a seconda dell'ordine stesso in cui queste vengono considerate.
 
 Un'eccezione a quanto appena detto riguarda le notifiche di configurazione inviate nella fase di bootstrap della simulazione. Queste infatti, per essere utilizzate correttamente, non necessitano di un ordine stretto tra loro ma devono essere tutte valutate prima dell'avvio della gara.
 
@@ -369,33 +364,22 @@ Per il resto del capitolo, nel momento in cui si farà riferimento ai \textit{pu
 
 I \textit{publishers} in realtà eseguono tutti in modo sequenziale poiché ordinati dalla componente \sched{}. Di conseguenza, utilizzando chiamate bloccanti per l'invio delle notifiche da \textit{publisher} a \textit{front-end}, l'ordine di arrivo delle notifiche rimane invariato rispetto l'ordine di invio.
 
-Sarebbe stato comunque possibile raggiungere lo stesso obiettivo utilizzando una comunicazione asincrona, tuttavia, per semplicità si è preferito adottare la soluzione appena descritta.
-
-La soluzione asincrona infatti prevedeva di aggiungere ai messaggi un identificatore numerico unico in modo da ottenere un'ordinamento totale delle notifiche per poi riordinarle algortimicamente nel \textit{front-end}. Questo poiché in \Erlang{} l'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui i processi mittente e destinatario si trovino su nodi differenti.
+Sarebbe stato comunque possibile raggiungere lo stesso obiettivo utilizzando una comunicazione asincrona, tuttavia, per semplicità si è preferito adottare la soluzione appena descritta. La soluzione asincrona infatti prevedeva di aggiungere ai messaggi un identificatore numerico unico in modo da ottenere un'ordinamento totale delle notifiche per poi riordinarle algortimicamente nel \textit{front-end}. Questo poiché in \Erlang{} l'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui i processi mittente e destinatario si trovino su nodi differenti.
 
 Risulta quindi evidente che l'utilizzo di comunicazione asincrona in questo caso avrebbe complicato l'implementazione del prototipo, giustificando quindi la scelta di comunicazione sincrona.
 
 \subsection*{\textit{Back-end} $\rightarrow$ \textit{subscriber}}
-\label{text:back-end}
-Le notiche inviate dai \textit{back-end} devono essere considerate secondo l'ordine di invio dai \textit{subscribers}. Questo perché il primo messaggio inviato dopo la procedura di \textit{subscription} contiene una vista dello stato attuale della simulazione mentre le successive notifiche contengono le variazioni incrementali rispetto allo stato precedente, che hanno senso solo se interpretate nell'ordine corretto.
-
-Al fine di avere uno stato consistente il \textit{subscriber} deve quindi ricevere tutte le notifiche e le deve considerare secondo l'ordine di invio.
+Le notiche inviate dai \textit{back-end} devono essere considerate secondo l'ordine di invio dai \textit{subscribers}. Questo perché il primo messaggio inviato dopo la procedura di \textit{subscription} contiene una vista dello stato attuale della simulazione mentre le successive notifiche contengono le variazioni incrementali rispetto allo stato precedente, che hanno senso solo se interpretate nell'ordine corretto. Al fine di avere uno stato consistente il \textit{subscriber} deve perciò ricevere tutte le notifiche e le deve considerare secondo l'ordine di invio.
 
 Assumendo quindi che le notifiche arrivino ai \textit{back-end} nell'ordine corretto, è stato deciso, con un ragionamento analogo a quello esposto nella sezione precedente, di utilizzare l'invio di messaggi sincrono anche per questo tratto del percorso delle notifiche.
 
-Una ulteriore motivazione che ci ha spinto verso l'opzione sincrona è il fatto che la comunicazione, essendo bloccante, fornisce un meccanismo ai \textit{back-end} per rilevare una eventuale disconnessione del destinatario. In questo modo tali componenti possono quindi rimuovere i destinatari non più raggiungibili dalla lista dei loro \textit{subscribers}.
-Considerando inoltre che il numero di \textit{subscribers} può aumentare e diminuire nel corso della simulazione la soluzione sincrona risulta ancora più vantaggiosa.
+Una ulteriore motivazione che ci ha spinto verso l'opzione sincrona è il fatto che la comunicazione, essendo bloccante, fornisce un meccanismo ai \textit{back-end} per rilevare una eventuale disconnessione del destinatario. In questo modo tali componenti possono quindi rimuovere i destinatari non più raggiungibili dalla lista dei loro \textit{subscribers}. Considerando inoltre che il numero di \textit{subscribers} può aumentare e diminuire nel corso della simulazione la soluzione sincrona risulta ancora più vantaggiosa.
 
 \subsection*{\textit{Front-end} $\rightarrow$ \textit{back-end}}
-
 Un'assunzione fatta nella sezione precedente è che le notifiche rimangano ordinate nel passaggio da \textit{front-end} a \textit{back-end}, conseguentemente la soluzione adottata non deve violare questo vincolo.
 
-In questo caso la scelta di comunicazione sincrona, prendendo come ipotesi le scelte fatte in \ref{text:front-end} e \ref{text:back-end}, avrebbe comportato che, ad ogni notifica inviata, un \textit{publisher} avrebbe dovuto attendere che tale notifica fosse recapitata a tutti i \textit{subscribers} prima di poter continuare la propria esecuzione. Questo perché la notifica sarebbe stata veicolata da sole chiamate bloccanti.
+In questo caso la scelta di comunicazione sincrona avrebbe comportato che, ad ogni notifica inviata, un \textit{publisher} avrebbe dovuto attendere che tale notifica fosse recapitata a tutti i \textit{subscribers} prima di poter continuare la propria esecuzione. Questo perché la notifica sarebbe stata veicolata da sole chiamate bloccanti.
 
-Per evitare una situazione così indesiderabile, abbiamo deciso quindi di utilizzare comunicazione asincrona per l'invio delle notifiche all'interno di \evdisp{}.
+Per evitare una situazione così indesiderabile, abbiamo deciso quindi di utilizzare comunicazione asincrona per l'invio delle notifiche all'interno di \evdisp{}. Il linguaggio utilizzato garantisce che, nel caso di comunicazione asincrona tra processi residenti in uno stesso nodo, l'ordine di ricezione dei messaggi da parte del destinatario è uguale all'ordine di invio dei messaggi da parte del mittente. Grazie a ciò non si è reso necessario un riordino dei messaggi a destinazione, semplificando quindi l'implementazione, ma è stato imposto un vincolo sulla distribuzione dei processi che compongono \evdisp{}.
 
-Il linguaggio utilizzato garantisce che, nel caso di comunicazione asincrona tra processi residenti in uno stesso nodo, l'ordine di ricezione dei messaggi da parte del destinatario è uguale all'ordine di invio dei messaggi da parte del mittente.
-
-Grazie a ciò non si è reso necessario un riordino dei messaggi a destinazione, semplificando quindi l'implementazione, ma è stato imposto un vincolo sulla distribuzione dei processi che compongono \evdisp{}.
-
-Il fatto che \textit{front-end} a \textit{back-end} debbano essere su uno stesso nodo non ci è sembrato troppo restrittivo rispetto alla semplificazione in termini di progettazione che l'accetazione di tale vincolo comporta.
+Il fatto che \textit{front-end} a \textit{back-end} debbano essere su uno stesso nodo non ci è sembrato troppo restrittivo rispetto alla semplificazione in termini di progettazione che l'accettazione di tale vincolo comporta.

@@ -1,7 +1,7 @@
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
 
-In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta tutta le componenti del sistema per non renderne difficile la fruizione. E' stata infatti omessa tutta la parte riguardate l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema, in quanto trattata in dettaglio nella sezione~\ref{sec:event_dispatcher}.
+In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta tutta le componenti del sistema per non renderne difficile la fruizione. \`E stata infatti omessa tutta la parte riguardate l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema, in quanto trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}.
 
 Vengono inoltre omesse nello schema le componenti riguardati l'inizializzazione del prototipo descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.
 \begin{landscape}
@@ -223,7 +223,7 @@ I dati da mostrare all'utente sono:
 \item tempo migliore sul giro,
 \item tempi realizzati nell'ultimo giro,
 \item velocità massima raggiunta in ciascun intermedio cronometrico,
-\item numero di pitstop effettuati,
+\item numero di \textit{pit stop} effettuati,
 \item operazioni effettuate durante l'ultima sosta ai \textit{box}.
 \end{itemize}
 L'utente può inoltre forzare la sosta ai \textit{box} o il ritiro per un'auto appartenente alla scuderia.
