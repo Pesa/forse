@@ -1,12 +1,12 @@
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
 
-In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta tutta le componenti del sistema per non renderne difficile la fruizione. \`E stata infatti omessa tutta la parte riguardate l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema, in quanto trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}.
+In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta le interfacce di \textit{callback} per non renderne difficile la fruizione. La parte riguardate l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema viene infatt trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}, mentre l'uso delle interfacce di \textit{callback} da parte di \sched{} viene discusso in~\ref{sec:scheduler}.
 
 Vengono inoltre omesse nello schema le componenti riguardati l'inizializzazione del prototipo descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.
 \begin{landscape}
 \begin{figure}
-\includegraphics[height=.33\paperheight]{diagrammi/Arch}
+\includegraphics[height=.43\paperheight]{diagrammi/Arch}
 \caption{Architettura di sistema}
 \label{fig:architettura}
 \end{figure}
@@ -46,7 +46,7 @@ Le entità arbitrate sono i processi \car{}, che simulano gli spostamenti delle 
 L'idea di base di questa componente è di mantenere un orologio ``logico'' unico relativo alla competizione e di permettere l'esecuzione dei soli processi che si sono precedentemente prenotati. Si tratta perciò di un sistema di \textit{booking} nel quale i processi che vengono serviti devono prima indicare a che tempo di gara vogliono eseguire e successivamente vengono messi in una coda ordinata secondo il tempo indicato nella prenotazione. Tra tutti i processi accodati lo \sched{} eleggerà per l'esecuzione sempre quello in testa, ovvero il processo che nella fase di prenotazione precedente ha indicato un tempo minore. Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione della simulazione.
 
 Al momento della prenotazione, \car{} e \weather{} devono indicare anche un metodo di \textit{callback}. L'invocazione di tale metodo da parte dello \sched{} equivale al permesso di eseguire e quindi accedere a \track{}, come richiesto nella fase di prenotazione.
-L'invocazione di \textit{callback} è effettuata con una chiamata bloccante in modo da permettere a \sched{} di conoscere quando il proccesso richiedente ha terminato di utilizzare la risorsa \track{}.
+L'invocazione di \textit{callback} è effettuata con una chiamata bloccante in modo da permettere a \sched{} di conoscere quando il processo richiedente ha terminato di utilizzare la risorsa \track{}.
 
 L'uso di \textit{callbacks} rende omogenea la trattazione dei diversi processi, riducendo notevolmente l'accoppiamento.
 
