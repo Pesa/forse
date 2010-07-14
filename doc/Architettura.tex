@@ -1,9 +1,8 @@
 \chapter{Architettura del sistema}
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
 
-In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta le interfacce di \textit{callback} per non renderne difficile la fruizione. La parte riguardate l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema viene infatt trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}, mentre l'uso delle interfacce di \textit{callback} da parte di \sched{} viene discusso in~\ref{sec:scheduler}.
+In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta le interfacce di \textit{callback} per non renderne difficile la fruizione. La parte riguardante l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema viene infatti trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}, mentre l'uso di \textit{callback} da parte di \sched{} viene discusso in~\ref{sec:scheduler}. Vengono inoltre omesse dal diagramma le componenti che si occupano dell'inizializzazione del prototipo, descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.
 
-Vengono inoltre omesse nello schema le componenti riguardati l'inizializzazione del prototipo descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.
 \begin{landscape}
 \begin{figure}
 \includegraphics[height=.43\paperheight]{diagrammi/Arch}
@@ -86,9 +85,9 @@ Oltre ai dati visti finora, la componente \track{} deve anche gestire la logica 
 \subsection*{Interfaccia fornita}
 Grazie al metodo \fun{simulate} le entità \car{} possono simulare l'esito di uno spostamento, una volta scelta la corsia di uscita ed espressa la volontà o meno di effettuare una sosta ai \textit{box} in quel giro.
 
-La presenza del metodo \fun{simulate} è giustificata dal fatto che la logica di \fun{car}, al fine di scegliere il modo migliore di percorrere un segmento, ha bisogno non solo di informazioni sulla fisica dello stesso ma deve considerare anche l'interazione che l'auto può avere con altre eventuali vetture che stanno percorrendo il medesimo segmento.
+La presenza del metodo \fun{simulate} è giustificata dal fatto che la logica di \car{}, al fine di scegliere il modo migliore di percorrere un segmento, ha bisogno non solo di informazioni sulla fisica dello stesso ma deve considerare anche l'interazione che l'auto può avere con altre eventuali vetture che stanno percorrendo il medesimo segmento.
 
-Grazie a questo metodo \fun{car} può conoscere i tempi di percorrenza del segmento (uno per ogni corsia raggiungibile dall'auto) prima di effettuare l'effettivo spostamento sulla pista e scegliere conseguentemente la corsia di uscita ritenuta migliore.
+Grazie a questo metodo \car{} può conoscere i tempi di percorrenza del segmento (uno per ogni corsia raggiungibile dall'auto) prima di effettuare l'effettivo spostamento sulla pista e scegliere conseguentemente la corsia di uscita ritenuta migliore.
 
 Il metodo \fun{move} necessita degli stessi parametri del metodo \fun{simulate} e serve a spostare effettivamente l'auto sul tracciato di gara e ad effettuare le eventuali notifiche di eventi scatenati da tale spostamento.
 

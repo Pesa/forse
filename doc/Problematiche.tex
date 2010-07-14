@@ -20,7 +20,7 @@ A tale scopo risulta naturale una suddivisione in segmenti di uguale lunghezza. 
 \subsection*{Avvio del sistema}
 La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero verificare delle inconsistenze nella simulazione.
 
-\`E necessario predisporre un meccanismo di sincronizzazione che implementi il concetto di barriera parallela, in modo che ogni processo, una volta raggiunto il punto di \textsl{rendez-vous}, non possa procedere oltre nella propria esecuzione finché tutti i partecipanti alla sincronizzazione non siano giunti al ``medesimo'' punto. Una volta che la sincronizzazione ha avuto successo tutti i processi convolti possono procedere nella loro esecuzione.
+\`E necessario predisporre un meccanismo di sincronizzazione che implementi il concetto di barriera parallela, in modo che ogni processo, una volta raggiunto il punto di \textsl{rendez-vous}, non possa procedere oltre nella propria esecuzione finché tutti i partecipanti alla sincronizzazione non siano giunti al ``medesimo'' punto. Una volta che la sincronizzazione ha avuto successo tutti i processi coinvolti possono procedere nella loro esecuzione.
 
 \subsection*{Accesso alla pista e correttezza funzionale}
 \label{sec:motivazioneSched}
