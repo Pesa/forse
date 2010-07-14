@@ -107,6 +107,7 @@ Così si conclude la fase di avvio del sistema e si può passare quindi alla fas
 
 \section{Dinamiche della competizione}
 \subsection{Partenza}
+\label{sec:partenza}
 Prima che l'utente possa dare il via alla competizione tutte le auto devono essersi registrate presso lo \sched{} indicando come tempo di prenotazione $0$. \`E importante precisare che, in questa situazione, l'ordine in cui lo \sched{} permette ai processi \car{} di andare in esecuzione non influenza l'esito della gara: infatti alla partenza le auto sono tutte su segmenti diversi e di conseguenza non concorrono tra di loro per l'accesso ad uno stesso segmento. Ne deriva quindi che sebbene l'ordine di esecuzione alla partenza possa essere considerato casuale (dipende dall'ordine di registrazione presso lo \sched{}, che è una componente distribuita del sistema), questo non va ad influenzare i tempi di percorrenza dei segmenti da parte delle auto e non influisce quindi con il risultato della gara.
 La disposizione iniziale delle auto sulla pista avviene similmente a quanto riportato in figura~\ref{fig:startGrid}, ed è richiesto all'utente che nella zona di pista che precede la linea di arrivo vi siano almeno tre corsie.
 
