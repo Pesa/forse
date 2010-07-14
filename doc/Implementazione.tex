@@ -42,7 +42,7 @@ Il criterio che abbiamo usato per decidere se implementare una componente del si
 \subsection*{Caratteristiche di Erlang}
 \Erlang{} è un linguaggio di programmazione funzionale \textit{general-purpose} con \textit{dynamic typing} e supporto nativo per concorrenza e distribuzione. Per recuperare parte dei controlli statici sul codice abbiamo deciso di utilizzare anche \textsl{Dialyzer}, uno strumento di analisi statica per \Erlang{}.
 
-Le caratterestiche del linguaggio che incidono particolarmente sul progetto sono l'assenza di memoria condivisa e la modalità di comunicazione tra processi (scambio di messaggi asincrono).
+Le caratteristiche del linguaggio che incidono particolarmente sul progetto sono l'assenza di memoria condivisa e la modalità di comunicazione tra processi (scambio di messaggi asincrono).
 Per informazioni più dettagliate sul linguaggio fare riferimento alla documentazione consultabile all'indirizzo \url{http://www.erlang.org/doc/getting_started/conc_prog.html}.
 
 Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo.
@@ -61,38 +61,18 @@ Il linguaggio usato per le query è \Erlang{} stesso, differentemente da quanto 
 
 \section{Avvio del sistema}
 \label{sec:avvio}
-
-Il diagramma di comunicazione\footnote{Per poter evidenziare efficacemente il comportamento parallelo delle entità, si è reso necessario deviare leggermente dallo standard UML sui diagrammi di comunicazione. Le invocazioni la cui numerazione inizia con una lettera precedono temporalmente quelle che iniziano con un numero. Queste invocazioni possono avvenire in parallelo se indicate da lettere diverse, secondo la numerazione se iniziano con la stessa lettera.} in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \Erlang{} sullo stesso elaboratore.
+Il diagramma di comunicazione in figura~\ref{fig:bootstrap} rappresenta la sequenza di \textit{bootstrap} del sistema. \texttt{control\_panel} e \texttt{node\_configurator} sono avviati dall'utente su elaboratori in rete tra loro e senza un ordine predefinito. Le componenti grafiche provvedono a generare un nome casuale e lo usano nell'istanziare un nodo \Erlang{} sullo stesso elaboratore.
 
 Nel nodo \Erlang{} istanziato da \texttt{control\_panel} viene eseguito \bootserv{} attraverso la chiamata \fun{start}, mentre sui nodi istanziati da \texttt{node\_configurator} vengono istanziati processi \nodeman{}. Durante l'avvio di \nodeman{} viene consultato il file \texttt{.hosts.erlang} che contiene i nomi degli \textit{hosts} che possono prendere parte alla simulazione e permette di identificare tali nodi sulla rete.
-
 Tramite \texttt{control\_panel} l'utente deve indicare:
 \begin{itemize}
 \item percorso dei file di configurazione,
 \item numero di giri della simulazione,
 \item fattore di \textit{simulation speed} iniziale.
 \end{itemize}
+Tramite \texttt{node\_configurator} bisogna invece indicare il numero di componenti necessarie alla simulazione che possono essere istanziate su quel nodo. Le componenti disponibili sono: \sched{}, \evdisp{}, \car{}, \team{}, \weather{}.
 
-Tramite \texttt{node\_configurator} deve invece indicare quante delle componenti necessarie alla simulazione possono essere istanziate sul nodo \Erlang{} che ha istanziato. Queste componenti sono:
-\begin{itemize}
-\item \sched{}
-\item \evdisp{}
-\item \car{}
-\item \team{}
-\item \weather{}
-\end{itemize}
-
-Una volta che queste informazioni sono state inserite, queste vengono comunicate alle rispettive componenti \Erlang{} con l'invocazione a \fun{read\_config\_files} e \fun{configure}.
-
-\begin{landscape}
-\begin{figure}
-\includegraphics[height=.24\paperheight]{diagrammi/Bootstrap}
-\caption{Diagramma della fase di \textit{bootstrap}}
-\label{fig:bootstrap}
-\end{figure}
-\end{landscape}
-
-Effettuando il \textit{parsing} dei file di configurazione, la logica di \fun{read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \bootserv{} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
+Una volta che queste informazioni sono state inserite, esse vengono comunicate alle rispettive componenti \Erlang{} con l'invocazione a \fun{read\_config\_files} e \fun{configure}. Effettuando il \textit{parsing} dei file di configurazione, la logica di \fun{read\_config\_files} è in grado di calcolare la richiesta di risorse di simulazione necessarie, mentre \fun{node\_manager:configure}, con il metodo \fun{add\_node} comunica a \bootserv{} le disponibilità di risorse di quel nodo. Una volta raggiunta la quota necessaria di risorse viene inviato il messaggio \fun{ready} a \texttt{control\_panel} che può quindi abilitare il pulsante di \textit{bootstrap}.
 
 A questo punto l'utente può interagire con l'interfaccia grafica e causare l'invocazione del metodo \fun{bootstrap\_server:bootstrap} che provvede a inizializzare \textsl{Mnesia} e creare le tabelle vuote che verranno successivamente utilizzate dal sistema. Grazie alle informazioni di configurazione viene anche generata la tabella contenente la descrizione della pista. Successivamente il metodo \fun{bootstrap} istanzia, attraverso \fun{node\_manager:start\_app}, tutte le componenti di simulazione necessarie, nell'ordine:
 \begin{enumerate}
@@ -102,8 +82,15 @@ A questo punto l'utente può interagire con l'interfaccia grafica e causare l'in
 \item \team{}
 \item \car{}
 \end{enumerate}
+Poiché sussistono delle dipendenze tra le varie componenti, \bootserv{} attende che l'inizializzazione di un'applicazione sia completa prima di procedere con l'avvio delle applicazioni che dipendono da essa. Istanze diverse di una stessa componente vengono invece avviate in parallelo, dato che non vi può essere alcuna dipendenza tra loro, sia che si trovino sullo stesso nodo, sia che si trovino su nodi differenti.
 
-Così si conclude la fase di avvio del sistema e si può passare quindi alla fase di simulazione.
+\begin{landscape}
+\begin{figure}
+\includegraphics[height=.24\paperheight]{diagrammi/Bootstrap}
+\caption{Diagramma della fase di \textit{bootstrap}}
+\label{fig:bootstrap}
+\end{figure}
+\end{landscape}
 
 \section{Dinamiche della competizione}
 \subsection{Partenza}
