@@ -17,7 +17,7 @@ endif
 
 all: $(TARGET).pdf
 
-$(TARGET).pdf: $(TEX_FILES) $(PDF_FILES) $(PNG_FILES)
+$(TARGET).pdf: $(TEX_FILES) $(PDF_FILES) $(PNG_FILES) $(DIADIR)/Arch.pdf
 	$(NQ) "running pdflatex on" $(TARGET).tex
 	$(Q) pdflatex $(TARGET).tex
 	$(Q) pdflatex $(TARGET).tex
