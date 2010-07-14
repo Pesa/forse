@@ -83,12 +83,17 @@ L'ultima considerazione riguarda l'influenza che il fattore di \textit{simulatio
 
 \section{Non determinismo}
 Per quanto riguarda la simulazione si ha del non determinismo nel momento in cui l'ordine di esecuzione (accesso a \track{}) non dipende solo dal tempo di prenotazione e non può essere quindi predetto.
-
 Il non determinismo è considerato indesiderato nel momento in cui uno dei possibili ordini di esecuzione può portare ad uno stato inconsistente della simulazione.
 
-Ricordando quanto già scritto precedentemente, l'unico caso in cui l'ordine di accesso a \track{} non dipende solo dal tempo indicato nella prenotazione presso \sched{} è in presenza di tempi di prenotazione uguali. Adottando una politica di ordinamento \textit{FIFO within priorities} si ha che l'ordine di esecuzione dei processi prenotati nel caso appena citato dipende anche dall'ordine di prenotazione, avendo essi la stessa priorità (tempo di prenotazione indicato).
+La sorgente principale di non determinismo potenzialmente nocivo riguarda l'accesso a \track{} da parte dei processi \car{} e \weather{}. Un accesso non ordinato a tale risorsa è fonte di inconsistenze nella simulazione, come già spiegato nella situazione illustrata in figura~\ref{fig:counterexample}.
 
-Un esempio di non determinismo si ha alla partenza della gara, tuttavia, come spiegato in~\ref{sec:partenza}, tale non determinismo non influenza il risultato della simulazione e non è di conseguenza nocivo.
+L'utilizzo della componente \sched{} rimuove questo non determinismo indesiderato imponendo un ordinamento dei processi in base ai tempi di prenotazione.
+
+La componente \sched{} non impone tuttavia un totale determinismo alla simulazione, infatti, poiché adotta una politica di ordinamento \textit{FIFO within priorities} si ha che l'ordine di esecuzione dei processi, qualora vi siano tempi di prenotazione uguali, dipende anche dall'ordine di prenotazione, avendo essi la stessa priorità (tempo di prenotazione indicato).
+
+Il non determinismo residuo non è però nocivo per la simulazione infatti, o non la influenza o è voluto in fase di progettazione.
+
+Un esempio del primo caso si ha alla partenza della gara quando, come spiegato in~\ref{sec:partenza}, la situazione di non determinismo non influenza il risultato della simulazione e non è di conseguenza nocivo.
 
 \begin{figure}
 \begin{center}
@@ -98,7 +103,7 @@ Un esempio di non determinismo si ha alla partenza della gara, tuttavia, come sp
 \end{center}
 \end{figure}
 
-Un altro caso di non determinismo, che però influenza il risulato della simulazione, è riportato in figura~\ref{fig:nonDet} assumendo che:
+Un altro caso di non determinismo, che però influenza il risultato della simulazione, è riportato in figura~\ref{fig:nonDet} assumendo che:
 \begin{itemize}
 \item le auto e i piloti abbiano caratteristiche identiche;
 \item $T_{en_A}^{n+1} = T_{en_B}^{n+1}$: le auto abbiano tempi di ingresso uguali;
@@ -109,7 +114,7 @@ Sotto queste ipotesi non vi sono problemi di interazione tra le auto finché $L_
 
 Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allora vi sarebbe del non determinismo, in quanto il tempo di percorrenza del segmento senza considerare l'influenza delle altre auto sarebbe il medesimo e, per quanto visto in~\ref{sec:percorrenza}, la prima auto ad eseguire sarà quindi anche la prima auto ad uscire dal segmento e conseguentemente la seconda auto si dovrà accodare alla prima, facendo registrare un tempo di uscita dal segmento leggermente maggiore.
 
-In questo caso il non determinismo risulta desiderabile, infatti, anche considerando la corrsipondente situazione nella realtà, non è chiaro qualle delle auto dare la precedenza all'altra e quindi accodarsi.
+In questo caso il non determinismo è voluto e risulta desiderabile, infatti, anche considerando la corrispondente situazione nella realtà, non è chiaro quale delle auto dare la precedenza all'altra e quindi accodarsi.
 Non vi sono motivi validi per preferire un pilota rispetto ad un altro quindi, piuttosto di effettuare una scelta algoritmica, si preferisce lasciare al caso la scelta.
 
 
