@@ -2,20 +2,64 @@
 
 In questo capitolo verranno individuati i principali problemi incontrati nella progettazione del sistema, sia a livello di coordinazione delle componenti distribuite, sia a livello di meccaniche di simulazione.
 
+\section{Realismo della simulazione}
+Poiché il prototipo deve simulare una situazione reale, si è reso necessario trovare un \textit{trade-off} adeguato tra semplicità di implementazione e accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere un segmento, sia dal punto di vista della rappresentazione della pista e delle sue regole di percorrenza. Le principali linee guida adottate sono:
+\begin{itemize}
+\item i concorrenti devono evitare in tutti i modi di impattare tra loro, anche a costo di uscire di pista;
+\item tutte le auto che si trovano a percorrere la \textit{pit lane} devono rispettare i limiti di velocità imposti dal regolamento per essa;
+\item due concorrenti appartenenti alla stessa scuderia non possono effettuare il rifornimento nello stesso momento;
+\item un'auto che rientra in pista dopo un \textit{pit stop} deve dare la precedenza alle altre vetture già in pista.
+\end{itemize}
+
+\subsection*{Modellazione del tracciato}
+Nella realtà il tracciato su cui si svolge la competizione è chiaramente un'entità continua nel dominio dello spazio. Tuttavia, per poter essere gestito dagli algoritmi di simulazione, esso dovrà essere approssimato da un modello discreto.
+
+A tale scopo risulta naturale una suddivisione in segmenti di uguale lunghezza. Si tratta quindi di dimensionare adeguatamente la lunghezza del singolo segmento, tenendo presente che ad una lunghezza minore corrisponde un grado di realismo maggiore. Inoltre ciascun segmento è composto da una o più corsie, le quali rappresentano il numero massimo di vetture che possono transitare su quel segmento contemporaneamente, ovvero la larghezza del circuito in quel punto.
+
+\section{Concorrenza e distribuzione}
 \subsection*{Avvio del sistema}
-La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero avere delle inconsistenze nella simulazione.
+La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero verificare delle inconsistenze nella simulazione.
 
-\`E necessario avere a dispozione un meccanismo di sincronizzazione che implementi il concetto di barriera parallela, in modo che ogni processo, una volta raggiunto il punto di \textsl{rendez-vous}, non possa procedere nella sua esecuzione finché tutti i partecipanti alla sincronizzazione non siano giunti al ``medesimo'' punto. Una volta che la sincronizzazione ha avuto successo tutti i processi convolti possono procedere nella loro esecuzione.
+\`E necessario predisporre un meccanismo di sincronizzazione che implementi il concetto di barriera parallela, in modo che ogni processo, una volta raggiunto il punto di \textsl{rendez-vous}, non possa procedere oltre nella propria esecuzione finché tutti i partecipanti alla sincronizzazione non siano giunti al ``medesimo'' punto. Una volta che la sincronizzazione ha avuto successo tutti i processi convolti possono procedere nella loro esecuzione.
 
+\subsection*{Accesso alla pista e correttezza funzionale}
+\label{sec:motivazioneSched}
+In quanto risorsa condivisa, le modifiche alla pista devono essere eseguite in mutua esclusione per evitare inconsistenze nel suo stato interno. Ciò significa che i processi che accedono alle informazioni condivise devono eseguire in modo ordinato e solo quando previsto dalla logica di simulazione. In particolare non deve accadere che due auto effettuino contemporaneamente uno spostamento oppure che vengano modificate le condizioni atmosferiche mentre un'auto si sta muovendo sul tracciato. Per questo motivo sarà necessario implementare un controllo della concorrenza che eviti qualunque situazione di \textit{race condition}.
 
-\subsection*{Accesso alla pista}
-Le modifiche alle condizioni della pista devono essere eseguite in mutua esclusione per evitare inconsistenze nel suo stato interno, è necessario quindi che i processi che accedono alle informazioni sulla pista eseguano in modo ordinato e solo quando previsto dalla logica di simulazione. In particolare non deve accadere che due auto effettuino contemporaneamente uno spostamento oppure che vengano modificate le condizioni atmosferiche mentre un'auto si sta muovendo sul tracciato.
-La concorrenza deve quindi essere controllata per evitare queste situazioni di \textit{race condition}.
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth]{diagrammi/Counterexample}
+\caption{Situazione di gara potenzialmente inconsistente}
+\label{fig:counterexample}
+\end{center}
+\end{figure}
 
-\subsection*{Sorpassi coerenti}
-Quando due auto si trovano a percorrere lo stesso segmento di pista devono interagire in modo realistico. Devono essere quindi chiare e verosimili le condizioni che permettono ad un'auto di sorpassarne un'altra, per evitare che si verifichino sorpassi dove la pista o la presenza di altre auto non lo consentano.
+Si consideri ad esempio la situazione rappresentata in figura~\ref{fig:counterexample}, dove $t_1$ e $t_5$ sono i tempi di ingresso dell'auto $A$ rispettivamente nei segmenti 2 e 3, mentre $t_2$, $t_3$ e $t_4$ sono i tempi di ingresso dell'auto $B$ rispettivamente nei segmenti 1, 2 e 3. Assumiamo inoltre le seguenti ipotesi:
+\begin{itemize}
+\item i segmenti hanno lunghezza non nulla, dunque è necessario un tempo strettamente positivo per percorrerli: in altre parole $t_1 < t_5$ e $t_2 < t_3 < t_4$;
+\item l'auto $B$ è sufficientemente più veloce dell'auto $A$ da poter raggiungere per prima il segmento 3, ovvero si ha che $t_4 < t_5$;
+\item $t_1 < t_2$.
+\end{itemize}
 
-\subsection*{Comunicazione di sosta}
+Supponiamo di trovarci al tempo $t_1$ e che il processo di $A$ entri in esecuzione: l'auto inizia a percorrere il segmento 2 e si prenota all'ingresso del segmento successivo al tempo $t_5$, come da ipotesi; quindi il processo si sospende fino a $t_5$. Successivamente, al tempo $t_2$, è il turno di $B$ che, similmente a quanto fatto da $A$, percorre il segmento 1, effettua la prenotazione per il segmento 2 e si sospende fino a $t_3$. Al tempo $t_3$ il processo di $B$ diventa pronto per l'esecuzione; tuttavia in quel momento il sistema è occupato in altri compiti perciò si arriva a $t_5$ senza che $B$ riesca effettivamente ad eseguire. Si noti che ora anche $A$ è pronto per l'esecuzione.
+
+A questo punto la scelta di quale processo mandare in esecuzione è decisiva per l'esito dell'intera simulazione. Infatti, se fosse l'auto $A$ ad eseguire per prima, essa calcolerebbe il suo tempo di percorrenza del segmento 3 senza tener conto dell'auto $B$, poiché essa risulterebbe ancora in attesa di entrare nel segmento 2. In realtà, per ipotesi iniziale, al tempo $t_5$ $B$ dovrebbe già essere all'interno del segmento 3, ovvero dovrebbe precedere $A$, e quindi potrebbe potenzialmente influenzare i suoi calcoli. Di fatto si verificherebbe un sorpasso illegittimo che comprometterebbe la coerenza della competizione.
+
+Analizzando lo scenario appena descritto si vede che sono due le concause della presenza di non determinismo:
+\begin{itemize}
+\item l'ordine con cui i processi entrano effettivamente in esecuzione non dipende dall'ordine in cui si è concluso il loro periodo di sospensione;
+\item il meccanismo che regola l'accesso alla pista opera esclusivamente sulla base di criteri locali ad ogni segmento.
+\end{itemize}
+La correttezza funzionale della simulazione richiede dunque che vi sia un unico luogo di accodamento per tutti i processi che necessitano di accedere alla pista e che l'ordinamento \textit{FIFO} indotto da tale coda venga rispettato nella scelta del processo da mandare in esecuzione.
+
+Le soluzioni individuate per questo problema sono due.
+\begin{enumerate}
+\item Sfruttare lo \textit{scheduler FIFO} offerto dal linguaggio. In questo caso è necessario che tutti i processi partecipanti alla simulazione siano governati da un unico \textit{scheduler}, ad esempio non sarà possibile distribuire la logica delle auto su diversi nodi.
+\item Implementare un sistema di \textit{booking} centralizzato che sia in grado di gestire un insieme di processi distribuiti senza imporre vincoli ulteriori sull'architettura del progetto e che garantisca l'accesso in mutua esclusione a tutta la pista.
+\end{enumerate}
+Abbiamo optato per la seconda soluzione poiché essa impone meno restrizioni sulle scelte architetturali: nell'ottica di bilanciare il carico di lavoro tra i nodi, è desiderabile poter distribuire a piacimento la componente con maggiore richiesta di risorse computazionali, ovvero i concorrenti. Inoltre permette di semplificare notevolmente la gestione dei tempi di gara delle varie auto, facilitando la progettazione di un sistema che sia corretto dal punto di vista temporale.
+
+\subsection*{Sosta ai \textit{box}}
 Un'auto effettua il rifornimento solo quando richiesto da un attore esterno. Questo attore può essere la propria scuderia o l'utente.
 
 La scuderia indica all'auto durante quale giro di gara effettuare la sosta in base alle informazioni raccolte sulle \textit{performance} dell'auto stessa, di conseguenza è possibile che, al variare delle condizioni della pista, la scuderia calcoli una nuova strategia. Nel caso di un cambiamento delle condizioni atmosferiche, per esempio, la scuderia può decidere di far rientrare ai \textit{box} un'auto al fine di montare dei pneumatici adeguati alle nuove condizioni. Risulta quindi evidente che il messaggio usato dalla scuderia per comunicare all'auto in che giro effettuare la sosta successiva può essere inviato più volte e l'auto deve tenere in considerazione solo quello più recente.
@@ -24,18 +68,14 @@ L'utente può invece forzare la sosta immediata di un'auto ai \textit{box}. L'in
 
 Le situazioni da evitare sono quindi due:
 \begin{itemize}
-\item Un'auto effettua una sosta ai \textit{box} sulla base di informazioni non aggiornate,
-\item La richiesta di sosta proveniente dall'utente viene ignorata a causa di una successiva ricezione di direttive diverse dalla scuderia.
+\item un'auto effettua una sosta ai \textit{box} sulla base di informazioni non aggiornate;
+\item la richiesta di sosta proveniente dall'utente viene ignorata a causa di una successiva ricezione di direttive diverse dalla scuderia.
 \end{itemize}
 
-\subsection*{Variazione condizioni atmosferiche}
+\subsection*{Variazione delle condizioni atmosferiche}
 Le variazioni alle condizioni atmosferiche sono effettuate dal sistema in modo sincrono alla competizione nel caso in cui siano state previste a livello di configurazione oppure possono avvenire a seguito di un intervento dell'utente in modo asincrono rispetto alla competizione. Il sistema deve quindi permettere di effettuare queste modifiche evitando i problemi di \textit{race condition} precedentemente evidenziati.
-
-\subsection*{Realismo}
-Poiché il prototipo deve simulare una situazione reale, si è reso necessario trovare un \textit{trade-off} adeguato tra la semplicità di implementazione e l'accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere un segmento, sia dal punto di vista della rappresentazione della pista e delle sue regole di percorrenza. Nella realtà per esempio due auto appartenenti alla stessa scuderia non possono effettuare il rifornimento in contemporanea e devono rispettare i limiti di velocità imposti dal regolamento quando si trovano nella \textit{pit lane}.
 
 \subsection*{Fine della competizione}
 Il sistema deve essere in grado di riconoscere la fine della competizione ovvero quando l'ultima auto in gara taglia il traguardo. In risposta a questo evento il sistema deve reagire in modo opportuno, mettendosi in uno stato che impedisca alla simulazione di procedere inutilmente.
 
 Deve essere quindi previsto un modo per comunicare a tutte le componenti del sistema di terminare la propria esecuzione, nel caso in cui non servano più, oppure di mettersi in uno stato di sospensione per permettere all'utente di consultare i dati raccolti durante la simulazione.
- 
