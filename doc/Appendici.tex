@@ -168,8 +168,24 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 
 \subsection*{Modifiche alla relazione}
 \begin{itemize}
-\item Documentato il formato del file \texttt{.hosts.erlang} e rese più chiare le istruzioni per l'avvio del prototipo.
+\item Riorganizzato ed espanso il capitolo~\ref{ch:problematiche}: aggiunte trattazioni esplicite sulla modellazione del tracciato e sull'ordinamento dei processi.
+\item Sostituito diagramma architetturale con un diagramma delle componenti UML2, figura~\ref{fig:architettura}.
+\item Riscritta ed espansa la sezione ``Event Dispatcher'' nel capitolo~\ref{ch:architettura}: esplicitato l'uso di un pattern architetturale e aggiunto un paragrafo sulla possibilità di \textit{subscription} a simulazione avviata.
+\item Aggiunto accenno all'utilizzo di \textit{callback} nella sezione ``Scheduler'' del capitolo~\ref{ch:architettura} e apportate correzioni richieste dal docente.
+\item Chiarita la trattazione dell'interfaccia fornita nella sezione ``Track'' del capitolo~\ref{ch:architettura}.
+\item Esplicitato il ruolo delle GUI nel pattern \mbox{\textit{publish/subscribe}} nelle relative sezioni del capitolo~\ref{ch:architettura}.
+\item Approfondita la trattazione delle fasi di avvio e terminazione nel capitolo~\ref{ch:architettura}.
+\item Aggiunto riferimento alla documentazione \Erlang{} per la descrizione delle caratteristiche di concorrenza e distribuzione.
+\item Aggiunto paragrafo sulle dipendenze di avvio e adattato il diagramma in figura~\ref{fig:bootstrap} allo standard UML2 nel capitolo~\ref{ch:implementazione}.
+\item Descritta con un dettaglio maggiore l'interazione \car{}-\track{} nella sottosezione ``Percorrenza di un segmento'' nel capitolo~\ref{ch:implementazione}. Nella stessa sottosezione è stato reso più chiaro il rapporto tra i metodi \fun{simulate} e \fun{move}.
+\item Aggiunta descrizione e soluzione della possibile situazione di \textit{deadlock} nella sottosezione ``Rifornimento'' del capitolo~\ref{ch:implementazione}.
+\item Riscritta completamente la sezione ``Event Dispatcher'' nel capitolo~\ref{ch:implementazione} guistificando approfonditamente le scelte effettuate, rifatto diagramma~\ref{fig:dispatcher}.
+\item Chiarito il ruolo di \sched{} nel protocollo di accesso a \track{} in ``Accesso alla pista'' nel capitolo~\ref{ch:correttezza}.
+\item Riscritte le sezioni su non determinismo e situazioni di stallo nel capitolo~\ref{ch:correttezza}.
+\item Aggiunta sezione ``Gestione della terminazione'' nel capitolo~\ref{ch:correttezza}.
+\item Documentato il formato del file \texttt{.hosts.erlang} e rese più chiare le istruzioni per l'avvio del prototipo in appendice.
 \item Aggiunta la definizione di ``processo'' nel glossario.
+\item Aggiunta appendice ``Diario delle modifiche''.
 \end{itemize}
 
 \subsection*{Modifiche al prototipo}
