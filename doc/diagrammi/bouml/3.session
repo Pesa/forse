@@ -1,12 +1,10 @@
 window_sizes 1366 718 200 1160 631 0
 diagrams
-  sequencediagram_ref 141187 // pitstop_deadlock
-    928 504 100 4 0 0
-  active  sequencediagram_ref 141315 // piststop_solution
-    928 504 100 4 0 0
+  active  sequencediagram_ref 147843 // event_dispatcher
+    1160 631 100 4 60 0
 end
 show_stereotypes
-selected sequencediagram_ref 141315 // piststop_solution
+selected sequencediagram_ref 128003 // car:move
 open
   classview_ref 128003 // class
 end

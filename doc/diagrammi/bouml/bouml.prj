@@ -1,6 +1,6 @@
 format 70
 "bouml"
-  revision 5
+  revision 6
   modified_by 3 "daniele"
 
 
@@ -243,6 +243,55 @@ format 70
     sequencediagram 141315 "piststop_solution"
       show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
       overlapping_bars size A4
+    end
+
+    sequencediagram 147843 "event_dispatcher"
+      show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
+      overlapping_bars size A4
+    end
+
+    class 135299 "publisher"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 135427 "front_end"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 135555 "back_end"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 135683 "subscriber"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
     end
   end
 end
