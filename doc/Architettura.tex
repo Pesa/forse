@@ -1,4 +1,6 @@
 \chapter{Architettura del sistema}
+\label{ch:architettura}
+
 In questa sezione verranno descritte a livello funzionale le varie componenti del sistema e classificate secondo il modello visto a lezione.
 
 In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto livello del sistema. La figura non riporta le interfacce di \textit{callback} per non renderne difficile la fruizione. La parte riguardante l'invio di messaggi dalla componente \evdisp{} verso il resto del sistema viene infatti trattata in dettaglio nella sezione~\ref{sec:dispatcherImpl}, mentre l'uso di \textit{callback} da parte di \sched{} viene discusso in~\ref{sec:scheduler}. Vengono inoltre omesse dal diagramma le componenti che si occupano dell'inizializzazione del prototipo, descritte invece in dettaglio nella sezione~\ref{sec:start-stop}.

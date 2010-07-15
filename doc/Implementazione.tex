@@ -1,4 +1,5 @@
 \chapter{Implementazione}
+\label{ch:implementazione}
 
 \section{Tecnologie utilizzate}
 Il prototipo è realizzato in \Erlang{}\footnote{\url{http://www.erlang.org/}} e \Python{}\footnote{\url{http://www.python.org/}} con l'utilizzo delle librerie \textsl{TwOTP}\footnote{\url{http://launchpad.net/twotp}} e \textsl{Qt}\footnote{\url{http://qt.nokia.com/}} usate rispettivamente per l'implementazione del protocollo di distribuzione \Erlang{} su nodi \Python{} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}\footnote{\url{http://www.riverbankcomputing.co.uk/software/pyqt/intro}}.
@@ -341,7 +342,7 @@ In questa sezione verrà in primo luogo descritta l'architettura interna della c
 
 Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i \textit{back-end} mantengano uno stato interno in modo da poter inviare al \textit{subscriber} che si registra un'immagine parziale dello stato della competizione fino al momento della \textit{subscription}. Successivamente, al richiedente verranno inviate solo le informazioni contenenti i cambiamenti relativi allo stato della competizione e non lo stato stesso in modo da ridurre la quantità di dati inviati. In questo modo non vengono inviati dati ridondanti.
 
-In figura~\ref{fig:dispatcher} sono descritte le operazioni che vengono intraprese da \evdisp{} alla ricezione di una notifica.
+Il diagramma di sequenza in figura~\ref{fig:dispatcher} descrive le operazioni che vengono intraprese da \evdisp{} alla ricezione di una notifica.
 Il metodo \fun{filter(msg)} ritorna la lista di \textit{back-end} interessati a ricevere il messaggio \fun{msg} in base al tipo dello stesso.
 Il metodo \fun{translate} serve a tradurre un messaggio dal formato utilizzato nella comunicazione \textit{publisher} $\rightarrow$ \evdisp{} al formato usato per la comunicazione \evdisp{} $\rightarrow$ \textit{subscriber}.
 
@@ -377,6 +378,6 @@ Un'assunzione fatta nella sezione precedente è che le notifiche rimangano ordin
 
 In questo caso la scelta di comunicazione sincrona avrebbe comportato che, ad ogni notifica inviata, un \textit{publisher} avrebbe dovuto attendere che tale notifica fosse recapitata a tutti i \textit{subscribers} prima di poter continuare la propria esecuzione. Questo perché la notifica sarebbe stata veicolata da sole chiamate bloccanti.
 
-Per evitare una situazione così indesiderabile, abbiamo deciso quindi di utilizzare comunicazione asincrona per l'invio delle notifiche all'interno di \evdisp{}. Il linguaggio utilizzato garantisce che, nel caso di comunicazione asincrona tra processi residenti in uno stesso nodo, l'ordine di ricezione dei messaggi da parte del destinatario è uguale all'ordine di invio dei messaggi da parte del mittente. Grazie a ciò non si è reso necessario un riordino dei messaggi a destinazione, semplificando quindi l'implementazione, ma è stato imposto un vincolo sulla distribuzione dei processi che compongono \evdisp{}.
+Questa situazione è chiaramente indesiderabile: abbiamo deciso quindi di utilizzare comunicazioni asincrone internamente a \evdisp{}. Il linguaggio utilizzato garantisce che, nel caso di comunicazione asincrona tra processi residenti in uno stesso nodo, l'ordine di ricezione dei messaggi da parte del destinatario è uguale all'ordine di invio dei messaggi da parte del mittente. Grazie a ciò non si è reso necessario un riordino dei messaggi a destinazione, semplificando quindi l'implementazione, ma è stato imposto un vincolo sulla distribuzione dei processi che compongono \evdisp{}.
 
 Il fatto che \textit{front-end} a \textit{back-end} debbano essere su uno stesso nodo non ci è sembrato troppo restrittivo rispetto alla semplificazione in termini di progettazione che l'accettazione di tale vincolo comporta.
