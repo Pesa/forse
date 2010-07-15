@@ -1,7 +1,7 @@
 \chapter{Implementazione}
 
 \section{Tecnologie utilizzate}
-Il prototipo è realizzato in \Erlang{} e \Python{} con l'utilizzo delle librerie \textsl{TwOTP} e \textsl{Qt} usate rispettivamente per l'implementazione del protocollo di distribuzione \Erlang{} su nodi \Python{} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}.
+Il prototipo è realizzato in \Erlang{}\footnote{\url{http://www.erlang.org/}} e \Python{}\footnote{\url{http://www.python.org/}} con l'utilizzo delle librerie \textsl{TwOTP}\footnote{\url{http://launchpad.net/twotp}} e \textsl{Qt}\footnote{\url{http://qt.nokia.com/}} usate rispettivamente per l'implementazione del protocollo di distribuzione \Erlang{} su nodi \Python{} e per la costruzione di GUI con il supporto dei \textit{bindings} \textsl{PyQt}\footnote{\url{http://www.riverbankcomputing.co.uk/software/pyqt/intro}}.
 
 Di seguito le versioni del software utilizzato:
 \begin{center}
@@ -20,16 +20,16 @@ PyQt & 4.7.3 o successiva \\
 \end{tabular}
 \end{center}
 
-Il criterio che abbiamo usato per decidere se implementare una componente del sistema in \Erlang{} o \Python{} è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \Python{} più le librerie sopra citate, \Erlang{} altrimenti. Risulta dunque la seguente suddivisione:
+Il criterio su cui ci siamo basati per decidere in quale linguaggio implementare una componente è abbastanza semplice: se la componente comprende un'interfaccia grafica utilizzare \Python{} più le librerie sopra citate, \Erlang{} altrimenti. Risulta dunque la seguente suddivisione:
 \begin{center}
 \begin{tabular}{|p{0.2\textwidth}|p{0.3\textwidth}|}
 \hline
 \multirow{6}{*}{\textbf{Erlang}} & \sched{}\\
 & \evdisp{}\\
-& \weather{}\\
 & \track{}\\
 & \team{}\\
 & \car{}\\
+& \weather{}\\
 \hline
 \multirow{4}{*}{\textbf{Python}} & \texttt{race\_info}\\
 & \texttt{debug\_log}\\
@@ -47,17 +47,17 @@ Per informazioni più dettagliate sul linguaggio fare riferimento alla documenta
 
 Una singola istanza di una macchina virtuale \Erlang{} è detta anche nodo \Erlang{} e un sistema \Erlang{} distribuito è composto quindi da una rete di tali nodi. Il protocollo di distribuzione usato nel progetto è il protocollo di distribuzione \Erlang{} che permette la comunicazione tra due nodi \Erlang{} grazie anche a EPMD (\textsl{Erlang Port Mapper Daemon}) avviato automaticamente al bootstrap di ogni nodo.
 
-Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette quindi di passare facilmente dal concorrente al distribuito e viceversa in modo trasparente al programmatore.
+Una delle caratteristiche più apprezzabili e utili di questo linguaggio è che i processi residenti su nodi differenti comunicano tra di loro esattamente allo stesso modo in cui comunicano due processi sullo stesso nodo. Questa caratteristica permette di passare facilmente dal concorrente al distribuito e viceversa, in modo trasparente al programmatore.
 
 \subsection*{Mnesia}
-\textsl{Mnesia} è un database distribuito per \Erlang{} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato principalmente nella componente \track{} per salvare dati relativi allo stato della pista e in generale per la memorizzazione di impostazioni di configurazione relative alla singola competizione.
+\textsl{Mnesia}\footnote{\url{http://www.erlang.org/doc/apps/mnesia/users_guide.html}} è un database distribuito per \Erlang{} che supporta sia copie RAM che copie persistenti e permette di salvare strutture dati complesse a piacere. Nel prototipo è stato utilizzato principalmente nella componente \track{} per salvare dati relativi allo stato della pista e in generale per la memorizzazione di impostazioni di configurazione relative alla singola competizione.
 
 Il linguaggio usato per le query è \Erlang{} stesso, differentemente da quanto avviene per altri linguaggi e DBMS, e questo rende decisamente più omogeneo e leggibile il codice. Ovviamente \textsl{Mnesia} supporta le transazioni e per di più in un modo molto semplice da usare e che sfrutta a pieno la natura funzionale del linguaggio. L'esecuzione di una transazione avviene infatti grazie alla chiamata \fun{mnesia:transaction(F)} dove F è la funzione che contiene le istruzioni da eseguire in modo atomico.
 
 \subsection*{Interazione Erlang $\leftrightarrow$ Python: TwOTP}
 \textsl{TwOTP} (\textit{Twisted interface to Erlang/OTP}) è una libreria che implementa il protocollo di distribuzione \Erlang{} in linguaggio \Python{} con l'ausilio di \textsl{Twisted}.
 
-\textsl{Twisted} è un framework per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} asincrono basato su eventi e \textit{callbacks}.
+\textsl{Twisted}\footnote{\url{http://twistedmatrix.com/}} è un framework per sviluppare applicazioni che interagiscono con la rete fornendo al programmatore un solido e flessibile \textit{networking engine} asincrono basato su eventi e \textit{callbacks}.
 
 \section{Avvio del sistema}
 \label{sec:avvio}
@@ -160,7 +160,7 @@ Dal punto di vista del processo \car{} la sequenza di invocazioni neccessaria pe
 Restando ad alto livello, il protocollo di interazione tra \car{} e \track{} è il seguente: per percorrere il segmento successivo, la componente \car{} prima utilizza il metodo \texttt{track:simulate} per ottenere i dati necessari a scegliere quale sia la corsia più conveniente e successivamente invoca il metodo \texttt{track:move} per effettuare lo spostamento.
 Grazie a questo schema le componenti \car{} non devono essere a conoscenza della conformazione della pista per poterla percorrere in quanto i segmenti vengono trattati tutti in modo omogeneo.
 
-In altre parole è la componente \track{} che si occupa di individuare il segmento che l'auto dovrà percorrere e più in generale di gestire l'accesso ai segmenti. In base al tipo di segmento \track{} provvederà ad effettuare tutte le operazioni del caso (rilevazioni cronometriche, comunicazione con la relativa componente \team{} in caso di sosta ai box, etc..) nascondendo quindi le differenze tra i vari tipi di segmenti alla componente \car{}.
+In altre parole è la componente \track{} che si occupa di individuare il segmento che l'auto dovrà percorrere e più in generale di gestire l'accesso ai segmenti. In base al tipo di segmento \track{} provvederà ad effettuare tutte le operazioni del caso (rilevazioni cronometriche, comunicazione con la relativa componente \team{} in caso di sosta ai box, ecc\ldots) nascondendo quindi le differenze tra i vari tipi di segmenti alla componente \car{}.
 
 Un altra conseguenza della soluzione adottata è che non è necessario che un'auto conosca esplicitamente la posizione sulla pista degli altri concorrenti, in quanto questo aspetto viene gestito da \track{}.
 
