@@ -86,9 +86,11 @@ Poiché sussistono delle dipendenze tra le varie componenti, \bootserv{} attende
 
 \begin{landscape}
 \begin{figure}
+\begin{center}
 \includegraphics[height=.25\paperheight]{diagrammi/Bootstrap}
 \caption{Diagramma della fase di \textit{bootstrap}}
 \label{fig:bootstrap}
+\end{center}
 \end{figure}
 \end{landscape}
 
@@ -269,7 +271,6 @@ Visto che ogni scuderia può rifornire una sola auto alla volta il tempo di usci
 \[ T_{ex_A} = \max \left\{ T_{en_A}, T_{ex_B} \right\} + T_{ops} \]
 dove B è l'auto accodata nello stesso segmento e in corsia $-2$ con tempo di uscita maggiore (ovvero l'auto che eventualmente precede A nella sosta ai \textit{box}) e $T_{ops}$ è il tempo necessario ad effettuare le operazioni di rifornimento.
 
-
 Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 \begin{itemize}
 \item su richiesta dell'utente e con effetto immediato,
@@ -279,9 +280,11 @@ Un'auto si reca ai \textit{box} in risposta a due eventi distinti:
 Il primo tipo di richiesta arriva direttamente dalla componente \texttt{team\_monitor}, mentre il secondo tipo arriva da \team{} che comunica con l'auto attraverso l'invio di un messaggio di tipo \texttt{next\_pitstop} in modo asincrono per evitare possibili situazioni di \textit{deadlock}.
 
 \begin{figure}
+\begin{center}
 \includegraphics[width=0.8\textwidth]{diagrammi/PitstopDeadlock}
 \caption{Possibile situazione di \textit{deadlock}}
 \label{fig:pitstopDeadlock}
+\end{center}
 \end{figure}
 
 La possibile situazione di \textit{deadlock}, qualora il messaggio \texttt{next\_pitstop} fosse inviato in modo sincrono, scaturisce dalla sequenza di messaggi illustrata in figura~\ref{fig:pitstopDeadlock}.
@@ -293,9 +296,11 @@ Il metodo \texttt{track:move}, qualora debba simulare una sosta per il rifornime
 In questo modo si concretizza una situazione di attesa circolare che porta conseguentemente al \textit{deadlock} precedentemente accennato.
 
 \begin{figure}
-\includegraphics[width=0.8\textwidth]{diagrammi/PitstopSolution}
+\begin{center}
+\includegraphics[width=0.7\textwidth]{diagrammi/PitstopSolution}
 \caption{Prevenzione dell'attesa circolare}
 \label{fig:pitstopSol}
+\end{center}
 \end{figure}
 
 La soluzione strutturale adottata per evitare questa situazione di attesa circolare è descritta in figura~\ref{fig:pitstopSol}. L'invio del messaggio \texttt{next\_pitstop} è stato reso asincrono per evitare che \team{} rimanga bloccato, come invece accade nello scenario precedente, e sia quindi disponibile alla successiva sincronizzazione causata dalla ricezione del messaggio \texttt{pitstop\_operations}.
