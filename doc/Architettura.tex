@@ -15,13 +15,13 @@ In figura~\ref{fig:architettura} è riportata una vista architetturale ad alto l
 \label{sec:dispatcherArch}
 Questa componente ha il compito di ricevere tutti i dati relativi alla competizione e, dopo una eventuale rielaborazione, inoltrare tali dati alle componenti interessate.
 
-Questo tipo di comunicazione segue il \textit{pattern} architetturale \textit{publish/subscribe} ed è quindi previsto che le componenti del sistema interessate a tali dati effettuino prima la procedura di \textit{subscription} (ricevendo se necessario lo stato attuale della gara) per poi ottenere aggiornamenti con l'evolvere della simulazione. Gli aggiornamenti vengono inviati dalla componente \evdisp{} ai \textit{subscribers}, con uno stile di comunicazione di tipo \textit{push}, come d'altronde previsto dal \textit{pattern} adottato.
+Questo tipo di comunicazione segue il \textit{pattern} architetturale \textit{\mbox{publish/subscribe}} ed è quindi previsto che le componenti del sistema interessate a tali dati effettuino prima la procedura di \textit{subscription} (ricevendo se necessario lo stato attuale della gara) per poi ottenere aggiornamenti con l'evolvere della simulazione. Gli aggiornamenti vengono inviati dalla componente \evdisp{} ai \textit{subscribers}, con uno stile di comunicazione di tipo \textit{push}, come d'altronde previsto dal \textit{pattern} adottato.
 
 I \textit{subscribers} devono indicare che informazioni desiderano ricevere di modo che \evdisp{} possa effettuare una procedura di filtraggio per evitare l'invio di dati non richiesti.
 
 \evdisp{} assume quindi il ruolo di \textit{message broker} poiché smista e traduce i messaggi provenienti dai \textit{publishers} e li inoltra ai \textit{subscribers}. In questo modo si ottiene un basso livello di accoppiamento, a dimostrazione di ciò è sufficiente notare che non è nemmeno necessario che il gruppo delle componenti \textit{publishers} sia al corrente dell'esistenza delle componenti \textit{subscribers}.
 
-\`E previsto inoltre che i \textit{subscribers} possano registrarsi presso \evdisp{} in un qualsiasi momento dopo la fase di \textit{bootstrap} e prima della terminazione della simulazione. Per questo motivo \evdisp{} deve essere progettato per fornire informazioni coerenti anche ai \textit{subscribers} che si aggiungono al sistema a simulazione iniziata.
+\`E previsto inoltre che un \textit{subscriber} possa registrarsi presso \evdisp{} in un qualsiasi momento dopo la fase di \textit{bootstrap} e prima della terminazione della simulazione. Per questo motivo \evdisp{} deve essere progettato per fornire informazioni coerenti anche ai \textit{subscribers} che si aggiungono al sistema a simulazione iniziata.
 
 Viste le caratteristiche che deve avere tale componente, nell'ottica di un sistema distribuito possiamo considerarla un server poiché non effettua comunicazioni con altre componenti del sistema se non in risposta ad azioni esterne, rientrando quindi nella categoria delle entità reattive.
 
@@ -255,49 +255,38 @@ L'utente dovrà interagire con due tipi di interfacce di configurazione:
 \item \texttt{control\_panel}: permette all'utente di inserire il percorso dei file di configurazione, nonché di per avviare e terminare il sistema.
 \item \texttt{node\_configurator}: serve all'utente per indicare al sistema su quali nodi possono essere avviate le componenti essenziali del sistema e per determinare quindi come saranno distribuite sulla rete tali componenti.
 \end{itemize}
-Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \bootserv{} che non partecipa alla simulazione e un numero variabile di nodi gestiti da \nodeman{} sui quali vengono eseguite le componenti di simulazione.
 
-Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \Erlang{} alla chiusura del sistema.
+Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \bootserv{} che non partecipa alla simulazione e un numero variabile di nodi gestiti da altrettanti \nodeman{} sui quali vengono eseguite le componenti di simulazione. Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \Erlang{} alla chiusura del sistema.
 
-\subsection*{Control Panel e Bootstrap Server}
+\subsection{Control Panel e Bootstrap Server}
 \texttt{control\_panel} ha il compito di acquisire le informazioni necessarie alla simulazione dall'utente e avviare un nodo \Erlang{} sul quale far eseguire la componente \bootserv{}.
 Dopo di che \texttt{control\_panel} deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
 
 La funzione di \bootserv{} è fondamentale per l'avvio e la terminazione del sistema e di conseguenza non deve essere terminato finché gli altri nodi del sistema sono attivi.
 
-Il suo compito nella fase iniziale è quello di coordinare l'avvio di tutti i nodi appartenenti al sistema e di inizializzare, grazie a \nodeman{}, le componenti del sistema presso i nodi distribuiti, secondo la disponibilità di tali nodi e le necessità della simulazione.
-
+Nella fase iniziale il suo compito è quello di coordinare l'inizializzazione di tutte le componenti del sistema nell'ordine corretto, secondo la disponibilità dei nodi e le necessità della simulazione, rispettando le dipendenze di avvio tra le varie entità.
 Il numero di componenti da istanziare per eseguire la simulazione viene derivato dalle informazioni contenute nei file di configurazione. Finché il sistema non è formato da un numero di nodi con una disponibilità di risorse sufficiente ad ospitare la simulazione, esso non può essere avviato.
-Una volta che \bootserv{} ha istanziato nel giusto ordine le componenti necessarie presso i nodi distribuiti, la fase di \textit{bootstrap} del sistema può dirsi conclusa.
 
+Una volta che \bootserv{} ha istanziato nel giusto ordine le componenti necessarie presso i nodi distribuiti, la fase di \textit{bootstrap} del sistema può dirsi conclusa.
 Successivamente \bootserv{} rimane in attesa del comando di terminazione da parte di \texttt{control\_panel} per coordinare la terminazione dei nodi del sistema distribuiti.
 
-\subsection*{Node Configurator e Node Manager}
+\subsection{Node Configurator e Node Manager}
 Una volta avviato \texttt{node\_configurator}, questo istanzia un nodo \Erlang{} che andrà a fare parte del sistema distribuito e ivi avvia \nodeman{}. L'utente deve indicare tramite l'interfaccia grafica \texttt{node\_configurator} la disponibilità di risorse del nodo \Erlang{} appena avviato in modo che \nodeman{} possa comunicarlo a \bootserv{}.
 
 La componente \nodeman{} ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del \bootserv{}.
 
 Una volta terminata la fase di \textit{bootstrap} del sistema, \nodeman{} deve rimanere in attesa del comando di terminazione del nodo che verrà eventualmente inviato da \bootserv{}, mentre \texttt{node\_configurator} viene terminato una volta che l'utente ha inserito le informazioni necessarie.
 
-\subsection*{Terminazione}
-\`E necessario distinguere tra terminazione della simulazione e terminazione del sistema.
-La terminazione della simulazione comporta la terminazione dei seguenti processi:
-\begin{itemize}
-\item \sched{}
-\item \evdisp{}
-\item \team{}
-\item \car{}
-\item \weather{}
-\end{itemize}
-Vengono inoltre deallocati i dati riguardanti la pista e i parametri di configurazione della competizione.
+\subsection{Terminazione}
+\`E opportuno distinguere tra terminazione della simulazione e terminazione del sistema.
+La terminazione della simulazione comporta la terminazione dei processi \sched{}, \evdisp{}, \team{}, \car{} e \weather{}, in ordine inverso rispetto a quello di avvio, oltre alla deallocazione dei dati riguardanti la pista e dei parametri di configurazione della competizione. Le interfacce grafiche sono informate della terminazione tramite un'opportuna notifica, ma non vengono chiuse automaticamente perché l'utente potrebbe necessitare di tempo ulteriore per analizzare i dati da esse visualizzati.
 
-La terminazione del sistema invece coinvolge la terminazione delle componenti:
+La terminazione del sistema, invece, coinvolge anche la terminazione delle componenti:
 \begin{itemize}
 \item \bootserv{}
 \item \nodeman{}
 \item \texttt{control\_panel}
 \end{itemize}
-Successivamente vengono anche terminati tutti i nodi del sistema.
+Infine vengono terminati tutti i nodi del sistema.
 
 Dividendo in questo modo la fase di terminazione è possibile effettuare più simulazioni senza dover riavviare il sistema ma semplicemente terminando la simulazione corrente e riconfigurandone una di nuova tramite \texttt{control\_panel}. \`E quindi possibile riutilizzare i nodi già avviati e ridurre il numero di componenti istanziate \textit{ex novo} al minimo necessario.
-

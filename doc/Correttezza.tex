@@ -3,9 +3,9 @@
 \section{Avvio del sistema}
 L'avvio del sistema è coordinato da \bootserv{} che stabilisce l'ordine di avvio delle componenti del sistema (come descritto nella sezione~\ref{sec:avvio}) e controlla che l'avvio delle stesse avvenga in modo corretto.
 
-\evdisp{} è la prima componente ad essere avviata in modo da permettere l'invio di \fun{config\_notif} da parte delle componenti del sistema durante la loro fase di avvio.
+\evdisp{} è la prima componente ad essere avviata, in modo da permettere l'invio di \fun{config\_notif} da parte delle componenti del sistema durante la loro fase di avvio.
 
-Successivamente viene avviato lo \sched{} di modo che i processi \weather{} e \car{} possano prenotarsi per l'esecuzione e l'accesso a \track{}. In questo modo ogni componente del sistema dispone delle informazioni e delle altre componenti necessarie affinché il proprio avvio avvenga correttamente.
+Successivamente viene avviato lo \sched{}, di modo che i processi \weather{} e \car{} possano prenotarsi per l'esecuzione e l'accesso a \track{}. In questo modo ogni componente del sistema dispone delle informazioni e delle altre componenti necessarie affinché il proprio avvio avvenga correttamente.
 
 Nel caso in cui qualcuna delle componenti del sistema non riuscisse ad avviarsi questo sarebbe rilevato da \bootserv{} e comunicato all'utente. Di conseguenza, se l'esecuzione del metodo \fun{bootstrap\_server:bootstrap} termina senza errori vuol dire che la simulazione è pronta ad essere avviata.
 
@@ -78,8 +78,7 @@ Nei casi in cui A deve accodarsi a B viene aggiunto il vincolo che $T_{ex_A}^{n+
 
 La procedura di sosta ai \textit{box} differisce nel calcolo del tempo di percorrenza rispetto agli altri segmenti, tuttavia si integra perfettamente nell'algoritmo citato in precedenza in quanto l'auto rimane comunque soggetta ai meccanismi di uno spostamento generico sulla pista quali il cambio corsia e il sorpasso.
 
-
-L'ultima considerazione riguarda l'influenza che il fattore di \textit{simulation speed} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto. Il fattore di \textit{simulation speed} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \sched{} fa trascorrere tra il rilascio della componente \track{} da parte di un processo e la concessione di tale risorsa ad un altro. Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla quindi fruibile dall'utente.
+L'ultima considerazione riguarda l'influenza che il fattore di \textit{simulation speed} può avere sulla competizione, ed anche in questo caso è facile convincersi che la velocità con la quale viene eseguita la simulazione non influenza in alcun modo i tempi di percorrenza delle auto. Il fattore di \textit{simulation speed} infatti viene implementato aumentando o riducendo il periodo di pausa che lo \sched{} fa trascorrere tra il rilascio della componente \track{} da parte di un processo e la concessione di tale risorsa ad un altro. Tale pausa è introdotta artificialmente per rallentare l'evolvere della simulazione e renderla maggiormente fruibile dall'utente.
 
 \section{Non determinismo}
 Per quanto riguarda la simulazione si ha del non determinismo nel momento in cui l'ordine di esecuzione (accesso a \track{}) non dipende solo dal tempo di prenotazione e non può essere quindi predetto.
@@ -117,27 +116,29 @@ Se tuttavia si presentasse il caso in cui $L_{ex_A}^{n+1} = L_{ex_B}^{n+1}$ allo
 In questo caso il non determinismo è voluto e risulta desiderabile, infatti, anche considerando la corrispondente situazione nella realtà, non è chiaro quale delle auto dare la precedenza all'altra e quindi accodarsi.
 Non vi sono motivi validi per preferire un pilota rispetto ad un altro quindi, piuttosto di effettuare una scelta algoritmica, si preferisce lasciare al caso la scelta.
 
+\section{Situazioni di stallo}
+Durante la fase di progettazione del sistema abbiamo posto particolare attenzione alla prevenzione di situazioni di stallo.
 
-
-\section{Deadlocks}
-Durante la fase di progettazione del sistema abbiamo posto particolare attenzione alla prevenzione di situazioni di \textit{deadlock}.
-
-In particolare ci siamo resi conto che il flusso di notifiche presente nel sistema poteva essere fonte di situazioni di stallo.
-In primo luogo vale la pena notare che, grazie alla struttura interna di \evdisp{} descritta in~\ref{sec:dispatcherImpl}, non è possibile che si creino \textit{deadlocks} coinvolgenti tale componente.
-
-Questo fatto deriva direttamente dall'uso di chiamate non bloccanti tra \textit{front-end} e \textit{back-end} che impedisce strutturalmente il concretizzarsi della situazione di attesa circolare necessaria alla formazione di \textit{deadlocks}.
+In particolare ci siamo resi conto che il flusso di notifiche presente nel sistema poteva essere fonte di \textit{deadlock}.
+Tuttavia si può notare che, grazie alla struttura interna di \evdisp{} descritta in~\ref{sec:dispatcherImpl}, non è possibile che si creino \textit{deadlock} coinvolgenti tale componente.
+Questo fatto deriva direttamente dall'uso di chiamate non bloccanti tra \textit{front-end} e \textit{back-end}, che impedisce strutturalmente il concretizzarsi della situazione di attesa circolare, condizione che sappiamo essere necessaria alla formazione di \textit{deadlock}.
 
 Questa soluzione ci assicura l'assenza di stallo causato dalle notifiche, poiché la propagazione di queste ultime coinvolge \evdisp{} che, come appena spiegato, previene sistematicamente la formazione di \textit{deadlock}.
 
 Un'altra situazione pericolosa da questo punto di vista è stata individuata in fase di progettazione nella comunicazione tra le componenti \track{}, \team{} e \car{} durante la sosta per il rifornimento. Questo problema viene ampiamente trattato e risolto come descritto in~\ref{sec:rifornimento}.
 
-Eliminata quindi la possibilità di \textit{deadlocks} comprendenti \evdisp{} e appurato che la comunicazione tra \track{}, \team{} e \car{} è libera da stallo, si può affermare che nel sistema non possono verificarsi situazioni di \textit{deadlock} poiché, per quanto riguarda le rimanenti comunicazioni, non sussiste la precondizione di attesa circolare tra le componenti.
+Eliminata quindi la possibilità di \textit{deadlock} comprendenti \evdisp{} e appurato che la comunicazione tra \track{}, \team{} e \car{} è libera da stallo, si può affermare che nel sistema non possono verificarsi situazioni di \textit{deadlock} poiché, per quanto riguarda le rimanenti comunicazioni, non sussiste la precondizione di attesa circolare tra le componenti.
+
+\section{Gestione della terminazione}
+Per quanto riguarda la richiesta di terminazione proveniente dall'utente, sia che venga effettuata tramite l'apposita funzionalità di \textit{shutdown}, sia chiudendo l'interfaccia grafica del \texttt{control\_panel}, essa viene adeguatamente gestita da \bootserv{} e il sistema viene terminato in modo totalmente controllato, come peraltro già illustrato nella sezione~\ref{sec:start-stop}.
+
+Non è stato previsto, invece, un meccanismo di rilevazione di terminazioni anomale delle componenti di simulazione da parte delle GUI. In ogni caso tali anomalie si potrebbero verificare solamente come conseguenza di malfunzionamenti imprevisti di una o più applicazioni, oppure a causa di problemi di comunicazione tra i vari processi \Erlang{}. Perciò non sarebbe comunque possibile riparare l'errore e riprendere l'esecuzione da uno stato consistente. Inoltre l'implementazione di un simile meccanismo avrebbe violato i principi del \textit{pattern \mbox{publish/subscribe}} e aumentato considerevolmente l'accoppiamento tra \evdisp{} e \textit{subscribers}.
+
 \section{Realismo}
 \subsection*{Fisico}
 Al fine di ottenere un buon livello di realismo della simulazione da un punto di vista fisico, abbiamo deciso di far dipendere le \textit{performance} dell'auto da diversi fattori modellando i fenomeni fisici coinvolti nel miglior modo possibile, con particolare attenzione alla decelerazione.
 
 Nella seguente tabella vengono riportati i valori utilizzati nel modello fisico della simulazione e da quali parametri di configurazione tali valori dipendono.
-
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
