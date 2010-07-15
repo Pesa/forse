@@ -158,7 +158,7 @@ In particolare l'accelerazione/decelerazione che un auto può erogare in un dete
 
 Passiamo ora a descrivere le operazioni che il processo \car{} effettua nel momento in cui lo \sched{} gli consente di eseguire una mossa.
 
-Dal punto di vista del processo \car{} la sequenza di invocazioni neccessaria per effettuare uno spostamento sulla pista è indipendente sia dalla posizione dell'auto che dalla conformazione della pista stessa.
+Dal punto di vista del processo \car{} la sequenza di invocazioni necessaria per effettuare uno spostamento sulla pista è indipendente sia dalla posizione dell'auto che dalla conformazione della pista stessa.
 
 Restando ad alto livello, il protocollo di interazione tra \car{} e \track{} è il seguente: per percorrere il segmento successivo, la componente \car{} prima utilizza il metodo \texttt{track:simulate} per ottenere i dati necessari a scegliere quale sia la corsia più conveniente e successivamente invoca il metodo \texttt{track:move} per effettuare lo spostamento.
 Grazie a questo schema le componenti \car{} non devono essere a conoscenza della conformazione della pista per poterla percorrere in quanto i segmenti vengono trattati tutti in modo omogeneo.
@@ -292,7 +292,7 @@ La possibile situazione di \textit{deadlock}, qualora il messaggio \texttt{next\
 
 Nello scenario descritto, mentre \car{} sta percorrendo il segmento relativo ai \textit{box} della propria scuderia per effettuare il rifornimento, ovvero invocando il metodo \texttt{track:move}, \team{} tenta di inviare un messaggio \texttt{next\_pitstop} a \car{} rimanendo però bloccato in attesa di una sincronizzazione.
 
-Il metodo \texttt{track:move}, qualora debba simulare una sosta per il rifornimento e calcolare quindi il tempo impegato per le operazioni, deve invocare il metodo \texttt{team:pitstop\_operations} per ottenere le informazioni su quali operazioni devono essere effettuate durante la sosta. Anche in questo caso la sincronizzazione fallisce e il chiamante rimane bloccato poiché il destinatario del messaggio è ancora bloccato a causa dell'invio del messaggio \texttt{next\_pitstop}.
+Il metodo \texttt{track:move}, qualora debba simulare una sosta per il rifornimento e calcolare quindi il tempo impiegato per le operazioni, deve invocare il metodo \texttt{team:pitstop\_operations} per ottenere le informazioni su quali operazioni devono essere effettuate durante la sosta. Anche in questo caso la sincronizzazione fallisce e il chiamante rimane bloccato poiché il destinatario del messaggio è ancora bloccato a causa dell'invio del messaggio \texttt{next\_pitstop}.
 
 In questo modo si concretizza una situazione di attesa circolare che porta conseguentemente al \textit{deadlock} precedentemente accennato.
 
@@ -358,16 +358,16 @@ Per fare un paragone, la visione di un film in cui i fotogrammi vengono permutat
 
 Un'eccezione a quanto appena detto riguarda le notifiche di configurazione inviate nella fase di bootstrap della simulazione. Queste infatti, per essere utilizzate correttamente, non necessitano di un ordine stretto tra loro ma devono essere tutte valutate prima dell'avvio della gara.
 
-Per il resto del capitolo, nel momento in cui si farà riferimento ai \textit{publishers}, si intederà il gruppo di processi che inviano notifiche di simulazione al \evdisp{} escludendo quelli che inviano solo notifiche di configurazione. Tale gruppo è quindi composto da \sched{}, \evdisp{} e \car{}.
+Per il resto del capitolo, nel momento in cui si farà riferimento ai \textit{publishers}, si intenderà il gruppo di processi che inviano notifiche di simulazione al \evdisp{} escludendo quelli che inviano solo notifiche di configurazione. Tale gruppo è quindi composto da \sched{}, \evdisp{} e \car{}.
 
 I \textit{publishers} in realtà eseguono tutti in modo sequenziale poiché ordinati dalla componente \sched{}. Di conseguenza, utilizzando chiamate bloccanti per l'invio delle notifiche da \textit{publisher} a \textit{front-end}, l'ordine di arrivo delle notifiche rimane invariato rispetto l'ordine di invio.
 
-Sarebbe stato comunque possibile raggiungere lo stesso obiettivo utilizzando una comunicazione asincrona, tuttavia, per semplicità si è preferito adottare la soluzione appena descritta. La soluzione asincrona infatti prevedeva di aggiungere ai messaggi un identificatore numerico unico in modo da ottenere un'ordinamento totale delle notifiche per poi riordinarle algortimicamente nel \textit{front-end}. Questo poiché in \Erlang{} l'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui i processi mittente e destinatario si trovino su nodi differenti.
+Sarebbe stato comunque possibile raggiungere lo stesso obiettivo utilizzando una comunicazione asincrona, tuttavia, per semplicità si è preferito adottare la soluzione appena descritta. La soluzione asincrona infatti prevedeva di aggiungere ai messaggi un identificatore numerico unico in modo da ottenere un ordinamento totale delle notifiche per poi riordinarle algoritmicamente nel \textit{front-end}. Questo poiché in \Erlang{} l'ordine di invio di messaggi tra due processi può differire dall'ordine di ricezione degli stessi nel caso in cui i processi mittente e destinatario si trovino su nodi differenti.
 
 Risulta quindi evidente che l'utilizzo di comunicazione asincrona in questo caso avrebbe complicato l'implementazione del prototipo, giustificando quindi la scelta di comunicazione sincrona.
 
 \subsection*{\textit{Back-end} $\rightarrow$ \textit{subscriber}}
-Le notiche inviate dai \textit{back-end} devono essere considerate secondo l'ordine di invio dai \textit{subscribers}. Questo perché il primo messaggio inviato dopo la procedura di \textit{subscription} contiene una vista dello stato attuale della simulazione mentre le successive notifiche contengono le variazioni incrementali rispetto allo stato precedente, che hanno senso solo se interpretate nell'ordine corretto. Al fine di avere uno stato consistente il \textit{subscriber} deve perciò ricevere tutte le notifiche e le deve considerare secondo l'ordine di invio.
+Le notifiche inviate dai \textit{back-end} devono essere considerate secondo l'ordine di invio dai \textit{subscribers}. Questo perché il primo messaggio inviato dopo la procedura di \textit{subscription} contiene una vista dello stato attuale della simulazione mentre le successive notifiche contengono le variazioni incrementali rispetto allo stato precedente, che hanno senso solo se interpretate nell'ordine corretto. Al fine di avere uno stato consistente il \textit{subscriber} deve perciò ricevere tutte le notifiche e le deve considerare secondo l'ordine di invio.
 
 Assumendo quindi che le notifiche arrivino ai \textit{back-end} nell'ordine corretto, è stato deciso, con un ragionamento analogo a quello esposto nella sezione precedente, di utilizzare l'invio di messaggi sincrono anche per questo tratto del percorso delle notifiche.
 
