@@ -337,13 +337,6 @@ In questo modo le componenti del sistema non più necessarie possono terminare l
 \label{sec:dispatcherImpl}
 In questa sezione verrà in primo luogo descritta l'architettura interna della componente \evdisp{}, per poi andarne a motivare le scelte sottostanti.
 
-\begin{figure}
-\includegraphics[width=\textwidth]{diagrammi/Dispatcher}
-\caption{Propagazione di una notifica tramite \evdisp{}.}
-\label{fig:dispatcher}
-\end{figure}
-
-
 \evdisp{} è composto da un processo detto \textit{front-end} che ha il compito di ricevere ogni notifica in ingresso e inoltrarla ai processi \textit{back-end} interessati in modo asincrono. Oltre a ciò, il \textit{front-end} deve anche ricevere le richieste di \textit{subscription} e registrare quindi i processi richiedenti presso il corretto \textit{back-end}. Al ricevimento di una notifica un \textit{back-end} provvede ad una eventuale rielaborazione dei dati in essa contenuti per poi inviare il risultato di tale computo ai processi presenti nella sua lista di \textit{subscribers}.
 
 Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata è necessario che i \textit{back-end} mantengano uno stato interno in modo da poter inviare al \textit{subscriber} che si registra un'immagine parziale dello stato della competizione fino al momento della \textit{subscription}. Successivamente, al richiedente verranno inviate solo le informazioni contenenti i cambiamenti relativi allo stato della competizione e non lo stato stesso in modo da ridurre la quantità di dati inviati. In questo modo non vengono inviati dati ridondanti.
@@ -351,6 +344,12 @@ Poiché è stato previsto che una GUI possa registrarsi a simulazione iniziata �
 In figura~\ref{fig:dispatcher} sono descritte le operazioni che vengono intraprese da \evdisp{} alla ricezione di una notifica.
 Il metodo \fun{filter(msg)} ritorna la lista di \textit{back-end} interessati a ricevere il messaggio \fun{msg} in base al tipo dello stesso.
 Il metodo \fun{translate} serve a tradurre un messaggio dal formato utilizzato nella comunicazione \textit{publisher} $\rightarrow$ \evdisp{} al formato usato per la comunicazione \evdisp{} $\rightarrow$ \textit{subscriber}.
+
+\begin{figure}
+\includegraphics[width=0.9\textwidth]{diagrammi/Dispatcher}
+\caption{Propagazione di una notifica tramite \evdisp{}.}
+\label{fig:dispatcher}
+\end{figure}
 
 \subsection*{\textit{Publisher} $\rightarrow$ \textit{front-end}}
 Le notifiche relative alla simulazione sono interpretabili in modo corretto solo se considerate nell'ordine in cui vengono emesse.
