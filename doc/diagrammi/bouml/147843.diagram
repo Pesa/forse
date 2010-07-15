@@ -1,0 +1,85 @@
+format 70
+
+classinstance 128003 class_ref 135299 // publisher
+  name "publisher_n"   xyz 7 4 2005 life_line_z 2000
+classinstance 128131 class_ref 135427 // front_end
+  name "front_end"   xyz 216 4 2005 life_line_z 2000
+classinstance 128259 class_ref 135555 // back_end
+  name "X"   xyz 422 162 2005 life_line_z 2000
+classinstance 128387 class_ref 135683 // subscriber
+  name "Y"   xyz 604 432 2005 life_line_z 2000
+fragment 128899 "loop"
+  color lightblue xyzwh 138 148 2000 401 154
+end
+textcanvas 129155 "[for each back-end X in L]"
+  xyzwh 145 184 2005 134 51
+fragment 130179 "loop"
+  color lightred xyzwh 358 425 0 385 161
+end
+textcanvas 131331 "[for each subscriber Y]"
+  xyzwh 363 461 2000 100 52
+durationcanvas 128515 classinstance_ref 128003 // publisher_n:publisher
+  xyzwh 84 57 2010 11 317
+end
+durationcanvas 128643 classinstance_ref 128131 // front_end:front_end
+  xyzwh 285 69 2010 11 264
+  overlappingdurationcanvas 130819
+    xyzwh 291 102 2020 11 25
+  end
+end
+durationcanvas 129283 classinstance_ref 128259 // X:back_end
+  xyzwh 465 220 2010 11 25
+end
+durationcanvas 129923 classinstance_ref 128259 // X:back_end
+  xyzwh 465 349 2010 11 297
+  overlappingdurationcanvas 131075
+    xyzwh 471 389 2020 11 25
+  end
+end
+durationcanvas 131459 classinstance_ref 128387 // Y:subscriber
+  xyzwh 649 494 2010 11 59
+end
+msg 128771 synchronous
+  from durationcanvas_ref 128515
+  to durationcanvas_ref 128643
+  yz 70 2015 explicitmsg "notify(msg)"
+  show_full_operations_definition default drawing_language default
+  label_xy 150 49
+msg 129411 asynchronous
+  from durationcanvas_ref 128643
+  to durationcanvas_ref 129283
+  yz 221 2015 explicitmsg "dispatch(msg)"
+  show_full_operations_definition default drawing_language default
+  label_xy 329 200
+msg 129795 return
+  from durationcanvas_ref 128643
+  to durationcanvas_ref 128515
+  yz 322 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+reflexivemsg 130051 synchronous
+  to durationcanvas_ref 129923
+  yz 349 2015 explicitmsg "handle(msg)"
+  show_full_operations_definition default drawing_language default
+  label_xy 486 329
+reflexivemsg 130947 synchronous
+  to durationcanvas_ref 130819
+  yz 102 2025 explicitmsg "L = filter(msg)"
+  show_full_operations_definition default drawing_language default
+  label_xy 304 81
+reflexivemsg 131203 synchronous
+  to durationcanvas_ref 131075
+  yz 389 2025 explicitmsg "M = translate(msg)"
+  show_full_operations_definition default drawing_language default
+  label_xy 494 370
+msg 131587 synchronous
+  from durationcanvas_ref 129923
+  to durationcanvas_ref 131459
+  yz 494 2015 explicitmsg "callback_Y(M)"
+  show_full_operations_definition default drawing_language default
+  label_xy 494 474
+msg 131715 return
+  from durationcanvas_ref 131459
+  to durationcanvas_ref 129923
+  yz 548 2015 unspecifiedmsg
+  show_full_operations_definition default drawing_language default
+end
