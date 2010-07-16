@@ -330,6 +330,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	
 	case simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) of
 		race_ended ->
+			event_dispatcher:notify(#car_state_notif{car = Id, state = ended}),
 			remove_car(SOld, Pilot#pilot.id),
 			race_ended;
 		pits ->
@@ -369,8 +370,8 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			event_dispatcher:notify(#pitstop_notif{car = Pilot#pilot.id, ops = Ops}),
 			{NewCarPos#car_position.exit_t, NewPilot};
 		{fail, Reason} ->
-			event_dispatcher:notify(#retire_notif{car = Pilot#pilot.id,
-												  reason = Reason}),
+			event_dispatcher:notify(#car_state_notif{car = Pilot#pilot.id, 
+													 state = {retired, Reason}}),
 			remove_car(SOld, Pilot#pilot.id),
 			?DBG({"car", Pilot#pilot.id, "crashed in segment", Sgm}),
 			fail;
@@ -717,7 +718,8 @@ min_bound_rec([], _Index) ->
 %% Delete CarPos queued in OldSgm and insert it in NewSgm.
 -spec move_car(#segment{}, #segment{}, #car_position{}) -> 'ok'.
 move_car(OldSgm, NewSgm, CarPos) ->
-	OldQUpdate = lists:keydelete(CarPos#car_position.car_id,
+	Id = CarPos#car_position.car_id,
+	OldQUpdate = lists:keydelete(Id,
 								 #car_position.car_id,
 								 OldSgm#segment.queued_cars),
 	OldSUpdate = OldSgm#segment{queued_cars = OldQUpdate},
@@ -744,10 +746,18 @@ move_car(OldSgm, NewSgm, CarPos) ->
 				mnesia:write(track, NewSUpdate, write)
 		end,
 	mnesia:activity(sync_dirty, T),
+	if
+		CarPos#car_position.enter_lane == -2 ->
+			event_dispatcher:notify(#car_state_notif{car = Id, state = running});
+		CarPos#car_position.exit_lane == -2 ->
+			event_dispatcher:notify(#car_state_notif{car = Id, state = pitstop});
+		true ->
+			ok
+	end,
 	
 	% send surpass notifications to event_dispatcher
 	SendNotif = fun(Elem) ->
-						Msg = #surpass_notif{surpasser = CarPos#car_position.car_id,
+						Msg = #surpass_notif{surpasser = Id,
 											 surpassed = Elem#car_position.car_id},
 						event_dispatcher:notify(Msg)
 				end,

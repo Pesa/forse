@@ -144,6 +144,7 @@ handle_call(move, _From, State) ->
 	State1 = case State#pilot.lane of
 				 undefined ->
 					 {SgmId, Lane} = track:where_am_i(Id),
+					 event_dispatcher:notify(#car_state_notif{car = Id, state = running}),
 					 State#pilot{segment = SgmId, lane = Lane};
 				 _ ->
 					 State
