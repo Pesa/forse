@@ -330,8 +330,9 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 	
 	case simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) of
 		race_ended ->
+			Id = Pilot#pilot.id,
 			event_dispatcher:notify(#car_state_notif{car = Id, state = ended}),
-			remove_car(SOld, Pilot#pilot.id),
+			remove_car(SOld, Id),
 			race_ended;
 		pits ->
 			CarStatus = Pilot#pilot.car_status,

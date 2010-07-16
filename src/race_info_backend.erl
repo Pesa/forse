@@ -49,7 +49,7 @@
 				pilots			= []			:: [{car(), team(), CarName :: string(),
 													 TeamName :: string() | 'undefined'}],
 				teams			= []			:: [{team(), Name :: string()}],
-				standings		= []			:: [{car(), Pos :: non_neg_integer(), 'running' | 'retired'}],
+				standings		= []			:: [{car(), Pos :: non_neg_integer(), State :: car_state()}],
 				best_lap						:: {car(), lap(), time()},
 				max_speed						:: {car(), intermediate(), lap(), float()},
 				last_interm						:: {intermediate(), lap()},
@@ -248,7 +248,7 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 	% build initial standings
 	{Standings, _} = lists:mapfoldl(fun({CarId, _}, Acc) ->
 											% {CarId, Ranking, State}
-											{{CarId, Acc, running}, Acc + 1}
+											{{CarId, Acc, ready}, Acc + 1}
 									end, 1, lists:reverse(Sorted)),
 	Subs3 = event_dispatcher:notify_init({cars_state, extract_states(Standings)}, Subs2),
 	Subs4 = event_dispatcher:notify_init({standings, extract_standings(Standings)}, Subs3),
@@ -301,28 +301,36 @@ handle_cast(#race_notif{event = Ev}, State) ->
 	{noreply, State#state{subscribers = Subs,
 						  race_state = RaceState}};
 
-handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
-	{_, RetPos, running} = lists:keyfind(Msg#retire_notif.car, 1, State#state.standings),
+handle_cast(#car_state_notif{car = CarId, state = {retired, Reason}}, State) ->
+	{_, RetPos, _} = lists:keyfind(CarId, 1, State#state.standings),
 	Sort = lists:keysort(2, State#state.standings),
-	{LRun, LRet} = lists:splitwith(fun({_, _, running}) -> true;
-									  (_) -> false
+	{LRun, LRet} = lists:splitwith(fun({_, _, {retired, _}}) -> false;
+									  (_) -> true
 								   end, Sort),
-	F = fun({_Id, Pos, running} = T, Acc) when Pos < RetPos ->
+	F = fun({_Id, Pos, _} = T, Acc) when Pos < RetPos ->
 				{T, Acc};
-		   ({Id, Pos, running}, Acc) when Pos == RetPos ->
+		   ({Id, Pos, _}, Acc) when Pos == RetPos ->
 				NewStand = {Id, length(LRun), retired},
 				{NewStand, [NewStand | Acc]};
-		   ({Id, Pos, running}, Acc) when Pos > RetPos ->
-				NewStand = {Id, Pos - 1, running},
+		   ({Id, Pos, S}, Acc) when Pos > RetPos ->
+				NewStand = {Id, Pos - 1, S},
 				{NewStand, [NewStand | Acc]}
 		end,
 	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
-	Subs1 = event_dispatcher:notify_init({cars_state, [{Msg#retire_notif.car, retired}]},
+	Subs1 = event_dispatcher:notify_init({cars_state, [{CarId, {retired, Reason}}]},
 										 State#state.subscribers),
 	Subs2 = event_dispatcher:notify_update({standings, extract_standings(ChangeList)}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
 						  standings = NewRunStand ++ LRet}};
 
+handle_cast(#car_state_notif{car = Id, state = S}, State) ->
+	{_, Pos, _} = lists:keyfind(Id, 1, State#state.standings),
+	NewStand = lists:keyreplace(Id, 1, State#state.standings, {Id, Pos, S}),
+	Subs = event_dispatcher:notify_init({cars_state, [{Id, S}]},
+										State#state.subscribers),
+	{noreply, State#state{subscribers = Subs,
+						  standings = NewStand}};
+	
 handle_cast(Msg, State) when is_record(Msg, surpass_notif) ->
 	{_, SedP, SedS} = lists:keyfind(Msg#surpass_notif.surpassed, 1, State#state.standings),
 	{_, SerP, SerS} = lists:keyfind(Msg#surpass_notif.surpasser, 1, State#state.standings),
