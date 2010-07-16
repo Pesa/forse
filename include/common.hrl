@@ -45,6 +45,8 @@
 %%% =============================
 
 -type car()				:: pos_integer().
+-type car_state()		:: 'ready' | 'running' | 'pitstop'
+						 | 'ended' | {'retired', Reason :: atom()}.
 -type conf()			:: {Key :: atom(), Value :: term()}.
 -type conflist()		:: [conf()].
 -type intermediate()	:: pos_integer().
@@ -138,6 +140,14 @@
 					   stops_count	:: non_neg_integer()}).
 
 %% ------------------------------------------------------------
+%% car_state_notif
+%% car: ID of the car this notification refers to
+%% state: new state of the car
+%% ------------------------------------------------------------
+-record(car_state_notif, {car	:: car(),
+						  state	:: car_state()}).
+
+%% ------------------------------------------------------------
 %% chrono_notif
 %% car: ID of the car this notification refers to
 %% lap: number of the current (or just ended) lap
@@ -184,14 +194,6 @@
 						surpassed	:: car()}).
 
 %% ------------------------------------------------------------
-%% retire_notif
-%% car: ID of the retired car
-%% reason: reason for retirement
-%% ------------------------------------------------------------
--record(retire_notif, {car		:: car(),
-					   reason	:: atom()}).
-
-%% ------------------------------------------------------------
 %% weather_change
 %% segment: ID of the segment in which the weather changed
 %% old_weather: how the weather was like before this change
@@ -207,6 +209,6 @@
 %% ------------------------------------------------------------
 -record(weather_notif, {changes	= []	:: [#weather_change{}]}).
 
--type any_notif()	:: #chrono_notif{} | #config_notif{} | #pitstop_notif{}
-					 | #race_notif{} | #surpass_notif{} | #retire_notif{}
+-type any_notif()	:: #car_state_notif{} | #chrono_notif{} | #config_notif{}
+					 | #pitstop_notif{} | #race_notif{} | #surpass_notif{}
 					 | #weather_notif{}.

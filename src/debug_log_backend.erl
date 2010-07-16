@@ -89,11 +89,11 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, []),
 	{noreply, State#state{subscribers = NewSubs}};
 
-handle_cast(Msg, State) when is_record(Msg, chrono_notif);
+handle_cast(Msg, State) when is_record(Msg, car_state_notif);
+							 is_record(Msg, chrono_notif);
 							 is_record(Msg, pitstop_notif);
 							 is_record(Msg, surpass_notif);
 							 is_record(Msg, race_notif);
-							 is_record(Msg, retire_notif);
 							 is_record(Msg, weather_notif) ->
 	NewSubs = event_dispatcher:notify_update(to_string(Msg), State#state.subscribers),
 	{noreply, State#state{subscribers = NewSubs}}.
@@ -146,8 +146,8 @@ to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
 	lists:concat(["Car ", Surpasser, " surpassed car ", Surpassed, "."]);
 to_string(#race_notif{event = E}) ->
 	lists:concat(["Race ", E, "."]);
-to_string(#retire_notif{car = C, reason = R}) ->
-	lists:concat(["Car ", C, " retired: ", R, "."]);
+to_string(#car_state_notif{car = C, state = S}) ->
+	lists:concat(["Car ", C, " state changed to: ", S, "."]);
 to_string(#weather_notif{changes = Changes}) ->
 	F = fun(#weather_change{segment = S, new_weather = New}, Acc) ->
 				lists:concat([Acc, "\t", New, " in segment ", S, "\n"])
