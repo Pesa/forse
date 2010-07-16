@@ -43,7 +43,7 @@
 -record(pilot_info, {msg_opt			:: atom(),
 					 id					:: car(),
 					 name				:: string(),
-					 status				:: 'running' | 'retired',
+					 state				:: car_state(),
 					 car_status			:: #consumption{},
 					 pit_count			:: non_neg_integer(),
 					 records	= []	:: [time_speed_record()],
@@ -114,6 +114,15 @@ handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
+handle_cast(#car_state_notif{car = CarId, state = CarState}, State) ->
+	PInfo = lists:keyfind(CarId, #pilot_info.id, State#state.pilots),
+	Pilots = lists:keyreplace(CarId, #pilot_info.id, State#state.pilots,
+							  PInfo#pilot_info{state = CarState}),
+	Msg = {car_state, CarState},
+	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, Msg, State#state.subscribers),
+	{noreply, State#state{subscribers = Subs,
+						  pilots = Pilots}};
+
 handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	Car = Msg#chrono_notif.car,
 	PInfo = lists:keyfind(Car, #pilot_info.id, State#state.pilots),
@@ -157,7 +166,7 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	Opt = utils:build_id_atom("", TeamId),
 	PInfo = #pilot_info{id = PilotId,
 						name = Pilot#pilot.name,
-						status = running,
+						state = ready,
 						car_status = CS,
 						pit_count = Pilot#pilot.pitstop_count,
 						msg_opt = Opt},
@@ -182,16 +191,6 @@ handle_cast(#config_notif{app = team, config = CarType}, State) ->
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from other apps
 	{noreply, State};
-
-handle_cast(Msg, State) when is_record(Msg, retire_notif) ->
-	PInfo = lists:keyfind(Msg#retire_notif.car, #pilot_info.id, State#state.pilots),
-	Pilots = lists:keyreplace(Msg#retire_notif.car, #pilot_info.id,
-							  State#state.pilots, PInfo#pilot_info{status = retired}),
-	% {retire, CarId}
-	RetMsg = {retire, Msg#retire_notif.car},
-	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, RetMsg, State#state.subscribers),
-	{noreply, State#state{subscribers = Subs,
-						  pilots = Pilots}};
 
 handle_cast(Msg, State) when is_record(Msg, pitstop_notif) ->
 	Car = Msg#pitstop_notif.car,
@@ -360,7 +359,7 @@ build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
 	{new_pilot,
 	 PInfo#pilot_info.id,
 	 PInfo#pilot_info.name,
-	 PInfo#pilot_info.status,
+	 PInfo#pilot_info.state,
 	 PInfo#pilot_info.pit_count}.
 
 build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
