@@ -49,7 +49,7 @@
 				pilots			= []			:: [{car(), team(), CarName :: string(),
 													 TeamName :: string() | 'undefined'}],
 				teams			= []			:: [{team(), Name :: string()}],
-				standings		= []			:: [{car(), Pos :: non_neg_integer(), State :: car_state()}],
+				standings		= []			:: [{car(), Pos :: non_neg_integer(), car_state()}],
 				best_lap						:: {car(), lap(), time()},
 				max_speed						:: {car(), intermediate(), lap(), float()},
 				last_interm						:: {intermediate(), lap()},
@@ -303,25 +303,26 @@ handle_cast(#race_notif{event = Ev}, State) ->
 
 handle_cast(#car_state_notif{car = CarId, state = {retired, Reason}}, State) ->
 	{_, RetPos, _} = lists:keyfind(CarId, 1, State#state.standings),
-	Sort = lists:keysort(2, State#state.standings),
-	{LRun, LRet} = lists:splitwith(fun({_, _, {retired, _}}) -> false;
-									  (_) -> true
-								   end, Sort),
-	F = fun({_Id, Pos, _} = T, Acc) when Pos < RetPos ->
-				{T, Acc};
-		   ({Id, Pos, _}, Acc) when Pos == RetPos ->
-				NewStand = {Id, length(LRun), retired},
+	Sorted = lists:keysort(2, State#state.standings),
+	Split = fun({_, _, {retired, _}}) -> false;
+			   (_) -> true
+			end,
+	{Others, RetiredCars} = lists:splitwith(Split, Sorted),
+	F = fun({Id, Pos, _}, Acc) when Pos == RetPos ->
+				NewStand = {Id, length(Others), {retired, Reason}},
 				{NewStand, [NewStand | Acc]};
 		   ({Id, Pos, S}, Acc) when Pos > RetPos ->
 				NewStand = {Id, Pos - 1, S},
-				{NewStand, [NewStand | Acc]}
+				{NewStand, [NewStand | Acc]};
+		   (Standing, Acc) ->
+				{Standing, Acc}
 		end,
-	{NewRunStand, ChangeList} = lists:mapfoldl(F, [], LRun),
+	{NewRunStand, Changes} = lists:mapfoldl(F, [], Others),
 	Subs1 = event_dispatcher:notify_init({cars_state, [{CarId, {retired, Reason}}]},
 										 State#state.subscribers),
-	Subs2 = event_dispatcher:notify_update({standings, extract_standings(ChangeList)}, Subs1),
+	Subs2 = event_dispatcher:notify_update({standings, extract_standings(Changes)}, Subs1),
 	{noreply, State#state{subscribers = Subs2,
-						  standings = NewRunStand ++ LRet}};
+						  standings = NewRunStand ++ RetiredCars}};
 
 handle_cast(#car_state_notif{car = Id, state = S}, State) ->
 	{_, Pos, _} = lists:keyfind(Id, 1, State#state.standings),
