@@ -1,10 +1,10 @@
-window_sizes 1366 718 200 1160 631 0
+window_sizes 1366 718 200 1160 636 0
 diagrams
-  active  sequencediagram_ref 147843 // event_dispatcher
-    1160 631 100 4 60 0
+  active  sequencediagram_ref 128131 // track:move
+    1160 636 100 4 360 0
 end
 show_stereotypes
-selected sequencediagram_ref 128003 // car:move
+selected sequencediagram_ref 128131 // track:move
 open
   classview_ref 128003 // class
 end
