@@ -42,10 +42,10 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
         self.psCountLabel.setText(str(pitCount))
         self.speedView.setModel(SpeedModel(self.__id))
         self.timeView.setModel(TimeModel(self.__id))
-        handlers = {('init', 'consumption'): self._setConsumption,
+        handlers = {('init', 'car_state'): self._setCarState,
+                    ('init', 'consumption'): self._setConsumption,
                     ('init', 'max_fuel'): self._setMaxFuel,
-                    ('init', 'pitstop'): self._newPitstop,
-                    ('init', 'retire'): self._setRetired}
+                    ('init', 'pitstop'): self._newPitstop}
         OTPApplication.registerMsgHandlers(handlers)
 
     @pyqtSlot(name="on_pitstopButton_clicked")
@@ -81,6 +81,18 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
         if reply != "ok":
             QMessageBox.warning(self, "Error", "Car retirement failed:\n\n   %s" % reply)
 
+    def _setCarState(self, carId, state):
+        if carId == self.__id:
+            if isinstance(state, tuple):
+                state, reason = state
+                s = "%s (%s)" % (state.text, reason.text)
+            else:
+                s = state.text
+            self.statusLabel.setText(s)
+            if state.text == "ended" or state.text == "retired":
+                self.pitstopButton.setEnabled(False)
+                self.retireButton.setEnabled(False)
+
     def _setConsumption(self, carId, _interm, _lap, fuel, tyresCons, tyresType):
         if carId == self.__id:
             self.__fuel = fuel
@@ -92,9 +104,3 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
         self.fuelBar.setMaximum(maxFuel)
         if self.__fuel is not None:
             self.fuelBar.setValue(round(self.__fuel))
-
-    def _setRetired(self, carId):
-        if carId == self.__id:
-            self.statusLabel.setText("retired")
-            self.pitstopButton.setEnabled(False)
-            self.retireButton.setEnabled(False)

@@ -118,7 +118,7 @@ handle_cast(#car_state_notif{car = CarId, state = CarState}, State) ->
 	PInfo = lists:keyfind(CarId, #pilot_info.id, State#state.pilots),
 	Pilots = lists:keyreplace(CarId, #pilot_info.id, State#state.pilots,
 							  PInfo#pilot_info{state = CarState}),
-	Msg = {car_state, CarState},
+	Msg = {car_state, CarId, CarState},
 	Subs = event_dispatcher:notify_init(PInfo#pilot_info.msg_opt, Msg, State#state.subscribers),
 	{noreply, State#state{subscribers = Subs,
 						  pilots = Pilots}};

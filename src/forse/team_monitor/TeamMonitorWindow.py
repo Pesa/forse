@@ -51,8 +51,8 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
         else:
             SubscriberApplication.quit()
 
-    def _newPilot(self, carId, name, status, pitCount):
-        w = CarStatusWidget(carId, status, pitCount)
+    def _newPilot(self, carId, name, state, pitCount):
+        w = CarStatusWidget(carId, state, pitCount)
         self.tabWidget.addTab(w, listToString(name))
 
     def _subscriptionError(self):
