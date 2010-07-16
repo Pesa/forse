@@ -321,22 +321,22 @@ place_car(CarId, MinLane, MaxLane, Sgm, LanePos) ->
 -spec move(#pilot{}, lane(), boolean()) ->
 		{NextTime :: float(), #pilot{}} | 'fail' | 'race_ended'.
 move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
+	Id = Pilot#pilot.id,
 	Sgm = next_segment(Pilot#pilot.segment),
 	SOld = utils:mnesia_read(track, Pilot#pilot.segment),
 	% FTNOTE: check if keyfind returns false
-	CarPos = lists:keyfind(Pilot#pilot.id, #pilot.id, SOld#segment.queued_cars),
+	CarPos = lists:keyfind(Id, #pilot.id, SOld#segment.queued_cars),
 	EnterLane = Pilot#pilot.lane,
 	S = utils:mnesia_read(track, Sgm),
 	
 	case simulate(Pilot, S, EnterLane, ExitLane, Pit, CarPos) of
 		race_ended ->
-			Id = Pilot#pilot.id,
 			event_dispatcher:notify(#car_state_notif{car = Id, state = ended}),
 			remove_car(SOld, Id),
 			race_ended;
 		pits ->
 			CarStatus = Pilot#pilot.car_status,
-			Ops = team:pitstop_operations(Pilot#pilot.team, Pilot#pilot.id, CarStatus,
+			Ops = team:pitstop_operations(Pilot#pilot.team, Id, CarStatus,
 										  Pilot#pilot.lap, Pilot#pilot.pitstop_count),
 			PitstopTime = pitstop_time(Ops),
 			% check if there's another car at the pits
@@ -368,13 +368,12 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 								   run_preelab = true},
 			
 			% finally notify the event_dispatcher
-			event_dispatcher:notify(#pitstop_notif{car = Pilot#pilot.id, ops = Ops}),
+			event_dispatcher:notify(#pitstop_notif{car = Id, ops = Ops}),
 			{NewCarPos#car_position.exit_t, NewPilot};
 		{fail, Reason} ->
-			event_dispatcher:notify(#car_state_notif{car = Pilot#pilot.id, 
-													 state = {retired, Reason}}),
-			remove_car(SOld, Pilot#pilot.id),
-			?DBG({"car", Pilot#pilot.id, "crashed in segment", Sgm}),
+			event_dispatcher:notify(#car_state_notif{car = Id, state = {retired, Reason}}),
+			remove_car(SOld, Id),
+			?DBG({"car", Id, "crashed in segment", Sgm}),
 			fail;
 		{ok, Time, Speed} ->
 			NewCarPos = CarPos#car_position{speed = Speed,
@@ -389,7 +388,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 			NewCarStatus = update_car_status(Pilot#pilot.car_status, S),
 			NewPilot = case S#segment.type of
 						   intermediate ->
-							   Msg = #chrono_notif{car = Pilot#pilot.id,
+							   Msg = #chrono_notif{car = Id,
 												   lap = Pilot#pilot.lap,
 												   intermediate = intermediate_index(S#segment.id),
 												   time = NewCarPos#car_position.exit_t,
@@ -401,7 +400,7 @@ move(Pilot, ExitLane, Pit) when is_record(Pilot, pilot) ->
 										   car_status = NewCarStatus,
 										   max_speed = 0.0};
 						   finish_line ->
-							   Msg = #chrono_notif{car = Pilot#pilot.id,
+							   Msg = #chrono_notif{car = Id,
 												   lap = Pilot#pilot.lap,
 												   intermediate = intermediate_index(S#segment.id),
 												   time = NewCarPos#car_position.exit_t,
@@ -747,6 +746,7 @@ move_car(OldSgm, NewSgm, CarPos) ->
 				mnesia:write(track, NewSUpdate, write)
 		end,
 	mnesia:activity(sync_dirty, T),
+	
 	if
 		CarPos#car_position.enter_lane == -2 ->
 			event_dispatcher:notify(#car_state_notif{car = Id, state = running});
