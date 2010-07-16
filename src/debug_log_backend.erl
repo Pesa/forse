@@ -146,7 +146,13 @@ to_string(#surpass_notif{surpasser = Surpasser, surpassed = Surpassed}) ->
 	lists:concat(["Car ", Surpasser, " surpassed car ", Surpassed, "."]);
 to_string(#race_notif{event = E}) ->
 	lists:concat(["Race ", E, "."]);
-to_string(#car_state_notif{car = C, state = S}) ->
+to_string(#car_state_notif{car = C, state = State}) ->
+	S = case State of
+			{retired, Reason} ->
+				lists:concat(["retired (", Reason, ")"]);
+			Else ->
+				Else
+		end,
 	lists:concat(["Car ", C, " state changed to: ", S, "."]);
 to_string(#weather_notif{changes = Changes}) ->
 	F = fun(#weather_change{segment = S, new_weather = New}, Acc) ->
