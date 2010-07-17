@@ -49,7 +49,7 @@ class RaceView(TrackView):
 
     def reloadPilotInfo(self):
         for car in self._cars.itervalues():
-            car.refreshToolTip()
+            car.refreshState()
 
     def _color(self):
         color = 5

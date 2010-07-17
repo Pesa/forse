@@ -33,6 +33,7 @@ class PilotInfo(object):
         self._name = None
         self._teamName = None
         self._state = None
+        self._reason = None
         self._icon = None
         self._timer = QTimer()
         self._timer.setInterval(5000)
@@ -62,6 +63,9 @@ class PilotInfo(object):
     def state(self):
         return "unknown" if self._state is None else self._state
 
+    def retireReason(self):
+        return "N/A" if self._reason is None else self._reason
+
     def icon(self):
         return self._icon
 
@@ -75,7 +79,8 @@ class PilotInfo(object):
             if pilot not in cls.__info:
                 cls.__info[pilot] = PilotInfo()
             if isinstance(state, tuple):
-                state, _reason = state
+                state, reason = state
+                cls.__info[pilot]._reason = reason.text
             cls.__info[pilot]._state = state.text
         cls._refresh()
 

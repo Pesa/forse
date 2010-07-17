@@ -39,18 +39,17 @@ class Car(QGraphicsItem):
         self._id = carId
         self._position = startPos
         self._pit = pitLane
-        self._retired = False # TODO
         self._font = QFont()
         self._font.setPointSize(16)
         self._pen = QPen(Qt.black, self.carSize, Qt.SolidLine, Qt.RoundCap)
         self._rect = QRectF(-self.carSize / 2, -self.carSize / 2,
                             self.carSize, self.carSize)
-        self._translateToNewPos()
-        self.refreshToolTip()
+        self.refreshState()
         e = QGraphicsColorizeEffect()
         e.setColor(Qt.darkMagenta)
         e.setEnabled(False)
         self.setGraphicsEffect(e)
+        self._translateToNewPos()
 
     def advance(self, phase):
         if phase == 1:
@@ -76,12 +75,15 @@ class Car(QGraphicsItem):
         painter.setFont(self._font)
         painter.drawText(self._rect, Qt.AlignCenter | Qt.TextDontClip, str(self._id))
 
-    def refreshToolTip(self):
-        tooltip = "Car %i" % self._id
-        if PilotInfo.get(self._id).state() == "retired":
-            tooltip += " (retired)"
-        tooltip += "\n%s - %s" % (PilotInfo.get(self._id).name(),
-                                  PilotInfo.get(self._id).teamName())
+    def refreshState(self):
+        p = PilotInfo.get(self._id)
+        self._retired = p.state() == "retired"
+        tooltip = "Car %i\n" % self._id
+        tooltip += "%s - %s\n" % (p.name(), p.teamName())
+        tooltip += "State: %s" % p.state()
+        if self._retired:
+            tooltip += "\nReason for retirement: %s" % p.retireReason()
+            self._translateToNewPos()
         self.setToolTip(tooltip)
 
     def updatePos(self, pos, pit):
