@@ -74,6 +74,8 @@ class PilotInfo(object):
         for pilot, state in states:
             if pilot not in cls.__info:
                 cls.__info[pilot] = PilotInfo()
+            if isinstance(state, tuple):
+                state, _reason = state
             cls.__info[pilot]._state = state.text
         cls._refresh()
 
