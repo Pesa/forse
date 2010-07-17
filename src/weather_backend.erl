@@ -37,7 +37,6 @@
 
 -include("common.hrl").
 
--type race_state() :: 'initialized' | 'running' | 'paused' | 'finished' | 'terminated'.
 -type sect_id()	:: non_neg_integer().
 
 -record(state, {subscribers	= []			:: [#subscriber{}],

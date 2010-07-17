@@ -38,8 +38,6 @@
 
 -include("db_schema.hrl").
 
--type race_state() :: 'initialized' | 'running' | 'paused' | 'finished' | 'terminated'.
-
 -record(state, {subscribers		= []			:: [#subscriber{}],
 				finish_line_index				:: intermediate(),
 				race_state		= initialized	:: race_state(),

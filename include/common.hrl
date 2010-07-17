@@ -55,6 +55,8 @@
 -type pitstop_lap()		:: pos_integer() | 'now' | 'undefined'.
 -type race_event()		:: 'started' | 'paused' | 'resumed'
 						 | 'finished' | 'terminated'.
+-type race_state()		:: 'initialized' | 'running' | 'paused'
+						 | 'finished' | 'terminated'.
 -type rain_amount()		:: 0..10.
 -type sector()			:: {'straight', Length :: pos_integer(),
 							MinLane :: lane(), MaxLane :: lane(),
