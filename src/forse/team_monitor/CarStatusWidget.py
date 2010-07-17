@@ -30,15 +30,12 @@ from Ui_CarStatusWidget import Ui_CarStatusWidget
 
 class CarStatusWidget(QWidget, Ui_CarStatusWidget):
 
-    def __init__(self, carId, status, pitCount):
+    def __init__(self, carId, state, pitCount):
         QWidget.__init__(self)
         self.setupUi(self)
         self.__fuel = None
         self.__id = carId
-        self.statusLabel.setText(status.text)
-        if status.text == "retired":
-            self.pitstopButton.setEnabled(False)
-            self.retireButton.setEnabled(False)
+        self._setCarState(carId, state)
         self.psCountLabel.setText(str(pitCount))
         self.speedView.setModel(SpeedModel(self.__id))
         self.timeView.setModel(TimeModel(self.__id))
