@@ -45,6 +45,7 @@ class Car(QGraphicsItem):
         self._id = carId
         self._position = startPos
         self._pit = pitLane
+        self._state = None
         self._font = QFont()
         self._font.setPointSize(16)
         self._rect = QRectF(-self.carSize / 2, -self.carSize / 2,
@@ -82,20 +83,22 @@ class Car(QGraphicsItem):
 
     def refreshState(self):
         p = PilotInfo.get(self._id)
-        self._pen = QPen(self.colorMap[p.state()], self.carSize, Qt.SolidLine, Qt.RoundCap)
-        self._retired = p.state() == "retired"
+        if p.state() != self._state:
+            self._state = p.state()
+            self._outside = self._state == "ended" or self._state == "retired"
+            self._pen = QPen(self.colorMap[self._state], self.carSize, Qt.SolidLine, Qt.RoundCap)
+            self._translateToNewPos()
+            self.update()
         tooltip = "Car %i\n" % self._id
         tooltip += "%s - %s\n" % (p.name(), p.teamName())
-        tooltip += "State: %s" % p.state()
-        if self._retired:
+        tooltip += "State: %s" % self._state
+        if self._state == "retired":
             tooltip += "\nReason for retirement: %s" % p.retireReason()
-            self._translateToNewPos()
         self.setToolTip(tooltip)
-        self.update()
 
     def updatePos(self, pos, pit):
         self._position = pos
         self._pit = pit
 
     def _translateToNewPos(self):
-        self.setPos(self._track.projection(self._position, self._pit, self._retired))
+        self.setPos(self._track.projection(self._position, self._pit, self._outside))
