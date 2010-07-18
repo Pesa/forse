@@ -28,6 +28,12 @@ from PilotInfo import PilotInfo
 class Car(QGraphicsItem):
 
     carSize = 32
+    colorMap = {"ready"     : Qt.black,
+                "running"   : Qt.black,
+                "pitstop"   : Qt.blue,
+                "ended"     : Qt.green,
+                "retired"   : Qt.red,
+                "unknown"   : Qt.black}
 
     def __init__(self, track, carId, startPos=0, pitLane=False):
         QGraphicsItem.__init__(self)
@@ -41,7 +47,6 @@ class Car(QGraphicsItem):
         self._pit = pitLane
         self._font = QFont()
         self._font.setPointSize(16)
-        self._pen = QPen(Qt.black, self.carSize, Qt.SolidLine, Qt.RoundCap)
         self._rect = QRectF(-self.carSize / 2, -self.carSize / 2,
                             self.carSize, self.carSize)
         self.refreshState()
@@ -77,6 +82,7 @@ class Car(QGraphicsItem):
 
     def refreshState(self):
         p = PilotInfo.get(self._id)
+        self._pen = QPen(self.colorMap[p.state()], self.carSize, Qt.SolidLine, Qt.RoundCap)
         self._retired = p.state() == "retired"
         tooltip = "Car %i\n" % self._id
         tooltip += "%s - %s\n" % (p.name(), p.teamName())
@@ -85,6 +91,7 @@ class Car(QGraphicsItem):
             tooltip += "\nReason for retirement: %s" % p.retireReason()
             self._translateToNewPos()
         self.setToolTip(tooltip)
+        self.update()
 
     def updatePos(self, pos, pit):
         self._position = pos
