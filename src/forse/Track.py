@@ -101,7 +101,7 @@ class PhysicalSector(Sector):
         point = self.path().pointAtPercent(percent)
         if not retired:
             return self.mapToScene(point)
-        d = 1.5 * (_pitWidth if pit else _trackWidth)
+        d = 16 + 0.5 * (_pitWidth if pit else _trackWidth)
         angle = math.radians(self.path().angleAtPercent(percent))
         dx = d * math.sin(angle)
         dy = d * math.cos(angle)
