@@ -36,3 +36,4 @@ class PositionsDock(QDockWidget, Ui_PositionsDock):
 
     def reloadPilotInfo(self):
         self.positionsView.reset()
+        self.positionsView.resizeColumnsToContents()

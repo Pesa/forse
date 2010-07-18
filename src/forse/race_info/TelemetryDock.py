@@ -50,6 +50,7 @@ class TelemetryDock(QDockWidget, Ui_TelemetryDock):
 
     def reloadPilotInfo(self):
         self.telemetryView.reset()
+        self.telemetryView.resizeColumnsToContents()
 
     def _addIntermediate(self, lap, intermediate):
         self.__availableMap[lap].append(intermediate)
