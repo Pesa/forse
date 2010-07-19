@@ -20,8 +20,8 @@
 ###########################################################################
 
 from PyQt4.Qt import Qt
-from PyQt4.QtCore import pyqtSlot
-from PyQt4.QtGui import QIcon, QMainWindow
+from PyQt4.QtCore import QTimer, pyqtSlot
+from PyQt4.QtGui import QIcon, QMainWindow, QMessageBox
 from Subscriber import SubscriberApplication
 from PilotInfo import PilotInfo
 from Remote import Scheduler
@@ -123,6 +123,9 @@ class RaceInfoWindow(QMainWindow, Ui_RaceInfoWindow):
         elif state.text == "finished" or state.text == "terminated":
             self.startpauseButton.setEnabled(False)
             self.speedupSlider.setEnabled(False)
+            def showMsgBox():
+                QMessageBox.information(self, "Race Info", "Race %s!" % state.text)
+            QTimer.singleShot(0, showMsgBox)
         else:
             self.statusBar().showMessage("Unknown race_state: " + state.text, 5000)
 
