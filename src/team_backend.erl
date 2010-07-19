@@ -43,6 +43,9 @@
 -record(pilot_info, {msg_opt			:: atom(),
 					 id					:: car(),
 					 name				:: string(),
+					 skill				:: skill(),
+					 weight				:: float(),
+					 team				:: team(),
 					 state				:: car_state(),
 					 car_status			:: #consumption{},
 					 pit_count			:: non_neg_integer(),
@@ -54,7 +57,7 @@
 				finish_line_index		:: intermediate(),
 				rain_sum				:: non_neg_integer(),
 				pilots			= []	:: [#pilot_info{}],
-				teams			= []	:: [{team(), Name :: string()}]}).
+				teams			= []	:: [#car_type{}]}).
 
 
 %% ====================================================================
@@ -103,14 +106,22 @@ handle_call(_Request, _From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({subscribe, S}, State) when is_record(S, subscriber) ->
-	Pred = fun(E) ->
-				   lists:member(E#pilot_info.msg_opt, S#subscriber.opts)
+	Pred = fun
+			  (#car_type{id = Id}) ->
+				   Opt = utils:build_id_atom("", Id),
+				   lists:member(Opt, S#subscriber.opts);
+			  (#pilot_info{msg_opt = Opt}) ->
+				   lists:member(Opt, S#subscriber.opts)
 		   end,
+	Teams = lists:filter(Pred, State#state.teams),
+	TeamsConfigs = lists:map(fun team_config_msg/1, Teams),
 	Pilots = lists:filter(Pred, State#state.pilots),
-	PilotMsgs = lists:flatmap(fun build_sub_msgs/1, Pilots),
-	List = PilotMsgs ++ [{max_fuel, ?TANK_DIM},
-						 {names, State#state.teams},
-						 {rain_sum, State#state.rain_sum}],
+	PilotsMsgs = lists:flatmap(fun build_sub_msgs/1, Pilots),
+	Names = lists:map(fun team_name/1, State#state.teams),
+	List = TeamsConfigs ++ PilotsMsgs ++
+			   [{max_fuel, ?TANK_DIM},
+				{names, Names},
+				{rain_sum, State#state.rain_sum}],
 	NewSubs = event_dispatcher:add_subscriber(S, State#state.subscribers, List),
 	{noreply, State#state{subscribers = NewSubs}};
 
@@ -155,7 +166,6 @@ handle_cast(#config_notif{app = track, config = Config}, State) ->
 
 handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 	PilotId = Pilot#pilot.id,
-	TeamId = Pilot#pilot.team,
 	CNStatus = Pilot#pilot.car_status,
 	CS = #consumption{car = PilotId,
 					  intermediate = start,
@@ -163,30 +173,35 @@ handle_cast(#config_notif{app = car, config = Pilot}, State) ->
 					  fuel = CNStatus#car_status.fuel,
 					  tyres_consumption = CNStatus#car_status.tyres_consumption,
 					  tyres_type = CNStatus#car_status.tyres_type},
-	Opt = utils:build_id_atom("", TeamId),
+	Opt = utils:build_id_atom("", Pilot#pilot.team),
 	PInfo = #pilot_info{id = PilotId,
 						name = Pilot#pilot.name,
+						skill = Pilot#pilot.skill,
+						weight = Pilot#pilot.weight,
+						team = Pilot#pilot.team,
 						state = ready,
 						car_status = CS,
 						pit_count = Pilot#pilot.pitstop_count,
 						msg_opt = Opt},
 	% dispatch info about new pilot
-	InitMsg = build_new_pilot_msg(PInfo),
-	Subs1 = event_dispatcher:notify_init(Opt, InitMsg, State#state.subscribers),
+	PMsg = new_pilot_msg(PInfo),
+	Subs1 = event_dispatcher:notify_init(Opt, PMsg, State#state.subscribers),
 	Subs2 = event_dispatcher:notify_init(Opt, CS, Subs1),
 	{noreply, State#state{pilots = State#state.pilots ++ [PInfo],
 						  subscribers = Subs2}};
 
 handle_cast(#config_notif{app = team, config = CarType}, State) ->
-	T = {CarType#car_type.id, CarType#car_type.team_name},
-	Subs = case State#state.teams of
-			   [] ->
-				   event_dispatcher:notify_init({names, [T]}, State#state.subscribers);
-			   _ ->
-				   event_dispatcher:notify_update({names, T}, State#state.subscribers)
-		   end,
-	{noreply, State#state{teams = State#state.teams ++ [T],
-						  subscribers = Subs}};
+	Name = team_name(CarType),
+	Subs1 = case State#state.teams of
+				[] ->
+					event_dispatcher:notify_init({names, [Name]}, State#state.subscribers);
+				_ ->
+					event_dispatcher:notify_update({names, Name}, State#state.subscribers)
+			end,
+	Opt = utils:build_id_atom("", CarType#car_type.id),
+	Subs2 = event_dispatcher:notify_init(Opt, team_config_msg(CarType), Subs1),
+	{noreply, State#state{teams = State#state.teams ++ [CarType],
+						  subscribers = Subs2}};
 
 handle_cast(Msg, State) when is_record(Msg, config_notif) ->
 	% ignore config_notif from other apps
@@ -354,14 +369,6 @@ calculate_lap_records(Car, Lap, LastFinish, Time, Records, Subs, Opt) ->
 			{Records, Subs1}
 	end.
 
-build_new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
-	% {new_pilot, Id, Name, Status, PitCount}
-	{new_pilot,
-	 PInfo#pilot_info.id,
-	 PInfo#pilot_info.name,
-	 PInfo#pilot_info.state,
-	 PInfo#pilot_info.pit_count}.
-
 build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
 	Car = PInfo#pilot_info.id,
 	MapFun = fun({lap, _Lap, Time}) ->
@@ -373,5 +380,23 @@ build_sub_msgs(PInfo) when is_record(PInfo, pilot_info) ->
 					 []
 			 end,
 	Records = lists:flatmap(MapFun, PInfo#pilot_info.records),
-	[build_new_pilot_msg(PInfo),
+	[new_pilot_msg(PInfo),
 	 PInfo#pilot_info.car_status | Records].
+
+new_pilot_msg(PInfo) when is_record(PInfo, pilot_info) ->
+	{new_pilot,
+	 PInfo#pilot_info.id,
+	 PInfo#pilot_info.name,
+	 PInfo#pilot_info.skill,
+	 PInfo#pilot_info.weight,
+	 PInfo#pilot_info.state,
+	 PInfo#pilot_info.pit_count}.
+
+team_config_msg(CarType) when is_record(CarType, car_type) ->
+	{team_config,
+	 -CarType#car_type.brake,
+	 CarType#car_type.power,
+	 CarType#car_type.weight}.
+
+team_name(#car_type{id = Id, team_name = Name}) ->
+	{Id, Name}.

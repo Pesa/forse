@@ -30,9 +30,10 @@ from Ui_CarStatusWidget import Ui_CarStatusWidget
 
 class CarStatusWidget(QWidget, Ui_CarStatusWidget):
 
-    def __init__(self, carId, state, pitCount):
+    def __init__(self, carId, state, pitCount, config):
         QWidget.__init__(self)
         self.setupUi(self)
+        self.__config = config
         self.__fuel = None
         self.__id = carId
         self._setCarState(carId, state)
@@ -44,6 +45,17 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
                     ('init', 'max_fuel'): self._setMaxFuel,
                     ('init', 'pitstop'): self._newPitstop}
         OTPApplication.registerMsgHandlers(handlers)
+
+    @pyqtSlot(name="on_configButton_clicked")
+    def configDetails(self):
+        s = "Car's weight\t\t %(car_weight)s kg\n" \
+            "Engine's power\t %(power)s\n" \
+            "Brakes' efficiency\t %(brake)s\n" \
+            "\n" \
+            "Pilot's weight\t %(pilot_weight)s kg\n" \
+            "Pilot's skill\t\t %(skill)i\n" \
+            % self.__config
+        QMessageBox.information(self, "Configuration details", s)
 
     @pyqtSlot(name="on_pitstopButton_clicked")
     def forcePitstop(self):
@@ -85,7 +97,7 @@ class CarStatusWidget(QWidget, Ui_CarStatusWidget):
                 s = "%s (%s)" % (state.text, reason.text)
             else:
                 s = state.text
-            self.statusLabel.setText(s)
+            self.stateLabel.setText(s)
             if state.text == "ended" or state.text == "retired":
                 self.pitstopButton.setEnabled(False)
                 self.retireButton.setEnabled(False)

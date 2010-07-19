@@ -136,7 +136,7 @@ init(Config) ->
 					CT#car_type{team_name = Name};
 			   ({brake, Brake}, CT)
 				 when is_number(Brake), Brake > 0 ->
-					CT#car_type{brake = -1 * Brake};
+					CT#car_type{brake = -Brake};
 			   ({power, Power}, CT)
 				 when is_number(Power), Power > 0 ->
 					CT#car_type{power = Power};

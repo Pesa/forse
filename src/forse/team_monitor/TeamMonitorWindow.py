@@ -33,6 +33,7 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self._config = {}
         SubscriberApplication.instance().subscribed.connect(self.statusBar().clearMessage)
         SubscriberApplication.instance().subscriptionError.connect(self._subscriptionError)
         QTimer.singleShot(0, self._chooseTeam)
@@ -44,16 +45,25 @@ class TeamMonitorWindow(QMainWindow, Ui_TeamMonitorWindow):
             teamId, teamName = dialog.chosenTeam()
             self.setWindowTitle(teamName + ' ' + self.windowTitle())
             SubscriberApplication.removeAllHandlers()
-            handlers = {('init', 'new_pilot'): self._newPilot}
+            handlers = {('init', 'new_pilot'): self._newPilot,
+                        ('init', 'team_config'): self._setTeamConfig}
             SubscriberApplication.registerMsgHandlers(handlers)
             SubscriberApplication.instance().setSubscriptionOptions([teamId])
             SubscriberApplication.instance().subscribe()
         else:
             SubscriberApplication.quit()
 
-    def _newPilot(self, carId, name, state, pitCount):
-        w = CarStatusWidget(carId, state, pitCount)
+    def _newPilot(self, carId, name, skill, weight, state, pitCount):
+        config = self._config.copy()
+        config['skill'] = skill
+        config['pilot_weight'] = weight
+        w = CarStatusWidget(carId, state, pitCount, config)
         self.tabWidget.addTab(w, listToString(name))
+
+    def _setTeamConfig(self, brake, power, weight):
+        self._config['brake'] = brake
+        self._config['power'] = power
+        self._config['car_weight'] = weight
 
     def _subscriptionError(self):
         self.statusBar().showMessage("Subscription failed, retrying ...", 1500)
