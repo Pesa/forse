@@ -141,6 +141,8 @@ init(Config) ->
 %% --------------------------------------------------------------------
 handle_call(move, _From, State) ->
 	Id = State#pilot.id,
+	CurrentLap = State#pilot.lap,
+	TotalLaps = utils:get_setting(total_laps),
 	State1 = case State#pilot.lane of
 				 undefined ->
 					 {SgmId, Lane} = track:where_am_i(Id),
@@ -150,7 +152,7 @@ handle_call(move, _From, State) ->
 					 State
 			 end,
 	State2 = if
-				 State1#pilot.run_preelab ->
+				 State1#pilot.run_preelab andalso CurrentLap < TotalLaps + 1 ->
 					 track:preelaborate(State1),
 					 State1#pilot{run_preelab = false};
 				 true ->
@@ -158,8 +160,6 @@ handle_call(move, _From, State) ->
 			 end,
 	
 	% check if we have to go to the pits
-	CurrentLap = State2#pilot.lap,
-	TotalLaps = utils:get_setting(total_laps),
 	NextPit = State2#pilot.next_pitstop,
 	PitStop = if
 				  NextPit == now ->
