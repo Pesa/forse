@@ -1,4 +1,4 @@
-AC_INIT(FORSE, [1.0])
+AC_INIT(FORSE, [1.1])
 
 AC_PREREQ([2.60])
 
