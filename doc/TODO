@@ -2,6 +2,4 @@
 	la chiamata ha sicuramente avuto successo ed e' stata registrata in mnesia.
 - migliorare gestione errori in bootstrap_server:bootstrap/2
 - tuning delle macro costanti in config.hrl
-- migliorare la Reason restituita quando access:check_move fallisce
-- un nodo con zero istanze di ogni componente non viene terminato dal bootstrap_server
-	se si chiude tutto prima del bootstrap
+- migliorare la Reason restituita quando access:check_move fallisce?
