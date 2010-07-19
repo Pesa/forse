@@ -58,8 +58,11 @@ class TelemetryModel(QAbstractTableModel):
                 elif index.column() == 1:
                     return QVariant(PilotInfo.get(t[0]).teamName())
                 elif index.column() == 2:
-                    prefix = "" if index.row() == 0 else "+ "
-                    return QVariant(prefix + secondsToString(t[1]))
+                    if index.row() == 0:
+                        return QVariant("%s (%s)" % (secondsToString(t[1]),
+                                                     secondsToString(t[2])))
+                    else:
+                        return QVariant("+ " + secondsToString(t[1]))
             except KeyError:
                 pass
         elif role == Qt.TextAlignmentRole:
