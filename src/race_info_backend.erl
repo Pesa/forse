@@ -105,6 +105,7 @@ preprocess_sectors(Sectors) when is_list(Sectors) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	process_flag(trap_exit, true),
 	mnesia:subscribe({table, track, detailed}),
 	{ok, #state{}}.
 
@@ -387,8 +388,12 @@ handle_info(_Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
-terminate(_Reason, _State) ->
-	ok.
+terminate(_Reason, State) ->
+	case State#state.race_state of
+		finished -> ok;
+		_ -> event_dispatcher:notify_init({race_state, terminated},
+										  State#state.subscribers)
+	end.
 
 %% --------------------------------------------------------------------
 %% Function: code_change/3

@@ -69,6 +69,7 @@ start_link() ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+	process_flag(trap_exit, true),
 	{ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -165,8 +166,12 @@ handle_info(_Info, State) ->
 %% Description: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %% --------------------------------------------------------------------
-terminate(_Reason, _State) ->
-	ok.
+terminate(_Reason, State) ->
+	case State#state.race_state of
+		finished -> ok;
+		_ -> event_dispatcher:notify_init({race_state, terminated},
+										  State#state.subscribers)
+	end.
 
 %% --------------------------------------------------------------------
 %% Function: code_change/3
