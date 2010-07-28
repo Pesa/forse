@@ -285,7 +285,7 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 							Subs1 = event_dispatcher:notify_init(Opt, Msg, Subs),
 							calculate_int_records(Car, Int, IntTime, Speed,
 												  PInfo#pilot_info.records, Subs1, Opt)
-					end,	
+					end,
 	LastFinish = PInfo#pilot_info.last_finish,
 	{Rec2, Subs3, LF} = if
 							Int /= FLI ->
@@ -297,12 +297,12 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 								{R, S, Time}
 						end,
 	% first lap correction
-	FLCTime = if
-				  Lap == 0 -> 0;
-				  true -> Time
-			  end,
+	Time2 = case Lap of
+				0 -> 0;
+				_ -> Time
+			end,
 	NewPInfo = PInfo#pilot_info{records = Rec2,
-								last_interm = FLCTime,
+								last_interm = Time2,
 								last_finish = LF},
 	{NewPInfo, Subs3}.
 
