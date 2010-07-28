@@ -230,7 +230,7 @@ handle_cast(Msg, State) when is_record(Msg, chrono_notif) ->
 	{BestLap, NewLF, Subs5} =
 		if
 			Lap == 0 andalso FinishLine ->
-				{OldBestLap, [{Car, Lap, Time} | LF], Subs3};
+				{OldBestLap, [{Car, Lap, 0} | LF], Subs3};
 			FinishLine ->
 				{_, _, LineTime1} = lists:keyfind(Car, 1, LF),
 				LF2 = lists:keyreplace(Car, 1, LF, {Car, Lap, Time}),
