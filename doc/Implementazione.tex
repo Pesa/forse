@@ -158,7 +158,7 @@ In particolare l'accelerazione/decelerazione che un auto può erogare in un dete
 
 Passiamo ora a descrivere le operazioni che il processo \car{} effettua nel momento in cui lo \sched{} gli consente di eseguire una mossa.
 
-Dal punto di vista del processo \car{} la sequenza di invocazioni necessaria per effettuare uno spostamento sulla pista è indipendente sia dalla posizione dell'auto che dalla conformazione della pista stessa.
+Dal punto di vista del processo \car{}, la sequenza di invocazioni necessarie ad effettuare uno spostamento sulla pista è indipendente sia dalla posizione dell'auto che dalla conformazione della pista stessa.
 
 Restando ad alto livello, il protocollo di interazione tra \car{} e \track{} è il seguente: per percorrere il segmento successivo, la componente \car{} prima utilizza il metodo \texttt{track:simulate} per ottenere i dati necessari a scegliere quale sia la corsia più conveniente e successivamente invoca il metodo \texttt{track:move} per effettuare lo spostamento.
 Grazie a questo schema le componenti \car{} non devono essere a conoscenza della conformazione della pista per poterla percorrere in quanto i segmenti vengono trattati tutti in modo omogeneo.
@@ -383,13 +383,14 @@ Questa situazione è chiaramente indesiderabile: abbiamo deciso quindi di utiliz
 Il fatto che \textit{front-end} a \textit{back-end} debbano essere su uno stesso nodo non ci è sembrato troppo restrittivo rispetto alla semplificazione in termini di progettazione che l'accettazione di tale vincolo comporta.
 
 \section{Gestione dei \textit{fault}}
-Per i meccanismi di \textit{detection} ci siamo affidati ampiamente alle funzionalità fornite da \Erlang{}, sia per rilevare eventuali comunicazioni verso nodi non raggiungibili, sia per controllare la validità della sintassi dei \textit{file} di configurazione.
-In caso di \textit{file} di configurazione malformati il sistema provvede a notificare all'utente l'anomalia e inibisce la fase di \textit{bootstrap}.
+Per quanto riguarda i meccanismi di \textit{detection}, ci siamo ampiamente affidati alle funzionalità fornite da \Erlang{}, sia per rilevare eventuali anomalie nella comunicazione con altri nodi, sia per controllare la validità della sintassi dei file di configurazione. In caso di file di configurazione malformati il sistema provvede a notificare all'utente il problema e inibisce la fase di \textit{bootstrap}.
 
-Nello sviluppo del prototipo abbiamo deciso, per semplicità, di non intraprendere operazioni di \textit{recovery}, se non banali, in caso di errore.
-Conformemente a questa decisione abbiamo dato poca rilevanza ai problemi classici generati dall'uso di comunicazione sincrona e l'abbiamo preferita a quella asincrona qualora risultasse vantaggiosa rispetto a quest'ultima.
+Per motivi di semplicità si è invece deciso di non intraprendere operazioni di \textit{recovery} da stati erronei, se non nelle situazioni più banali.
+Conformemente a questa decisione abbiamo dato poca rilevanza ai problemi classici generati dall'uso di comunicazione sincrona e, anzi, l'abbiamo preferita a quella asincrona qualora risultasse vantaggiosa rispetto a quest'ultima.
 
-Gli unici casi in cui viene gestita un'eventuale disconnessione di un qualsiasi nodo partecipante alla simulazione è la fase precedente al \textit{bootstrap} poiché qualora un nodo non dovesse essere più raggiungibile le risorse associate ad esso verrebbero considerate non più disponibili.
-Nel corso della simulazione l'unico scenario in cui sono state progettate misure di recupero è la disconnessione di GUI rilevata e gestita dai \textit{back-end}.
-
-In tutti gli altri casi ogni tipo di malfunzionamento non è facilmente recuperabile ed è quindi fatale per sistema.
+Gli unici scenari in cui viene gestita la disconnessione di un nodo sono:
+\begin{itemize}
+\item durante la fase che precede il \textit{bootstrap}, qualora un nodo dovesse risultare irraggiungibile, le risorse ad esso associate verrebbero considerate non più disponibili;
+\item nel corso della simulazione, l'eventuale disconnessione di una GUI viene rilevata e gestita dai \textit{back-end} di \evdisp{}.
+\end{itemize}
+In tutti gli altri casi ogni tipo di malfunzionamento non è facilmente recuperabile e ha quindi un esito fatale per l'intero sistema.
