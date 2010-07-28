@@ -291,13 +291,18 @@ calculate_time(Chrono, PInfo, Subs, FLI) ->
 							Int /= FLI ->
 								{Rec1, Subs2, LastFinish};
 							LastFinish == undefined ->
-								{Rec1, Subs2, Time};
+								{Rec1, Subs2, 0};
 							true ->
 								{R, S} = calculate_lap_records(Car, Lap, LastFinish, Time, Rec1, Subs2, Opt),
 								{R, S, Time}
 						end,
+	% first lap correction
+	FLCTime = if
+				  Lap == 0 -> 0;
+				  true -> Time
+			  end,
 	NewPInfo = PInfo#pilot_info{records = Rec2,
-								last_interm = Time,
+								last_interm = FLCTime,
 								last_finish = LF},
 	{NewPInfo, Subs3}.
 
