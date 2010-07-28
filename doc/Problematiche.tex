@@ -4,22 +4,24 @@
 In questo capitolo verranno individuati i principali problemi incontrati nella progettazione del sistema, sia a livello di coordinazione delle componenti distribuite, sia a livello di meccaniche di simulazione.
 
 \section{Realismo della simulazione}
-Poiché il prototipo deve simulare una situazione reale, si è reso necessario trovare un \textit{trade-off} adeguato tra semplicità di implementazione e accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere un segmento, sia dal punto di vista della rappresentazione della pista e delle sue regole di percorrenza. Le principali linee guida adottate sono:
+Poiché il prototipo deve simulare una situazione reale, si è reso necessario trovare un \textit{trade-off} adeguato tra semplicità di implementazione e accuratezza della simulazione. Questo vale sia dal punto di vista delle leggi fisiche a cui sono soggette le auto nel percorrere la pista, sia dal punto di vista della rappresentazione del tracciato e delle sue regole di percorrenza. Le principali linee guida adottate sono:
 \begin{itemize}
 \item i concorrenti devono evitare in tutti i modi di impattare tra loro, anche a costo di uscire di pista;
 \item tutte le auto che si trovano a percorrere la \textit{pit lane} devono rispettare i limiti di velocità imposti dal regolamento per essa;
 \item due concorrenti appartenenti alla stessa scuderia non possono effettuare il rifornimento nello stesso momento;
-\item un'auto che rientra in pista dopo un \textit{pit stop} deve dare la precedenza alle altre vetture già in pista.
+\item un'auto che rientra in pista dopo un \textit{pit stop} è obbligata a percorrere l'intera lunghezza della corsia di uscita dalla \textit{pit lane} prima di potersi spostare in altre corsie.
 \end{itemize}
 
 \subsection*{Modellazione del tracciato}
 Nella realtà il tracciato su cui si svolge la competizione è chiaramente un'entità continua nel dominio dello spazio. Tuttavia, per poter essere gestito dagli algoritmi di simulazione, esso dovrà essere approssimato da un modello discreto.
 
-A tale scopo risulta naturale una suddivisione in segmenti di uguale lunghezza. Si tratta quindi di dimensionare adeguatamente la lunghezza del singolo segmento, tenendo presente che ad una lunghezza minore corrisponde un grado di realismo maggiore. Inoltre ciascun segmento è composto da una o più corsie, le quali rappresentano il numero massimo di vetture che possono transitare su quel segmento contemporaneamente, ovvero la larghezza del circuito in quel punto.
+A tale scopo risulta naturale una suddivisione in segmenti di uguale lunghezza. Si tratta quindi di dimensionare adeguatamente la lunghezza del singolo segmento, tenendo presente che ad una lunghezza minore corrisponde un grado di realismo maggiore. Ciascun segmento è composto da una o più corsie, le quali rappresentano il numero massimo di vetture che possono transitare su quel segmento contemporaneamente, ovvero la larghezza del circuito in quel punto. In altre parole, una corsia di uno specifico segmento può essere considerata come una risorsa condivisa a molteplicità uno.
+
+Inoltre la pista è un percorso circolare chiuso, che i concorrenti attraversano interamente ad ogni giro della gara. Di conseguenza è necessario prevedere, oltre ai normali sorpassi, anche la possibilità di doppiaggi.
 
 \section{Concorrenza e distribuzione}
 \subsection*{Avvio del sistema}
-La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero verificare delle inconsistenze nella simulazione.
+La simulazione non può iniziare finché tutte le componenti necessarie non siano state avviate correttamente e siano pronte all'esecuzione. Per esempio la gara non deve iniziare prima che tutte le auto e le scuderie che vi partecipano siano pronte e correttamente inizializzate, altrimenti si potrebbero verificare inconsistenze nella simulazione.
 
 \`E necessario predisporre un meccanismo di sincronizzazione che implementi il concetto di barriera parallela, in modo che ogni processo, una volta raggiunto il punto di \textsl{rendez-vous}, non possa procedere oltre nella propria esecuzione finché tutti i partecipanti alla sincronizzazione non siano giunti al ``medesimo'' punto. Una volta che la sincronizzazione ha avuto successo tutti i processi coinvolti possono procedere nella loro esecuzione.
 

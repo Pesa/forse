@@ -126,7 +126,6 @@ La compilazione può dunque essere eseguita tramite l'usuale comando \texttt{mak
 
 \subsection*{Passo 1 -- Il file \texttt{.hosts.erlang}}
 Per prima cosa bisogna inserire i nomi degli \textit{hosts} che faranno parte del sistema nel file \texttt{.hosts.erlang} posto nella medesima directory degli \textit{script} di avvio del prototipo. Questo file deve contenere un \textit{hostname} per riga, racchiuso tra apici singoli; ogni riga deve terminare con un punto e dev'essere lasciata una riga vuota alla fine del file\footnote{\url{http://www.erlang.org/doc/man/net_adm.html\#world-0}}.
-
 Ovviamente ciascun \textit{host} deve essere in grado di risolvere il nome di ogni altro \textit{host} del sistema ad un indirizzo IP, ad esempio tramite DNS o configurando opportunamente il file \texttt{/etc/hosts}.
 
 \subsection*{Passo 2 -- Control Panel}
@@ -135,8 +134,7 @@ Poiché bisognerà specificare i percorsi dei file di configurazione per la simu
 
 \subsection*{Passo 3 -- Node Configurator}
 A questo punto dev'essere avviata un'istanza di \textsl{Node Configurator} su ciascun elaboratore che si vuole che partecipi alla simulazione (minimo 1). Per fare ciò è sufficiente eseguire \texttt{start\_node\_configurator}, indicando quante delle diverse componenti del sistema si ha la possibilità di ospitare su quel determinato nodo.
-
-Una volta che la somma delle disponibilità indicate dai diversi nodi distribuiti sarà maggiore o uguale al numero di componenti necessarie\footnote{Per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}.}, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
+Una volta che la somma delle disponibilità indicate dai diversi nodi distribuiti sarà maggiore o uguale al numero di componenti necessarie\footnote{Si ricorda che, per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}.}, sarà possibile completare la fase di inizializzazione del prototipo premendo il tasto \textsl{Bootstrap}, precedentemente disabilitato, in \textsl{Control Panel}.
 
 \subsection*{Passo 4 -- Interfacce grafiche}
 Per avviare le interfacce grafiche è necessario inizializzare la variabile d'ambiente \texttt{FORSE\_NS} con l'\textit{hostname} dell'elaboratore presso il quale è stata avviata la componente \textsl{Control Panel}, qualora esso non coincida con l'\textit{host} locale.
@@ -185,7 +183,8 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 \item Capitolo~\ref{ch:implementazione}
 	\begin{itemize}
 	\item Aggiunto riferimento alla documentazione \Erlang{} per la descrizione delle caratteristiche di concorrenza e distribuzione.
-	\item Aggiunto paragrafo sulle dipendenze di avvio e adattato il diagramma in figura~\ref{fig:bootstrap} allo standard UML2.
+	\item Aggiunto un paragrafo sulle dipendenze di avvio nella sezione ``Avvio del sistema''.
+	\item Adattato il diagramma in figura~\ref{fig:bootstrap} allo standard UML2.
 	\item Descritta in maggiore dettaglio l'interazione tra \car{} e \track{} nella sottosezione ``Percorrenza di un segmento''. Nella stessa sottosezione è stato reso più chiaro il rapporto tra i metodi \fun{simulate} e \fun{move}.
 	\item Aggiornato il diagramma~\ref{fig:move} in accordo con le modifiche apportate al prototipo.
 	\item Aggiunta descrizione e soluzione della potenziale situazione di \textit{deadlock} nella sottosezione ``Rifornimento''.
@@ -222,3 +221,8 @@ L'avvio di \texttt{debug\_log} è opzionale e può essere effettuato tramite lo 
 	\end{itemize}
 \item Resa più affidabile la notifica di terminazione della simulazione in caso di chiusura del pannello di controllo da parte dell'utente.
 \end{itemize}
+
+\section{Dalla versione 1.1 alla 1.2}
+
+\subsection*{Modifiche alla relazione}
+\subsection*{Modifiche al prototipo}

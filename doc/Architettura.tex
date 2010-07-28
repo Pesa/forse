@@ -44,7 +44,7 @@ Da un punto di vista puramente pratico non vi è nessuna interfaccia richiesta d
 La componente \sched{} ha lo scopo di definire e gestire l'ordine di esecuzione dei processi quando essi devono accedere alla componente \track{}.
 Le entità arbitrate sono i processi \car{}, che simulano gli spostamenti delle auto durante la gara, e il processo \weather{}, che gestisce le variazioni alle condizioni meteo del tracciato.
 
-L'idea di base di questa componente è di mantenere un orologio ``logico'' unico relativo alla competizione e di permettere l'esecuzione dei soli processi che si sono precedentemente prenotati. Si tratta perciò di un sistema di \textit{booking} nel quale i processi che vengono serviti devono prima indicare a che tempo di gara vogliono eseguire e successivamente vengono messi in una coda ordinata secondo il tempo indicato nella prenotazione. Tra tutti i processi accodati lo \sched{} eleggerà per l'esecuzione sempre quello in testa, ovvero il processo che nella fase di prenotazione precedente ha indicato un tempo minore. Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione della simulazione.
+L'idea di base di questa componente è di mantenere un orologio ``logico'' unico relativo alla competizione e di permettere l'esecuzione dei soli processi che si sono precedentemente prenotati. Si tratta perciò di un sistema di \textit{booking} nel quale i processi che vengono serviti devono prima indicare a che tempo di gara vogliono eseguire e successivamente vengono messi in una coda ordinata secondo il tempo indicato nella prenotazione. Tra tutti i processi accodati lo \sched{} eleggerà per l'esecuzione sempre quello in testa, ovvero il processo che nella fase di prenotazione precedente ha indicato un tempo di gara minore. Questa componente ha quindi la funzione di eliminare la parte indesiderata di concorrenza presente nel sistema, per rendere predicibile e controllata l'evoluzione della simulazione.
 
 Al momento della prenotazione, \car{} e \weather{} devono indicare anche un metodo di \textit{callback}. L'invocazione di tale metodo da parte dello \sched{} equivale al permesso di eseguire e quindi accedere a \track{}, come richiesto nella fase di prenotazione.
 L'invocazione di \textit{callback} è effettuata con una chiamata bloccante in modo da permettere a \sched{} di conoscere quando il processo richiedente ha terminato di utilizzare la risorsa \track{}.
@@ -116,8 +116,7 @@ Le notifiche possibili riguardano:
 \item scuderia di appartenenza,
 \item livello di carburante nell'auto,
 \item tipo di pneumatici utilizzati,
-\item livello di usura dei pneumatici,
-\item posizione nel circuito.
+\item livello di usura dei pneumatici.
 \end{itemize}
 Prima dell'inizio della competizione \car{} deve prenotarsi presso lo \sched{} e stare poi in attesa del permesso di muoversi sulla pista.
 Questa componente ha il compito di decidere quale traiettoria adottare per percorrere un segmento e deve farlo basandosi sullo stato dell'auto, sulle direttive dei \team{} e dell'utente e sulle informazioni fornite da \track{}.
@@ -258,22 +257,21 @@ L'utente dovrà interagire con due tipi di interfacce di configurazione:
 \item \texttt{node\_configurator}: serve all'utente per indicare al sistema su quali nodi possono essere avviate le componenti essenziali del sistema e per determinare quindi come saranno distribuite sulla rete tali componenti.
 \end{itemize}
 
-Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \bootserv{} che non partecipa alla simulazione e un numero variabile di nodi gestiti da altrettanti \nodeman{} sui quali vengono eseguite le componenti di simulazione. Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo \Erlang{} alla chiusura del sistema.
+Per gestire l'avvio e la terminazione del sistema in modo indipendente dalla distribuzione delle componenti di simulazione abbiamo deciso di associare ad ogni nodo che partecipa al sistema un processo per il controllo del nodo stesso. Vi sarà quindi un nodo controllato da \bootserv{} che non partecipa alla simulazione e un numero variabile di nodi gestiti da altrettanti \nodeman{} sui quali vengono eseguite le componenti di simulazione. Questi processi di controllo non devono terminare finché il nodo serve al sistema poiché hanno il compito fondamentale di terminare il nodo stesso alla chiusura del sistema.
 
 \subsection{Control Panel e Bootstrap Server}
-\texttt{control\_panel} ha il compito di acquisire le informazioni necessarie alla simulazione dall'utente e avviare un nodo \Erlang{} sul quale far eseguire la componente \bootserv{}.
-Dopo di che \texttt{control\_panel} deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
+\texttt{control\_panel} ha il compito di acquisire le informazioni necessarie alla simulazione dall'utente e avviare la componente \bootserv{}. Dopodiché \texttt{control\_panel} deve rimanere attivo poiché è l'interfaccia che permette all'utente di terminare tutti i nodi del sistema.
 
 La funzione di \bootserv{} è fondamentale per l'avvio e la terminazione del sistema e di conseguenza non deve essere terminato finché gli altri nodi del sistema sono attivi.
 
 Nella fase iniziale il suo compito è quello di coordinare l'inizializzazione di tutte le componenti del sistema nell'ordine corretto, secondo la disponibilità dei nodi e le necessità della simulazione, rispettando le dipendenze di avvio tra le varie entità.
-Il numero di componenti da istanziare per eseguire la simulazione viene derivato dalle informazioni contenute nei file di configurazione. Finché il sistema non è formato da un numero di nodi con una disponibilità di risorse sufficiente ad ospitare la simulazione, esso non può essere avviato.
+Il numero di componenti da istanziare viene calcolato come segue: per quanto riguarda \car{} e \team{}, i requisiti minimi vengono ricavati in modo automatico a partire dai file di configurazione, mentre è comunque sempre necessaria un'istanza per ciascuna delle componenti: \evdisp{}, \sched{}, \weather{}. Finché il sistema non è formato da un numero di nodi con una disponibilità di risorse sufficiente ad ospitare la simulazione, esso non può essere avviato.
 
 Una volta che \bootserv{} ha istanziato nel giusto ordine le componenti necessarie presso i nodi distribuiti, la fase di \textit{bootstrap} del sistema può dirsi conclusa.
 Successivamente \bootserv{} rimane in attesa del comando di terminazione da parte di \texttt{control\_panel} per coordinare la terminazione dei nodi del sistema distribuiti.
 
 \subsection{Node Configurator e Node Manager}
-Una volta avviato \texttt{node\_configurator}, questo istanzia un nodo \Erlang{} che andrà a fare parte del sistema distribuito e ivi avvia \nodeman{}. L'utente deve indicare tramite l'interfaccia grafica \texttt{node\_configurator} la disponibilità di risorse del nodo \Erlang{} appena avviato in modo che \nodeman{} possa comunicarlo a \bootserv{}.
+Una volta avviato, \texttt{node\_configurator} istanzia un nodo che andrà a fare parte del sistema distribuito e ivi avvia \nodeman{}. L'utente deve indicare tramite l'interfaccia grafica \texttt{node\_configurator} la disponibilità di risorse del nodo appena avviato in modo che \nodeman{} possa comunicarlo a \bootserv{}.
 
 La componente \nodeman{} ha anche il compito di avviare le componenti necessarie alla simulazione indicategli e su delega del \bootserv{}.
 
