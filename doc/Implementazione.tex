@@ -381,3 +381,15 @@ In questo caso la scelta di comunicazione sincrona avrebbe comportato che, ad og
 Questa situazione è chiaramente indesiderabile: abbiamo deciso quindi di utilizzare comunicazioni asincrone internamente a \evdisp{}. Il linguaggio utilizzato garantisce che, nel caso di comunicazione asincrona tra processi residenti in uno stesso nodo, l'ordine di ricezione dei messaggi da parte del destinatario è uguale all'ordine di invio dei messaggi da parte del mittente. Grazie a ciò non si è reso necessario un riordino dei messaggi a destinazione, semplificando quindi l'implementazione, ma è stato imposto un vincolo sulla distribuzione dei processi che compongono \evdisp{}.
 
 Il fatto che \textit{front-end} a \textit{back-end} debbano essere su uno stesso nodo non ci è sembrato troppo restrittivo rispetto alla semplificazione in termini di progettazione che l'accettazione di tale vincolo comporta.
+
+\section{Gestione dei \textit{fault}}
+Per i meccanismi di \textit{detection} ci siamo affidati ampiamente alle funzionalità fornite da \Erlang{}, sia per rilevare eventuali comunicazioni verso nodi non raggiungibili, sia per controllare la validità della sintassi dei \textit{file} di configurazione.
+In caso di \textit{file} di configurazione malformati il sistema provvede a notificare all'utente l'anomalia e inibisce la fase di \textit{bootstrap}.
+
+Nello sviluppo del prototipo abbiamo deciso, per semplicità, di non intraprendere operazioni di \textit{recovery}, se non banali, in caso di errore.
+Conformemente a questa decisione abbiamo dato poca rilevanza ai problemi classici generati dall'uso di comunicazione sincrona e l'abbiamo preferita a quella asincrona qualora risultasse vantaggiosa rispetto a quest'ultima.
+
+Gli unici casi in cui viene gestita un'eventuale disconnessione di un qualsiasi nodo partecipante alla simulazione è la fase precedente al \textit{bootstrap} poiché qualora un nodo non dovesse essere più raggiungibile le risorse associate ad esso verrebbero considerate non più disponibili.
+Nel corso della simulazione l'unico scenario in cui sono state progettate misure di recupero è la disconnessione di GUI rilevata e gestita dai \textit{back-end}.
+
+In tutti gli altri casi ogni tipo di malfunzionamento non è facilmente recuperabile ed è quindi fatale per sistema.
